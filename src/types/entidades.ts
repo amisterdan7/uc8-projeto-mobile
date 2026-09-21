@@ -8,6 +8,7 @@ export interface Plano {
 export interface Aluno {
   id: number;
   nome: string;
+  dataNascimento: string;
   telefone: string | null;
   ativo: boolean;
 }
@@ -21,6 +22,6 @@ export interface Matricula {
 }
 
 export interface MatriculaDetalhada extends Matricula {
-  aluno: Omit<Aluno, 'ativo'>; // Ocultando o campo 'ativo' de Aluno
+  aluno: Omit<Aluno, 'ativo'>; 
   plano: Plano;
 }
