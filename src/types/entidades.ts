@@ -3,6 +3,9 @@ export type StatusMatricula = 'ativa' | 'inativa' | 'vencida';
 export interface Plano {
   id: number;
   nome: string;
+  preco: number;
+  duracaoMeses: number;
+  descricao: string;
 }
 
 export interface Aluno {
@@ -17,6 +20,7 @@ export interface Matricula {
   id: number;
   alunoId: number;
   planoId: number;
+  dataInicio: string;
   dataFimEstimada: string; 
   status: StatusMatricula;
 }
