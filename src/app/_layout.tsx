@@ -8,9 +8,7 @@ export default function Layout() {
     return <Stack screenOptions={{ 
         headerShown: false,
         navigationBarColor: backgroundColor,
-        contentStyle: {
-        backgroundColor
-    }
- }}>  </Stack>
-
+        contentStyle: { backgroundColor }
+    }}
+    />
 }
