@@ -3,7 +3,7 @@ import { View, Image, TouchableOpacity } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialIcons } from '@expo/vector-icons'
 import { Link } from 'expo-router'
-import { styles } from './styles'
+import { styles } from './_styles'
 import { colors } from '@/styles/colors'
 import { Category } from '@/components'
 
@@ -26,7 +26,6 @@ export default function Index() {
           <MaterialIcons name="menu" size={24} color={colors.blue[500]} />
         </TouchableOpacity>
       </View>
-
       <View style={styles.categoriesRow}>
         {categorias.map((cat) => (
           <Link key={cat.chave} href={cat.rota} asChild>
@@ -39,6 +38,7 @@ export default function Index() {
           </Link>
         ))}
       </View>
+
     </View>
   )
 }
