@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { View, Image, TouchableOpacity } from 'react-native'
+import { View, Image, TouchableOpacity, Text } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { MaterialIcons } from '@expo/vector-icons'
-import { Link } from 'expo-router'
+import { Link, useNavigation } from 'expo-router'
 import { styles } from './_styles'
 import { colors } from '@/styles/colors'
 import { Category } from '@/components'
@@ -16,11 +16,14 @@ const categorias = [
 export default function Index() {
   const insets = useSafeAreaInsets()
   const [selecionada, setSelecionada] = useState('alunos')
-
+  const navigation = useNavigation()
+  
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <Image source={require('../../assets/logo.png')} style={styles.logo} />
+
+        <Text style={styles.cardTitle}> Sistema de Gestão de Alunos e Matrículas de academia </Text>
 
         <TouchableOpacity>
           <MaterialIcons name="menu" size={24} color={colors.blue[500]} />
