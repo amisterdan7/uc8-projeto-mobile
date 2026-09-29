@@ -27,3 +27,7 @@ export function Category({ name, icon, isSelected, style, ...rest }: Props) {
     </Pressable>
   );
 }
+
+// Mantém os componentes reutilizáveis disponíveis pelo ponto de entrada comum.
+export { AlunoCard } from "./AlunoCard";
+export { AlunoForm } from "./AlunoForm";
