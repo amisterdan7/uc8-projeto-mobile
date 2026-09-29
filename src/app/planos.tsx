@@ -1,5 +1,7 @@
-import { FlatList, Text, View } from "react-native";
+import { Button, FlatList, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "expo-router";
 import { styles } from "./_styles";
 import type { Plano } from "@/types/entidades";
 import { colors } from "@/styles/colors";
@@ -38,16 +40,19 @@ const formatPrice = (price: number) => {
 
 export default function Planos() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
       <View
         style={[
           styles.header,
-          { paddingTop: insets.top + 16, justifyContent: "center" },
+          { paddingTop: insets.top + 16 },
         ]}
       >
+        <MaterialIcons name="arrow-back" size={24} color={colors.blue[500]} onPress={() => navigation.goBack()} />
         <Text style={styles.headerTitle}>Planos</Text>
+        <View style={{ width: 70 }} />
       </View>
 
       <FlatList
