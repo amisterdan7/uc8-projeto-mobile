@@ -41,3 +41,20 @@ Este documento registra as decisões técnicas tomadas durante a integração do
 - **Decisão:** O aplicativo mobile nunca calcula datas de fim de matrícula, não deriva status (`vencida`, `ativa`) e não impõe regras de negócio por conta própria.
 - **Contexto:** O backend v1 é a única autoridade da verdade. O status `'vencida'` é derivado dinamicamente pela API e nunca gravado diretamente pelo app.
 - **Ação:** O aplicativo apenas exibe os dados retornados pela API e esconde botões de ação que o perfil do usuário logado não possui permissão para executar (`podeFazer(acao)`). A validação final de segurança é sempre realizada pelo backend.
+
+---
+
+## 6. Implementação de Troca de Senha do Próprio Usuário
+
+- **Decisão:** Implementação na `TelaConta` conectada à rota `POST /v1/auth/trocar-senha`.
+- **Contexto:** Como funcionalidade opcional prevista na etapa 5, os colaboradores (tanto admin quanto recepção) podem alterar sua própria senha diretamente pelo app móvel.
+- **Ação:** Formulário com validação prévia de confirmação de senha e tamanho mínimo no cliente, enviando `{ senha_atual, nova_senha }` com cabeçalho de autenticação Bearer JWT e feedback de sucesso ou erro amigável ao usuário.
+
+---
+
+## 7. Tratamento Automático de Sessão Expirada e Permissões por Perfil
+
+- **Decisão:** Interceptação global de respostas HTTP 401 através de callback registrado entre o cliente API e o `SessaoContext`.
+- **Contexto:** A API emite tokens com validade de 8 horas e pode retornar 401 caso o token expire ou o usuário seja desativado.
+- **Ação:** Ao detectar 401, o cliente HTTP dispara imediatamente a limpeza do token no SecureStore, zera o estado de sessão e notifica o usuário via alerta nativo, redirecionando para a tela de Login sem travamentos.
+- **Perfis e Ações:** O perfil `admin` recebe permissão curinga `*` exibindo todas as opções de gerenciamento. O perfil `recepcao` não vê botões de exclusão, arquivamento ou inativação (`alunos:desativar`, `alunos:excluir`, `matriculas:atualizar-status`, `matriculas:excluir`), assegurando alinhamento visual com as políticas de segurança do backend.
