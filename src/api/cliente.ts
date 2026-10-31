@@ -1,23 +1,27 @@
 import type { DetalheErroApi, RespostaErroApi } from './tipos';
 
-export class ErroApi extends Error {
+export class ErroDaApi extends Error {
   readonly codigo: string;
+  readonly status: number;
   readonly statusHttp: number;
   readonly detalhes?: DetalheErroApi[];
 
   constructor(
     mensagem: string,
     codigo: string = 'ERRO_DESCONHECIDO',
-    statusHttp: number = 500,
+    status: number = 500,
     detalhes?: DetalheErroApi[]
   ) {
     super(mensagem);
-    this.name = 'ErroApi';
+    this.name = 'ErroDaApi';
     this.codigo = codigo;
-    this.statusHttp = statusHttp;
+    this.status = status;
+    this.statusHttp = status;
     this.detalhes = detalhes;
   }
 }
+
+export { ErroDaApi as ErroApi };
 
 let tokenAtual: string | null = null;
 let callbackSessaoExpirada: (() => void) | null = null;
@@ -92,13 +96,13 @@ export async function requisitarApi<T>(
   } catch (erro: unknown) {
     clearTimeout(timer);
     if (erro instanceof Error && erro.name === 'AbortError') {
-      throw new ErroApi(
+      throw new ErroDaApi(
         'Tempo limite de conexão excedido. Verifique se o servidor da API está ativo.',
         'TIMEOUT',
         408
       );
     }
-    throw new ErroApi(
+    throw new ErroDaApi(
       'Não foi possível conectar ao servidor. Verifique sua conexão ou a URL configurada.',
       'FALHA_CONEXAO',
       503
@@ -128,7 +132,7 @@ export async function requisitarApi<T>(
     const codigo = corpoErro?.error?.code || `HTTP_${resposta.status}`;
     const detalhes = corpoErro?.error?.details;
 
-    throw new ErroApi(mensagem, codigo, resposta.status, detalhes);
+    throw new ErroDaApi(mensagem, codigo, resposta.status, detalhes);
   }
 
   // Resposta com 204 No Content

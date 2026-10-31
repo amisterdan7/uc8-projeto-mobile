@@ -1,7 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ErroApi } from '../src/api/cliente';
+import { ErroDaApi } from '../src/api/cliente';
 import {
+  ErroDeValidacao,
+  ErroDoBanco,
   classificarErro,
   limparEventosErro,
   obterEventosErro,
@@ -38,39 +40,54 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
   });
 
   describe('classificarErro', () => {
-    it('deve classificar HTTP 401 como erro de sessão', () => {
-      const erro = new ErroApi('Não autenticado', 'NAO_AUTENTICADO', 401);
+    it('deve classificar ErroDeValidacao como erro de validacao', () => {
+      const erro = new ErroDeValidacao('Nome muito curto');
       const res = classificarErro(erro);
-      assert.equal(res.tipo, 'sessao');
+      assert.equal(res.tipo, 'validacao');
+      assert.equal(res.mensagem, 'Nome muito curto');
+      assert.match(res.detalhe, /ErroDeValidacao: Nome muito curto/);
+    });
+
+    it('deve classificar ErroDoBanco como erro de banco', () => {
+      const erro = new ErroDoBanco('Falha no disco');
+      const res = classificarErro(erro);
+      assert.equal(res.tipo, 'banco');
+      assert.match(res.mensagem, /aparelho/i);
+    });
+
+    it('deve classificar HTTP 401 como erro de api', () => {
+      const erro = new ErroDaApi('Não autenticado', 'NAO_AUTENTICADO', 401);
+      const res = classificarErro(erro);
+      assert.equal(res.tipo, 'api');
       assert.match(res.mensagem, /sessão/i);
     });
 
-    it('deve classificar HTTP 403 como erro de permissão', () => {
-      const erro = new ErroApi('Sem permissão', 'SEM_PERMISSAO', 403);
+    it('deve classificar HTTP 403 como erro de api', () => {
+      const erro = new ErroDaApi('Sem permissão', 'SEM_PERMISSAO', 403);
       const res = classificarErro(erro);
-      assert.equal(res.tipo, 'permissao');
+      assert.equal(res.tipo, 'api');
       assert.match(res.mensagem, /permissão/i);
     });
 
-    it('deve classificar HTTP 400 como erro de validação', () => {
-      const erro = new ErroApi('Data de nascimento inválida', 'VALIDACAO', 400);
+    it('deve classificar HTTP 400 como erro de api com detalhes', () => {
+      const erro = new ErroDaApi('Data de nascimento inválida', 'VALIDACAO', 400);
       const res = classificarErro(erro);
-      assert.equal(res.tipo, 'validacao');
+      assert.equal(res.tipo, 'api');
       assert.equal(res.mensagem, 'Data de nascimento inválida');
     });
 
-    it('deve classificar HTTP 409 como erro de conflito', () => {
-      const erro = new ErroApi('Aluno já possui matrícula ativa', 'CONFLITO', 409);
+    it('deve classificar HTTP 409 como erro de api de conflito', () => {
+      const erro = new ErroDaApi('Aluno já possui matrícula ativa', 'CONFLITO', 409);
       const res = classificarErro(erro);
-      assert.equal(res.tipo, 'conflito');
+      assert.equal(res.tipo, 'api');
       assert.equal(res.mensagem, 'Aluno já possui matrícula ativa');
     });
 
     it('deve classificar TIMEOUT ou FALHA_CONEXAO como erro de rede', () => {
-      const erroTimeout = new ErroApi('Tempo limite', 'TIMEOUT', 408);
+      const erroTimeout = new ErroDaApi('Tempo limite', 'TIMEOUT', 408);
       assert.equal(classificarErro(erroTimeout).tipo, 'rede');
 
-      const erroConexao = new ErroApi('Falha de rede', 'FALHA_CONEXAO', 503);
+      const erroConexao = new ErroDaApi('Falha de rede', 'FALHA_CONEXAO', 503);
       assert.equal(classificarErro(erroConexao).tipo, 'rede');
     });
 
@@ -78,7 +95,7 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
       const erroRede = new Error('Network request failed');
       const res = classificarErro(erroRede);
       assert.equal(res.tipo, 'rede');
-      assert.match(res.mensagem, /conexão com a internet/i);
+      assert.match(res.mensagem, /conexão com o servidor/i);
     });
   });
 

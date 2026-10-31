@@ -1,24 +1,34 @@
-import { ErroApi } from '@/api/cliente';
+import { ErroDaApi } from '../api/cliente';
 
-export type TipoErro =
-  | 'rede'
-  | 'sessao'
-  | 'permissao'
-  | 'validacao'
-  | 'conflito'
-  | 'servidor'
-  | 'desconhecido';
+export type TipoDeErro = 'rede' | 'api' | 'banco' | 'validacao' | 'desconhecido';
 
 export interface ErroClassificado {
-  tipo: TipoErro;
+  tipo: TipoDeErro;
   mensagem: string;
+  detalhe: string;
   origem?: string;
+}
+
+export class ErroDeValidacao extends Error {
+  constructor(mensagem: string) {
+    super(mensagem);
+    this.name = 'ErroDeValidacao';
+  }
+}
+
+export class ErroDoBanco extends Error {
+  constructor(mensagem: string) {
+    super(mensagem);
+    this.name = 'ErroDoBanco';
+  }
 }
 
 export interface EventoErro {
   dataHora: string;
   origem: string;
-  tipo: TipoErro;
+  tipo: TipoDeErro;
+  detalhe: string;
+  mensagem: string;
   statusOuCodigo?: string | number;
 }
 
@@ -34,99 +44,78 @@ export function sanitizar(texto: string): string {
   }
 
   return texto
-    // Mascara tokens Bearer
     .replace(/Bearer\s+[a-zA-Z0-9_\-.]+/gi, 'Bearer [TOKEN_OCULTO]')
-    // Mascara possíveis e-mails
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/gi, '[EMAIL_OCULTO]')
-    // Mascara CPFs
     .replace(/\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, '[CPF_OCULTO]')
-    // Mascara telefones com DDD
     .replace(/\(?\b\d{2}\)?\s*9?\d{4}-?\d{4}\b/g, '[TELEFONE_OCULTO]')
-    // Mascara senhas explícitas em json/texto
     .replace(/"(senha|password)"\s*:\s*"[^"]*"/gi, '"$1":"[SENHA_OCULTA]"');
 }
 
 /**
  * Classifica um erro ocorrido no aplicativo para mensagem amigável e categoria padronizada.
  */
-export function classificarErro(erro: unknown, origem?: string): ErroClassificado {
-  if (erro instanceof ErroApi) {
-    if (erro.statusHttp === 401 || erro.codigo === 'NAO_AUTENTICADO') {
-      return {
-        tipo: 'sessao',
-        mensagem: 'Sua sessão expirou ou suas credenciais são inválidas. Faça login novamente.',
-        origem,
-      };
-    }
+export function classificarErro(erro: unknown): ErroClassificado {
+  if (erro instanceof ErroDeValidacao) {
+    return {
+      tipo: 'validacao',
+      mensagem: erro.message,
+      detalhe: `${erro.name}: ${erro.message}`,
+    };
+  }
 
-    if (
-      erro.statusHttp === 403 ||
-      erro.codigo === 'SEM_PERMISSAO' ||
-      erro.codigo === 'USUARIO_DESATIVADO'
-    ) {
-      return {
-        tipo: 'permissao',
-        mensagem: 'Você não possui permissão para executar esta ação.',
-        origem,
-      };
-    }
-
-    if (erro.statusHttp === 400 || erro.codigo === 'VALIDACAO') {
-      return {
-        tipo: 'validacao',
-        mensagem: sanitizar(erro.message || 'Dados inválidos na requisição.'),
-        origem,
-      };
-    }
-
-    if (erro.statusHttp === 409 || erro.codigo === 'CONFLITO') {
-      return {
-        tipo: 'conflito',
-        mensagem: sanitizar(erro.message || 'Conflito de estado do registro.'),
-        origem,
-      };
-    }
-
-    if (erro.statusHttp === 429 || erro.codigo === 'LIMITE_EXCEDIDO') {
-      return {
-        tipo: 'servidor',
-        mensagem: 'Muitas tentativas incorretas. Aguarde 60 segundos antes de tentar novamente.',
-        origem,
-      };
-    }
-
+  if (erro instanceof ErroDaApi) {
     if (erro.codigo === 'TIMEOUT' || erro.codigo === 'FALHA_CONEXAO') {
       return {
         tipo: 'rede',
-        mensagem: 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.',
-        origem,
+        mensagem: 'Sem conexão com o servidor. Verifique a rede e tente de novo.',
+        detalhe: `${erro.name} ${erro.codigo}: ${sanitizar(erro.message)}`,
       };
     }
 
-    if (
-      erro.statusHttp === 503 ||
-      erro.statusHttp === 500 ||
-      erro.codigo === 'BANCO_INDISPONIVEL' ||
-      erro.codigo === 'ERRO_INTERNO'
-    ) {
-      return {
-        tipo: 'servidor',
-        mensagem: sanitizar(erro.message || 'O servidor da API está temporariamente indisponível.'),
-        origem,
-      };
+    let mensagem = `O servidor recusou a operação (${erro.status}).`;
+    if (erro.status === 401 || erro.status === 403) {
+      mensagem = 'Sua sessão expirou ou você não tem permissão para esta operação.';
+    } else if (erro.status === 400) {
+      mensagem = sanitizar(erro.message || 'Dados inválidos na requisição.');
+    } else if (erro.status === 404) {
+      mensagem = 'Recurso não encontrado.';
+    } else if (erro.status === 409) {
+      mensagem = sanitizar(erro.message || 'Conflito com o estado atual do registro.');
+    } else if (erro.status === 429) {
+      mensagem = 'Limite de tentativas excedido. Aguarde 60 segundos.';
+    } else if (erro.status >= 500) {
+      mensagem = 'Serviço temporariamente indisponível.';
     }
 
     return {
-      tipo: 'desconhecido',
-      mensagem: sanitizar(erro.message || 'Ocorreu um erro no servidor.'),
-      origem,
+      tipo: 'api',
+      mensagem,
+      detalhe: `${erro.name} ${erro.status}: ${sanitizar(erro.message)}`,
+    };
+  }
+
+  if (erro instanceof ErroDoBanco) {
+    return {
+      tipo: 'banco',
+      mensagem: 'Não foi possível ler ou guardar os dados no aparelho.',
+      detalhe: `${erro.name}: ${sanitizar(erro.message)}`,
+    };
+  }
+
+  if (
+    (erro instanceof TypeError && erro.message === 'Network request failed') ||
+    (erro instanceof Error && erro.name === 'AbortError')
+  ) {
+    return {
+      tipo: 'rede',
+      mensagem: 'Sem conexão com o servidor. Verifique a rede e tente de novo.',
+      detalhe: `${erro.name}: ${sanitizar(erro.message)}`,
     };
   }
 
   if (erro instanceof Error) {
     const msgLower = erro.message.toLowerCase();
     if (
-      erro.name === 'AbortError' ||
       msgLower.includes('network') ||
       msgLower.includes('fetch') ||
       msgLower.includes('conexão') ||
@@ -134,50 +123,50 @@ export function classificarErro(erro: unknown, origem?: string): ErroClassificad
     ) {
       return {
         tipo: 'rede',
-        mensagem: 'Falha de conexão com a internet. Verifique sua rede e tente novamente.',
-        origem,
+        mensagem: 'Sem conexão com o servidor. Verifique a rede e tente de novo.',
+        detalhe: `${erro.name}: ${sanitizar(erro.message)}`,
       };
     }
 
     return {
       tipo: 'desconhecido',
-      mensagem: sanitizar(erro.message),
-      origem,
+      mensagem: 'Algo deu errado. Tente de novo.',
+      detalhe: `${erro.name}: ${sanitizar(erro.message)}`,
     };
   }
 
   return {
     tipo: 'desconhecido',
-    mensagem: 'Ocorreu um erro inesperado no aplicativo.',
-    origem,
+    mensagem: 'Algo deu errado. Tente de novo.',
+    detalhe: sanitizar(String(erro)),
   };
 }
 
 /**
- * Registra o evento de erro no buffer em memória (máximo 50 itens)
- * e, em ambiente __DEV__, emite um alerta seguro sem dados pessoais ou tokens.
+ * Registra o erro no console no formato [origem] tipo: detalhe e guarda no buffer em memória.
  */
 export function registrarErro(origem: string, erro: unknown): ErroClassificado {
-  const classificado = classificarErro(erro, origem);
+  const classificado = classificarErro(erro);
+  classificado.origem = origem;
+
+  console.error(`[${origem}] ${classificado.tipo}: ${classificado.detalhe}`);
 
   let statusOuCodigo: string | number | undefined;
-  if (erro instanceof ErroApi) {
-    statusOuCodigo = erro.codigo || erro.statusHttp;
+  if (erro instanceof ErroDaApi) {
+    statusOuCodigo = erro.codigo || erro.status;
   }
 
   bufferErros.push({
     dataHora: new Date().toISOString(),
     origem: sanitizar(origem),
     tipo: classificado.tipo,
+    detalhe: classificado.detalhe,
+    mensagem: classificado.mensagem,
     statusOuCodigo,
   });
 
   if (bufferErros.length > LIMITE_BUFFER) {
     bufferErros.shift();
-  }
-
-  if (typeof __DEV__ !== 'undefined' && __DEV__) {
-    console.warn(`[${origem}] [${classificado.tipo}] ${classificado.mensagem}`);
   }
 
   return classificado;
