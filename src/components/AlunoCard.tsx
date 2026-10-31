@@ -13,6 +13,7 @@ interface AlunoCardProps {
   podeEditar?: boolean;
   podeDesativar?: boolean;
   podeExcluir?: boolean;
+  onPress?: (aluno: Aluno) => void;
   onEditar?: (aluno: Aluno) => void;
   onAlternarAtivo?: (aluno: Aluno) => void;
   onExcluir?: (aluno: Aluno) => void;
@@ -23,6 +24,7 @@ export function AlunoCard({
   podeEditar = false,
   podeDesativar = false,
   podeExcluir = false,
+  onPress,
   onEditar,
   onAlternarAtivo,
   onExcluir,
@@ -31,36 +33,45 @@ export function AlunoCard({
 
   return (
     <View style={[estilosComuns.cartao, isArquivado && styles.cartaoArquivado]}>
-      <View style={styles.linhaSuperior}>
-        <View style={styles.colunaIdentificacao}>
-          <Text style={estilosComuns.tituloCartao}>{aluno.nome}</Text>
-          {aluno.planoNome ? (
-            <Text style={styles.textoPlano}>Plano: {aluno.planoNome}</Text>
-          ) : null}
+      <TouchableOpacity
+        activeOpacity={onPress ? 0.7 : 1}
+        onPress={() => {
+          if (onPress) onPress(aluno);
+        }}
+        accessibilityRole={onPress ? 'button' : undefined}
+        accessibilityLabel={`Aluno ${aluno.nome}, toque para ver detalhes`}
+      >
+        <View style={styles.linhaSuperior}>
+          <View style={styles.colunaIdentificacao}>
+            <Text style={estilosComuns.tituloCartao}>{aluno.nome}</Text>
+            {aluno.planoNome ? (
+              <Text style={styles.textoPlano}>Plano: {aluno.planoNome}</Text>
+            ) : null}
+          </View>
+
+          <View style={styles.linhaSelos}>
+            {isArquivado ? (
+              <Selo status="arquivado" />
+            ) : (
+              <Selo status={aluno.statusMatricula ?? 'sem_matricula'} />
+            )}
+          </View>
         </View>
 
-        <View style={styles.linhaSelos}>
-          {isArquivado ? (
-            <Selo status="arquivado" />
-          ) : (
-            <Selo status={aluno.statusMatricula ?? 'sem_matricula'} />
-          )}
+        <View style={styles.linhaDetalhe}>
+          <MaterialIcons name="cake" size={16} color={colors.gray[400]} />
+          <Text style={estilosComuns.textoMutavel}>
+            Nascimento: {formatarDataBR(aluno.dataNascimento)}
+          </Text>
         </View>
-      </View>
 
-      <View style={styles.linhaDetalhe}>
-        <MaterialIcons name="cake" size={16} color={colors.gray[400]} />
-        <Text style={estilosComuns.textoMutavel}>
-          Nascimento: {formatarDataBR(aluno.dataNascimento)}
-        </Text>
-      </View>
-
-      <View style={styles.linhaDetalhe}>
-        <MaterialIcons name="phone" size={16} color={colors.gray[400]} />
-        <Text style={estilosComuns.textoMutavel}>
-          {formatarTelefone(aluno.telefone)}
-        </Text>
-      </View>
+        <View style={styles.linhaDetalhe}>
+          <MaterialIcons name="phone" size={16} color={colors.gray[400]} />
+          <Text style={estilosComuns.textoMutavel}>
+            {formatarTelefone(aluno.telefone)}
+          </Text>
+        </View>
+      </TouchableOpacity>
 
       {(podeEditar || podeDesativar || (podeExcluir && isArquivado)) ? (
         <View style={estilosComuns.linhaAcoes}>

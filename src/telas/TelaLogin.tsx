@@ -7,14 +7,14 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
-import { ErroApi } from '@/api';
+import { Campo } from '@/components';
+import { registrarErro } from '@/erros';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -24,29 +24,42 @@ export function TelaLogin() {
 
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
-  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
-  const [mensagemErro, setMensagemErro] = useState('');
+
+  const [erroUsuario, setErroUsuario] = useState('');
+  const [erroSenha, setErroSenha] = useState('');
+  const [mensagemErroGeral, setMensagemErroGeral] = useState('');
 
   async function handleEntrar() {
     const usuarioLimpo = usuario.trim();
+    let temErros = false;
 
-    if (!usuarioLimpo || !senha) {
-      setMensagemErro('Informe o usuário e a senha para acessar.');
+    if (!usuarioLimpo) {
+      setErroUsuario('Informe seu usuário de acesso.');
+      temErros = true;
+    } else {
+      setErroUsuario('');
+    }
+
+    if (!senha) {
+      setErroSenha('Informe sua senha.');
+      temErros = true;
+    } else {
+      setErroSenha('');
+    }
+
+    if (temErros) {
       return;
     }
 
     setCarregando(true);
-    setMensagemErro('');
+    setMensagemErroGeral('');
 
     try {
       await entrar(usuarioLimpo, senha);
-    } catch (erro: any) {
-      if (erro instanceof ErroApi) {
-        setMensagemErro(erro.message);
-      } else {
-        setMensagemErro('Não foi possível realizar o login. Tente novamente.');
-      }
+    } catch (erro: unknown) {
+      const classificado = registrarErro('TelaLogin.entrar', erro);
+      setMensagemErroGeral(classificado.mensagem);
     } finally {
       setCarregando(false);
     }
@@ -77,75 +90,50 @@ export function TelaLogin() {
         </View>
 
         <View style={styles.cartaoFormulario}>
-          <View style={styles.grupoCampo}>
-            <Text style={styles.rotulo}>Usuário</Text>
-            <View style={styles.campoComIcone}>
-              <MaterialIcons
-                name="person"
-                size={20}
-                color={colors.gray[400]}
-                style={styles.iconeEsquerda}
-              />
-              <TextInput
-                value={usuario}
-                onChangeText={(texto) => {
-                  setUsuario(texto);
-                  if (mensagemErro) setMensagemErro('');
-                }}
-                placeholder="Ex.: admin ou recepcao"
-                placeholderTextColor={colors.gray[500]}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={[estilosComuns.input, styles.inputComIcone]}
-                editable={!carregando}
-              />
-            </View>
-          </View>
+          <Campo
+            rotulo="Usuário"
+            obrigatorio
+            value={usuario}
+            onChangeText={(texto) => {
+              setUsuario(texto);
+              if (erroUsuario) setErroUsuario('');
+              if (mensagemErroGeral) setMensagemErroGeral('');
+            }}
+            placeholder="Ex.: admin ou recepcao"
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!carregando}
+            erro={erroUsuario}
+            iconeEsquerda="person"
+          />
 
-          <View style={styles.grupoCampo}>
-            <Text style={styles.rotulo}>Senha</Text>
-            <View style={styles.campoComIcone}>
-              <MaterialIcons
-                name="lock"
-                size={20}
-                color={colors.gray[400]}
-                style={styles.iconeEsquerda}
-              />
-              <TextInput
-                value={senha}
-                onChangeText={(texto) => {
-                  setSenha(texto);
-                  if (mensagemErro) setMensagemErro('');
-                }}
-                placeholder="Sua senha de acesso"
-                placeholderTextColor={colors.gray[500]}
-                secureTextEntry={!mostrarSenha}
-                autoCapitalize="none"
-                autoCorrect={false}
-                style={[estilosComuns.input, styles.inputComIcone, styles.inputSenha]}
-                editable={!carregando}
-              />
-              <TouchableOpacity
-                onPress={() => setMostrarSenha((antigo) => !antigo)}
-                style={styles.botaoOlho}
-              >
-                <MaterialIcons
-                  name={mostrarSenha ? 'visibility-off' : 'visibility'}
-                  size={20}
-                  color={colors.gray[400]}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <Campo
+            rotulo="Senha"
+            obrigatorio
+            value={senha}
+            onChangeText={(texto) => {
+              setSenha(texto);
+              if (erroSenha) setErroSenha('');
+              if (mensagemErroGeral) setMensagemErroGeral('');
+            }}
+            placeholder="Sua senha de acesso"
+            secureTextEntry
+            permiteAlternarSenha
+            autoCapitalize="none"
+            autoCorrect={false}
+            editable={!carregando}
+            erro={erroSenha}
+            iconeEsquerda="lock"
+          />
 
-          {mensagemErro ? (
+          {mensagemErroGeral ? (
             <View style={styles.caixaErro}>
               <MaterialIcons
                 name="error-outline"
                 size={18}
                 color={colors.red[400]}
               />
-              <Text style={styles.textoErro}>{mensagemErro}</Text>
+              <Text style={styles.textoErro}>{mensagemErroGeral}</Text>
             </View>
           ) : null}
 
@@ -205,35 +193,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: colors.gray[800],
-    gap: 16,
-  },
-  grupoCampo: {
-    gap: 6,
-  },
-  rotulo: {
-    color: colors.gray[300],
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  campoComIcone: {
-    position: 'relative',
-    justifyContent: 'center',
-  },
-  iconeEsquerda: {
-    position: 'absolute',
-    left: 14,
-    zIndex: 1,
-  },
-  inputComIcone: {
-    paddingLeft: 44,
-  },
-  inputSenha: {
-    paddingRight: 44,
-  },
-  botaoOlho: {
-    position: 'absolute',
-    right: 14,
-    padding: 4,
+    gap: 12,
   },
   caixaErro: {
     flexDirection: 'row',
@@ -244,6 +204,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(239, 68, 68, 0.3)',
     borderRadius: 8,
     padding: 10,
+    marginVertical: 4,
   },
   textoErro: {
     color: colors.red[400],

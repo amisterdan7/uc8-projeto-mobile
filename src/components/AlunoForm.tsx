@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -15,6 +14,7 @@ import {
   validarDataNascimentoBR,
 } from '@/utils/datas';
 import { aplicarMascaraTelefone, limparTelefone } from '@/utils/telefone';
+import { Campo } from './Campo';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -38,37 +38,57 @@ export function AlunoForm({
   const [telefone, setTelefone] = useState(
     alunoInicial?.telefone ? aplicarMascaraTelefone(alunoInicial.telefone) : ''
   );
-  const [erro, setErro] = useState('');
+
+  const [erroNome, setErroNome] = useState('');
+  const [erroNascimento, setErroNascimento] = useState('');
+  const [erroTelefone, setErroTelefone] = useState('');
+
+  function handleNomeChange(texto: string) {
+    setNome(texto);
+    if (erroNome) setErroNome('');
+  }
 
   function handleDataChange(texto: string) {
     setNascimentoBR(aplicarMascaraData(texto));
+    if (erroNascimento) setErroNascimento('');
   }
 
   function handleTelefoneChange(texto: string) {
     setTelefone(aplicarMascaraTelefone(texto));
+    if (erroTelefone) setErroTelefone('');
   }
 
   function handleSubmit() {
+    let temErros = false;
     const nomeLimpo = nome.trim();
 
     if (nomeLimpo.length < 3 || nomeLimpo.length > 100) {
-      setErro('O nome deve ter entre 3 e 100 caracteres.');
-      return;
+      setErroNome('O nome deve ter entre 3 e 100 caracteres.');
+      temErros = true;
+    } else {
+      setErroNome('');
     }
 
     const validacaoData = validarDataNascimentoBR(nascimentoBR);
     if (!validacaoData.valida) {
-      setErro(validacaoData.mensagem ?? 'Data de nascimento inválida.');
-      return;
+      setErroNascimento(validacaoData.mensagem ?? 'Data de nascimento inválida.');
+      temErros = true;
+    } else {
+      setErroNascimento('');
     }
 
     const telLimpo = limparTelefone(telefone);
     if (telLimpo.length > 0 && (telLimpo.length < 10 || telLimpo.length > 13)) {
-      setErro('Telefone deve conter DDD e de 10 a 13 dígitos numéricos.');
+      setErroTelefone('Telefone deve conter DDD e de 10 a 13 dígitos numéricos.');
+      temErros = true;
+    } else {
+      setErroTelefone('');
+    }
+
+    if (temErros) {
       return;
     }
 
-    setErro('');
     const dataISO = dataBRparaISO(nascimentoBR);
     onSubmit(nomeLimpo, dataISO, telLimpo);
   }
@@ -79,48 +99,42 @@ export function AlunoForm({
         {alunoInicial ? 'Editar Aluno' : 'Novo Aluno'}
       </Text>
 
-      <View style={styles.grupoCampo}>
-        <Text style={styles.rotulo}>Nome completo *</Text>
-        <TextInput
-          value={nome}
-          onChangeText={setNome}
-          placeholder="Ex.: Maria Souza"
-          placeholderTextColor={colors.gray[500]}
-          style={estilosComuns.input}
-          autoCapitalize="words"
-          editable={!salvando}
-        />
-      </View>
+      <Campo
+        rotulo="Nome completo"
+        obrigatorio
+        value={nome}
+        onChangeText={handleNomeChange}
+        placeholder="Ex.: Maria Souza"
+        autoCapitalize="words"
+        editable={!salvando}
+        erro={erroNome}
+        iconeEsquerda="person"
+      />
 
-      <View style={styles.grupoCampo}>
-        <Text style={styles.rotulo}>Data de Nascimento (DD/MM/AAAA) *</Text>
-        <TextInput
-          value={nascimentoBR}
-          onChangeText={handleDataChange}
-          placeholder="Ex.: 15/05/1998"
-          placeholderTextColor={colors.gray[500]}
-          keyboardType="number-pad"
-          maxLength={10}
-          style={estilosComuns.input}
-          editable={!salvando}
-        />
-      </View>
+      <Campo
+        rotulo="Data de Nascimento (DD/MM/AAAA)"
+        obrigatorio
+        value={nascimentoBR}
+        onChangeText={handleDataChange}
+        placeholder="Ex.: 15/05/1998"
+        keyboardType="number-pad"
+        maxLength={10}
+        editable={!salvando}
+        erro={erroNascimento}
+        iconeEsquerda="cake"
+      />
 
-      <View style={styles.grupoCampo}>
-        <Text style={styles.rotulo}>Telefone com DDD (opcional)</Text>
-        <TextInput
-          value={telefone}
-          onChangeText={handleTelefoneChange}
-          placeholder="Ex.: (84) 99999-0000"
-          placeholderTextColor={colors.gray[500]}
-          keyboardType="phone-pad"
-          maxLength={15}
-          style={estilosComuns.input}
-          editable={!salvando}
-        />
-      </View>
-
-      {erro ? <Text style={styles.textoErro}>{erro}</Text> : null}
+      <Campo
+        rotulo="Telefone com DDD (opcional)"
+        value={telefone}
+        onChangeText={handleTelefoneChange}
+        placeholder="Ex.: (84) 99999-0000"
+        keyboardType="phone-pad"
+        maxLength={15}
+        editable={!salvando}
+        erro={erroTelefone}
+        iconeEsquerda="phone"
+      />
 
       <View style={styles.linhaBotoes}>
         {onCancelar ? (
@@ -158,25 +172,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.gray[800],
-    gap: 12,
+    gap: 10,
     marginBottom: 16,
-  },
-  grupoCampo: {
-    gap: 4,
-  },
-  rotulo: {
-    color: colors.gray[300],
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  textoErro: {
-    color: colors.red[400],
-    fontSize: 13,
   },
   linhaBotoes: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 6,
+    marginTop: 8,
   },
   botao: {
     flex: 1,
