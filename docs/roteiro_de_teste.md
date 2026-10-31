@@ -28,6 +28,9 @@ Legenda do resultado: **aprovado** (o observado é o esperado), **falha** (não 
 | C18 | Tela Sobre e ambiente | Acessar aba Sobre | Exibe nome, versão, medidas da janela em dp, densidade, escala da fonte e Guardados no aparelho: 0 | não executado | - | - |
 | C19 | Registro e histórico de erros | Ocorrer qualquer falha na sessão; abrir aba Sobre | Histórico em memória exibe eventos sem dados sensíveis (sem token, CPF ou senha) | não executado | - | - |
 | C20 | Encerramento de sessão (Logout) | Aba Sobre; tocar em Sair da Conta | Sessão limpa do SecureStore; estados de Alunos e Matrículas zerados; retorno à tela de Login | não executado | - | - |
+| C33 | CRUD de Planos e Gestão de Recursos (C16) | Aba Planos; criar plano com recursos; editar nome/duração; excluir plano sem matrícula | Plano criado via `POST /planos`, atualizado via `PUT /planos/:id` e excluído via `DELETE /planos/:id`; erro 409 tratado se houver matrículas vinculadas | não executado | - | - |
+| C34 | Gerenciamento de Usuários - Admin (C17) | Aba Usuários com login admin; cadastrar novo colaborador; alternar status ativo; redefinir senha | Usuário criado (`POST /usuarios`); desativação do próprio usuário bloqueada na interface e tratada; senha alterada via modal | não executado | - | - |
+| C35 | Alteração da Própria Senha (C18) | Aba Conta; informar senha atual e nova senha de 8 a 128 caracteres | Senha atualizada via `POST /auth/trocar-senha`; erro 400 mapeado para campo de senha atual se incorreta | não executado | - | - |
 
 ## Modo curso (Supabase + SQLite + Fila)
 

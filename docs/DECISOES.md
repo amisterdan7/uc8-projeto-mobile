@@ -151,3 +151,20 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
 - **Decisão:** Segregação rígida de persistência local para garantir conformidade de segurança e privacidade.
 - **Contexto:** Dados cadastrais de alunos (nomes, telefones, datas de nascimento e vínculos financeiros de matrículas) constituem dados pessoais sensíveis da operação corporativa.
 - **Garantia:** O banco SQLite local do aplicativo armazena única e exclusivamente planos e preços fictícios no modo curso. No modo corporativo de equipe, nenhum dado de aluno ou matrícula é gravado em disco ou SQLite no aparelho; apenas o token de autenticação JWT com expiração temporária de 8 horas é armazenado na área criptografada nativa do dispositivo (`expo-secure-store`).
+
+---
+
+## 18. Decisões da Integração Completa da API v1 (Modo Equipe - Etapas C1 a C8)
+
+- **Escopo de Funcionalidades Administrativas:**
+  1. **Troca da Própria Senha em Escopo:** A `TelaConta` permite a qualquer usuário autenticado (admin ou recepção) alterar sua senha via `POST /v1/auth/trocar-senha`, com validação de 8 a 128 caracteres e tratamento específico para erro 400 (`senha_atual` incorreta mapeada diretamente no campo correspondente).
+  2. **Gerenciamento de Planos em Escopo:** A `TelaPlanos` passou a contar com criação (`POST /v1/planos`), edição (`PUT /v1/planos/:id`) com gestão dinâmica de recursos descritivos (1 a 120 caracteres por recurso), e exclusão (`DELETE /v1/planos/:id`) com tratamento de conflito HTTP 409 quando houver matrículas vinculadas ao plano. As ações de escrita são condicionadas à permissão `planos:criar`, `planos:atualizar` e `planos:excluir` (perfil admin).
+  3. **Gerenciamento de Usuários em Escopo:** Foi criada a `TelaUsuarios` com listagem de colaboradores, criação de contas admin e recepção (`POST /v1/usuarios`), alternância de status ativo/inativo (`PATCH /v1/usuarios/:id/ativo`) com trava visual e de negócio impedindo a desativação da própria conta logada, e redefinição de senha (`PATCH /v1/usuarios/:id/senha`) via modal administrativo. A aba só é acessível na barra de navegação para usuários com a permissão `usuarios:listar` (admin).
+- **Tratamento de Conflitos HTTP 409 em Toda a Aplicação:**
+  - Criação/Edição de Aluno: Caso a API retorne 409, exibe: *"Já existe um aluno cadastrado com este mesmo nome e data de nascimento."*
+  - Exclusão de Aluno com Matrículas: Exibe orientação amigável: *"Este aluno possui histórico de matrículas registrado. Arquive o aluno em vez de excluí-lo."*
+  - Criação de Matrícula para Aluno Inativo: Exibe: *"Não é possível matricular um aluno inativo. Restaure o aluno primeiro."*
+  - Reativação de Matrícula quando já existe Ativa: Exibe: *"O aluno já possui uma matrícula ativa. Inative a matrícula atual antes de reativar esta."*
+  - Exclusão de Plano com Matrículas: Exibe: *"Não é possível excluir este plano pois existem matrículas vinculadas a ele."*
+- **Preservação da Fila e Modo Curso:**
+  - A camada do modo curso (`src/servicos/planosSupabase.ts`, `src/servicos/acervo.ts`, SQLite e fila de sincronização) permaneceu 100% isolada e intocada nesta fase, preservando o cumprimento estrito dos requisitos didáticos dos módulos 6 e 7.
