@@ -11,7 +11,6 @@ export type RotasNaoAutenticadasParamList = {
 
 export type AbasAppParamList = {
   Alunos: undefined;
-  Busca: undefined;
   Planos: undefined;
   Matriculas: { alunoId?: number } | undefined;
   Usuarios: undefined;

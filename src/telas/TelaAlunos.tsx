@@ -23,7 +23,7 @@ import { useAcademia, useAcervo } from '../contexto';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
 import { ErroDaApi } from '@/api';
 import { useSessao } from '@/auth';
-import { colunasPara } from '@/utils/responsividade';
+import { colunasPara, filtrarAlunos } from '@/utils';
 import { AlunoCard, AlunoForm, Carregando, EstadoErro, EstadoVazio } from '@/components';
 import { cores, espacos, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
@@ -197,25 +197,55 @@ export function TelaAlunos() {
 
     case 'erro':
       return (
-        <EstadoErro
-          mensagem={estadoAlunos.mensagem}
-          onTentarNovamente={recarregarAlunos}
-        />
+        <View style={estilosComuns.container}>
+          <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
+            <View>
+              <Text style={estilosComuns.tituloCabecalho}>Alunos</Text>
+              <Text style={estilosComuns.subtituloCabecalho}>
+                Falha ao carregar
+              </Text>
+            </View>
+
+            {podeCriar ? (
+              <TouchableOpacity
+                style={styles.botaoAdicionar}
+                onPress={handleAbrirCriacao}
+                accessibilityRole="button"
+                accessibilityLabel="Cadastrar novo aluno"
+              >
+                <MaterialIcons name="person-add" size={18} color={colors.white} />
+                <Text style={styles.textoBotaoAdicionar}>Novo Aluno</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <View style={styles.cartaoErroTopo}>
+            <View style={styles.linhaErroTopo}>
+              <MaterialIcons name="error-outline" size={24} color={colors.red[400]} />
+              <View style={styles.colunaTextoErro}>
+                <Text style={styles.tituloErroTopo}>
+                  Não foi possível carregar os alunos
+                </Text>
+                <Text style={styles.mensagemErroTopo}>{estadoAlunos.mensagem}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={styles.botaoTentarDeNovo}
+              onPress={recarregarAlunos}
+              accessibilityRole="button"
+              accessibilityLabel="Tentar carregar alunos de novo"
+            >
+              <MaterialIcons name="refresh" size={18} color={colors.white} />
+              <Text style={styles.textoBotaoTentarDeNovo}>Tentar de novo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       );
 
     case 'sucesso': {
       const listaAlunos = estadoAlunos.dados;
-      const termo = busca.trim().toLowerCase();
-      const termoNumeros = termo.replace(/\D/g, '');
-
-      const alunosFiltrados = !termo
-        ? listaAlunos
-        : listaAlunos.filter((aluno) => {
-            const nomeMatch = aluno.nome.toLowerCase().includes(termo);
-            const telNumeros = aluno.telefone ? aluno.telefone.replace(/\D/g, '') : '';
-            const telMatch = termoNumeros.length > 0 && telNumeros.includes(termoNumeros);
-            return nomeMatch || telMatch;
-          });
+      const alunosFiltrados = filtrarAlunos(listaAlunos, busca);
 
       return (
         <View style={estilosComuns.container}>
@@ -294,8 +324,8 @@ export function TelaAlunos() {
             ListEmptyComponent={
               <EstadoVazio
                 mensagem={
-                  busca
-                    ? 'Nenhum aluno encontrado para a busca informada.'
+                  busca.trim()
+                    ? 'Nenhum aluno encontrado para a busca.'
                     : 'Nenhum aluno cadastrado.'
                 }
                 icone="people-outline"
@@ -413,5 +443,48 @@ const styles = StyleSheet.create({
     right: 28,
     zIndex: 1,
     padding: 4,
+  },
+  cartaoErroTopo: {
+    margin: 16,
+    padding: 16,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    borderColor: colors.red[500],
+    borderWidth: 1,
+    borderRadius: 8,
+    gap: 12,
+  },
+  linhaErroTopo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  colunaTextoErro: {
+    flex: 1,
+    gap: 2,
+  },
+  tituloErroTopo: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: colors.white,
+  },
+  mensagemErroTopo: {
+    fontSize: 13,
+    color: colors.gray[300],
+  },
+  botaoTentarDeNovo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.blue[500],
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  textoBotaoTentarDeNovo: {
+    color: colors.white,
+    fontWeight: 'bold',
+    fontSize: 13,
   },
 });

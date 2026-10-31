@@ -168,3 +168,16 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
   - Exclusão de Plano com Matrículas: Exibe: *"Não é possível excluir este plano pois existem matrículas vinculadas a ele."*
 - **Preservação da Fila e Modo Curso:**
   - A camada do modo curso (`src/servicos/planosSupabase.ts`, `src/servicos/acervo.ts`, SQLite e fila de sincronização) permaneceu 100% isolada e intocada nesta fase, preservando o cumprimento estrito dos requisitos didáticos dos módulos 6 e 7.
+
+---
+
+## 19. Unificação da Busca Local de Alunos e Remoção da Aba Redundante (Modo Equipe)
+
+- **Decisão:** A aba "Busca" foi removida da barra de navegação do modo equipe (`src/navegacao/index.tsx`). A busca de alunos passou a ser realizada de forma unificada e local na própria tela `TelaAlunos`.
+- **Contexto:** A `TelaAlunos` já possuía campo de busca dedicado. A existência de uma aba separada "Busca" gerava duplicidade de interface e requisições concorrentes da listagem de alunos através de múltiplos contextos.
+- **Implementação:**
+  1. A filtragem foi isolada na função pura `filtrarAlunos` em `src/utils/filtroAlunos.ts`, normalizando diacríticos (sem acento), minúsculas e tolerando formatação e valores nulos de telefone, coberta por testes unitários dedicados em `tests/filtroAlunos.test.ts`.
+  2. A filtragem opera em memória sobre o estado de alunos previamente carregado no `DadosContext`, sem disparar requisições à API ao digitar.
+  3. Em falhas de rede, timeout ou indisponibilidade (503), a `TelaAlunos` exibe um cartão de erro no topo da própria tela com mensagem informativa e botão funcional "Tentar de novo", mantendo a tela identificável e sem enviar o erro apenas para a aba Sobre.
+  4. O estado vazio diferencia busca sem resultados (*"Nenhum aluno encontrado para a busca."*) de cadastro vazio (*"Nenhum aluno cadastrado."*).
+  5. A aba "Busca" do modo curso (`src/navegacao/NavegadorCurso.tsx` -> `TelaBuscaPlanos.tsx`) foi mantida intacta para consulta local de planos no SQLite.

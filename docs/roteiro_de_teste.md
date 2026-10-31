@@ -20,17 +20,19 @@ Legenda do resultado: **aprovado** (o observado é o esperado), **falha** (não 
 | C10 | Validação de telefone com DDD | Abrir formulário; preencher telefone incompleto (< 10 dígitos) | Validação impede envio; mensagem orientando formato com DDD válido | não executado | - | - |
 | C11 | Validação no contexto (ErroDeValidacao) | Submissão com campos fora da regra | Contexto lança `ErroDeValidacao`; formulário captura e exibe mensagem amigável | não executado | - | - |
 | C12 | Navegação para detalhe do aluno | Aba Alunos; tocar no cartão de um aluno | Tela de Detalhe abre exibindo dados cadastrais, plano vinculado e histórico de matrículas | não executado | - | - |
-| C13 | Aba de busca dedicada | Acessar aba Busca; digitar termo no campo | Filtragem imediata por nome ou telefone; exibe lista ou mensagem quando vazio | não executado | - | - |
+| C13 | Busca local de alunos | Na aba Alunos, digitar termo no campo de busca acima da lista | Filtragem imediata por nome ou telefone (insensível a maiúsculas e acentos) sem novas requisições à API | não executado | - | - |
 | C14 | Criação de matrícula e cálculo pela API | Aba Matrículas; Nova Matrícula; selecionar aluno e plano; confirmar | Matrícula criada (`POST /matriculas`); API calcula vencimento; registro surge na listagem | não executado | - | - |
 | C15 | Atualização de status de matrícula | Tocar em Inativar ou Reativar na matrícula | Status alterado via `PATCH /matriculas/:id/status`; selo visual atualizado imediatamente | não executado | - | - |
 | C16 | Responsividade e rotação de tela | Abrir lista em pé (< 600px) e girar aparelho para deitado (>= 600px) | Lista exibe 1 coluna em tela vertical e 2 colunas em tela horizontal/tablet | não executado | - | - |
-| C17 | Falha de conexão / Sem rede | Desativar Wi-Fi/dados móveis; recarregar lista | Erro classificado como `rede`; botão "Tentar de novo" disponível; app não fecha | não executado | - | - |
+| C17 | Falha de conexão / Sem rede | Desativar Wi-Fi/dados móveis; recarregar lista de alunos | Bloco de erro exibido no topo da tela Alunos com mensagem e botão "Tentar de novo"; app não fecha | não executado | - | - |
 | C18 | Tela Sobre e ambiente | Acessar aba Sobre | Exibe nome, versão, medidas da janela em dp, densidade, escala da fonte e Guardados no aparelho: 0 | não executado | - | - |
 | C19 | Registro e histórico de erros | Ocorrer qualquer falha na sessão; abrir aba Sobre | Histórico em memória exibe eventos sem dados sensíveis (sem token, CPF ou senha) | não executado | - | - |
 | C20 | Encerramento de sessão (Logout) | Aba Sobre; tocar em Sair da Conta | Sessão limpa do SecureStore; estados de Alunos e Matrículas zerados; retorno à tela de Login | não executado | - | - |
 | C33 | CRUD de Planos e Gestão de Recursos (C16) | Aba Planos; criar plano com recursos; editar nome/duração; excluir plano sem matrícula | Plano criado via `POST /planos`, atualizado via `PUT /planos/:id` e excluído via `DELETE /planos/:id`; erro 409 tratado se houver matrículas vinculadas | não executado | - | - |
 | C34 | Gerenciamento de Usuários - Admin (C17) | Aba Usuários com login admin; cadastrar novo colaborador; alternar status ativo; redefinir senha | Usuário criado (`POST /usuarios`); desativação do próprio usuário bloqueada na interface e tratada; senha alterada via modal | não executado | - | - |
 | C35 | Alteração da Própria Senha (C18) | Aba Conta; informar senha atual e nova senha de 8 a 128 caracteres | Senha atualizada via `POST /auth/trocar-senha`; erro 400 mapeado para campo de senha atual se incorreta | não executado | - | - |
+| C36 | Busca sem resultado na tela Alunos | Na aba Alunos, digitar termo inexistente no campo de busca | Lista exibe estado vazio com mensagem exata "Nenhum aluno encontrado para a busca." | não executado | - | - |
+| C37 | Tratamento de erro 503/timeout na tela Alunos | Simular servidor offline ou timeout ao recarregar alunos | Cartão no topo da tela Alunos informa erro e disponibiliza botão funcional "Tentar de novo" | não executado | - | - |
 
 ## Modo curso (Supabase + SQLite + Fila)
 

@@ -6,7 +6,6 @@ import { useSessao } from '@/auth';
 import { Carregando } from '@/components';
 import {
   TelaAlunos,
-  TelaBusca,
   TelaConta,
   TelaDetalheAluno,
   TelaLogin,
@@ -59,16 +58,6 @@ function NavegadorAutenticadoTabs() {
           tabBarLabel: 'Alunos',
           tabBarIcon: ({ color, size }) => (
             <MaterialIcons name="people" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Busca"
-        component={TelaBusca}
-        options={{
-          tabBarLabel: 'Busca',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="search" size={size} color={color} />
           ),
         }}
       />
