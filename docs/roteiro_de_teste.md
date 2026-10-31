@@ -4,6 +4,8 @@ Cada caso tem os passos, o resultado esperado e o resultado observado. A coluna 
 
 Legenda do resultado: **aprovado** (o observado é o esperado), **falha** (não é), **corrigido** (falhou, foi corrigido e aprovado na repetição), **não executado**.
 
+## Modo equipe (API v1)
+
 | # | Caso | Passos | Esperado | Resultado | Onde e quando | Correção |
 |---|---|---|---|---|---|---|
 | C01 | Autenticação com perfil Admin | Abrir o app; digitar login admin e senha; tocar em Acessar Sistema | Login efetuado; token salvo de forma segura; acesso às abas com permissão de exclusão e arquivamento | não executado | - | - |
@@ -26,3 +28,20 @@ Legenda do resultado: **aprovado** (o observado é o esperado), **falha** (não 
 | C18 | Tela Sobre e ambiente | Acessar aba Sobre | Exibe nome, versão, medidas da janela em dp, densidade, escala da fonte e Guardados no aparelho: 0 | não executado | - | - |
 | C19 | Registro e histórico de erros | Ocorrer qualquer falha na sessão; abrir aba Sobre | Histórico em memória exibe eventos sem dados sensíveis (sem token, CPF ou senha) | não executado | - | - |
 | C20 | Encerramento de sessão (Logout) | Aba Sobre; tocar em Sair da Conta | Sessão limpa do SecureStore; estados de Alunos e Matrículas zerados; retorno à tela de Login | não executado | - | - |
+
+## Modo curso (Supabase + SQLite + Fila)
+
+| # | Caso | Passos | Esperado | Resultado | Onde e quando | Correção |
+|---|---|---|---|---|---|---|
+| C21 | Carga com rede | Abrir o app no modo curso com rede ativa | Planos carregados do Supabase de exercício; guardados no banco SQLite local; exibidos na lista | não executado | - | - |
+| C22 | Cadastro válido aparece na tabela do Supabase | Tocar em Novo Plano; preencher nome, preço, duração e descrição; tocar em Salvar | Plano salvo na nuvem; visível na lista do app e na tabela `planos` do Supabase de exercício | não executado | - | - |
+| C23 | Campo inválido mostra erro no campo | No formulário de plano, deixar nome em branco ou preço negativo | Mensagem de erro sob o campo correspondente; botão Salvar desabilitado | não executado | - | - |
+| C24 | Chave errada tratada | Definir chave publicável inválida no `.env.local`; iniciar app | Tela exibe mensagem amigável: "A API respondeu 401" | não executado | - | - |
+| C25 | Sem rede com cache | Desativar conexão após ter carregado uma vez; abrir app | Lista carrega do SQLite com aviso: "Sem conexão: mostrando os planos guardados no aparelho" | não executado | - | - |
+| C26 | Sem rede e sem cache | Abrir o app pela primeira vez sem nenhuma rede e sem banco preenchido | Estado de erro exibido com mensagem da falha e botão "Tentar de novo" | não executado | - | - |
+| C27 | Cadastro sem rede vai para a fila | Sem conexão; cadastrar novo plano no formulário | Cadastro aceito localmente; adicionado à fila com aviso: "A enviar (1): Nome do Plano" | não executado | - | - |
+| C28 | Rede de volta sincroniza e a fila esvazia | Reativar rede; tocar em Recarregar na lista | Plano pendente é enviado ao Supabase; removido da tabela de pendentes; aviso "A enviar" some | não executado | - | - |
+| C29 | Detalhe | Na lista de planos, tocar no cartão do plano | Tela de Detalhe abre exibindo nome, preço em BRL, duração e descrição sem nova requisição | não executado | - | - |
+| C30 | Busca | Acessar a aba Busca; digitar termo presente no nome ou na descrição | Planos filtrados em tempo real na grade responsiva | não executado | - | - |
+| C31 | Contagem no Sobre | Acessar aba Sobre do modo curso | Exibe "Guardados no aparelho: N" com total correto; mostra "indisponível" se banco falhar | não executado | - | - |
+| C32 | DELETE com a chave publicável recusado | Enviar DELETE para `/rest/v1/planos` com a apikey anon | Supabase recusa com código HTTP 42501 (privilégio insuficiente por RLS e revoke) | não executado | - | - |
