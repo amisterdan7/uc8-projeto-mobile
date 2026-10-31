@@ -1,5 +1,7 @@
 import { ErroDaApi } from '../api/cliente';
 
+export { ErroDaApi };
+
 export interface PlanoCurso {
   id: number;
   nome: string;
