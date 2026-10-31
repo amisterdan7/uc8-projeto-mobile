@@ -31,8 +31,9 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test 'tests/**/*.test.ts'",
-    "test:unit": "node --import tsx --test 'tests/**/*.test.ts'"
+    "test": "npm run test:unit",
+    "test:unit": "node --import tsx --test 'tests/*.test.ts'",
+    "test:contrato": "node --import tsx --test 'tests/contrato/*.test.ts'"
   },
   "private": true
 }
