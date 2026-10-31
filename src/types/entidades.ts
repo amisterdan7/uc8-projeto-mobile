@@ -5,6 +5,7 @@ export interface Usuario {
   nome: string;
   login: string;
   perfil: PerfilUsuario;
+  ativo?: boolean;
 }
 
 export interface SessaoUsuario {

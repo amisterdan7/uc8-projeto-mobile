@@ -1,6 +1,6 @@
 /**
  * DTOs (Data Transfer Objects) que refletem exatamente o contrato da API v1.
- * Notação snake_case conforme devolvido pelo backend.
+ * Notacao snake_case conforme devolvido pelo backend.
  */
 
 export interface DetalheErroApi {
@@ -21,6 +21,22 @@ export interface UsuarioDTO {
   nome: string;
   login: string;
   perfil: 'admin' | 'recepcao';
+  ativo?: boolean;
+}
+
+export interface CriarUsuarioDTO {
+  nome: string;
+  login: string;
+  senha: string;
+  perfil: 'admin' | 'recepcao';
+}
+
+export interface AlterarAtivoUsuarioDTO {
+  ativo: boolean;
+}
+
+export interface RedefinirSenhaUsuarioDTO {
+  senha: string;
 }
 
 export interface RespostaLoginDTO {
@@ -46,6 +62,24 @@ export interface PlanoDTO {
   descricao: string | null;
   destaque: boolean;
   recursos: RecursoPlanoDTO[];
+}
+
+export interface CriarPlanoDTO {
+  nome: string;
+  preco: number;
+  duracao_meses: number;
+  descricao?: string | null;
+  destaque?: boolean;
+  recursos?: RecursoPlanoDTO[];
+}
+
+export interface AtualizarPlanoDTO {
+  nome: string;
+  preco: number;
+  duracao_meses: number;
+  descricao?: string | null;
+  destaque?: boolean;
+  recursos?: RecursoPlanoDTO[];
 }
 
 export interface AlunoDTO {

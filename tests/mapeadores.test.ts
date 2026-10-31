@@ -6,108 +6,173 @@ import {
   mapearMatricula,
   mapearPlano,
   mapearUsuario,
+  ERRO_RESPOSTA_INESPERADA,
 } from '../src/api/mapeadores';
-import type {
-  AlunoDTO,
-  MatriculaDTO,
-  PlanoDTO,
-  UsuarioDTO,
-} from '../src/api/tipos';
+import {
+  fixturesAluno,
+  fixturesMatricula,
+  fixturesPlano,
+  fixturesUsuario,
+} from './fixtures';
 
-describe('Mapeadores de Dados (DTO <-> Domínio)', () => {
-  it('deve mapear UsuarioDTO corretamente', () => {
-    const dto: UsuarioDTO = {
-      id: 1,
-      nome: 'Administrador Geral',
-      login: 'admin.mister',
-      perfil: 'admin',
-    };
-    const usuario = mapearUsuario(dto);
-    assert.deepEqual(usuario, {
-      id: 1,
-      nome: 'Administrador Geral',
-      login: 'admin.mister',
-      perfil: 'admin',
+describe('Mapeadores de Dados e Tolerancia do Contrato (C1)', () => {
+  describe('mapearUsuario', () => {
+    it('deve mapear UsuarioDTO valido', () => {
+      const u = mapearUsuario(fixturesUsuario.valido);
+      assert.equal(u.id, 1);
+      assert.equal(u.nome, 'Carlos Silva');
+      assert.equal(u.login, 'carlos.recepcao');
+      assert.equal(u.perfil, 'recepcao');
+      assert.equal(u.ativo, true);
+    });
+
+    it('deve ignorar campos extras e manter valores essenciais', () => {
+      const u = mapearUsuario(fixturesUsuario.comNulosECamposExtras);
+      assert.equal(u.id, 2);
+      assert.equal(u.nome, 'Ana Administradora');
+      assert.equal(u.login, 'ana.admin');
+      assert.equal(u.perfil, 'admin');
+      assert.equal(u.ativo, true);
+      assert.equal('metadados_extras' in u, false);
+    });
+
+    it('deve lancar mensagem amigavel se formato divergir', () => {
+      assert.throws(
+        () => mapearUsuario(fixturesUsuario.invalidoSemId),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+
+      assert.throws(
+        () => mapearUsuario(fixturesUsuario.invalidoPerfilIncorreto),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+
+      assert.throws(
+        () => mapearUsuario(null),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
     });
   });
 
-  it('deve mapear PlanoDTO para camelCase', () => {
-    const dto: PlanoDTO = {
-      id: 10,
-      nome: 'Plano Fit Plus',
-      preco: 129.9,
-      duracao_meses: 6,
-      descricao: 'Acesso completo a musculação e lutas',
-      destaque: true,
-      recursos: [{ descricao: 'Livre acesso' }, { descricao: 'Armário' }],
-    };
-    const plano = mapearPlano(dto);
-    assert.equal(plano.id, 10);
-    assert.equal(plano.nome, 'Plano Fit Plus');
-    assert.equal(plano.duracaoMeses, 6);
-    assert.equal(plano.destaque, true);
-    assert.equal(plano.recursos.length, 2);
-  });
-
-  it('deve mapear AlunoDTO preservando status e campos', () => {
-    const dto: AlunoDTO = {
-      id: 42,
-      nome: 'Carlos Drummond',
-      data_nascimento: '1985-10-31',
-      telefone: '84999998888',
-      ativo: true,
-      plano_nome: 'Fit',
-      status_matricula: 'ativa',
-    };
-    const aluno = mapearAluno(dto);
-    assert.equal(aluno.id, 42);
-    assert.equal(aluno.nome, 'Carlos Drummond');
-    assert.equal(aluno.dataNascimento, '1985-10-31');
-    assert.equal(aluno.telefone, '84999998888');
-    assert.equal(aluno.ativo, true);
-    assert.equal(aluno.planoNome, 'Fit');
-    assert.equal(aluno.statusMatricula, 'ativa');
-  });
-
-  it('deve preparar dados de aluno para envio convertendo telefone vazio para null', () => {
-    const comTelefone = mapearAlunoParaEnvio(
-      'Mariana Lima',
-      '1992-04-12',
-      '(84) 98888-1234'
-    );
-    assert.deepEqual(comTelefone, {
-      nome: 'Mariana Lima',
-      data_nascimento: '1992-04-12',
-      telefone: '84988881234',
+  describe('mapearPlano', () => {
+    it('deve mapear PlanoDTO valido com snake_case para camelCase', () => {
+      const p = mapearPlano(fixturesPlano.valido);
+      assert.equal(p.id, 10);
+      assert.equal(p.nome, 'Fit Plus');
+      assert.equal(p.preco, 129.9);
+      assert.equal(p.duracaoMeses, 6);
+      assert.equal(p.descricao, 'Acesso completo a musculacao e lutas');
+      assert.equal(p.destaque, true);
+      assert.equal(p.recursos.length, 2);
+      assert.equal(p.recursos[0].descricao, 'Livre acesso');
     });
 
-    const semTelefone = mapearAlunoParaEnvio('Mariana Lima', '1992-04-12', '   ');
-    assert.deepEqual(semTelefone, {
-      nome: 'Mariana Lima',
-      data_nascimento: '1992-04-12',
-      telefone: null,
+    it('deve aceitar descricao e recursos nulos, ignorando campos adicionais', () => {
+      const p = mapearPlano(fixturesPlano.comNulosECamposExtras);
+      assert.equal(p.id, 11);
+      assert.equal(p.nome, 'Basico');
+      assert.equal(p.preco, 79.0);
+      assert.equal(p.duracaoMeses, 1);
+      assert.equal(p.descricao, null);
+      assert.equal(p.destaque, false);
+      assert.deepEqual(p.recursos, []);
+      assert.equal('campo_desconhecido' in p, false);
+    });
+
+    it('deve lancar erro se preco ou duracao nao forem numericos', () => {
+      assert.throws(
+        () => mapearPlano(fixturesPlano.invalidoPrecoNaoNumerico),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+
+      assert.throws(
+        () => mapearPlano(fixturesPlano.invalidoSemNome),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
     });
   });
 
-  it('deve mapear MatriculaDTO corretamente com campos snake_case', () => {
-    const dto: MatriculaDTO = {
-      id: 7,
-      id_aluno: 15,
-      id_plano: 2,
-      data_inicio: '2026-01-01',
-      data_fim_estimada: '2026-07-01',
-      status: 'ativa',
-      aluno_nome: 'Roberto Carlos',
-      plano_nome: 'Semestral',
-    };
-    const matricula = mapearMatricula(dto);
-    assert.equal(matricula.id, 7);
-    assert.equal(matricula.idAluno, 15);
-    assert.equal(matricula.idPlano, 2);
-    assert.equal(matricula.dataInicio, '2026-01-01');
-    assert.equal(matricula.dataFimEstimada, '2026-07-01');
-    assert.equal(matricula.status, 'ativa');
-    assert.equal(matricula.alunoNome, 'Roberto Carlos');
-    assert.equal(matricula.planoNome, 'Semestral');
+  describe('mapearAluno', () => {
+    it('deve mapear AlunoDTO completo', () => {
+      const a = mapearAluno(fixturesAluno.valido);
+      assert.equal(a.id, 101);
+      assert.equal(a.nome, 'Mariana Santos');
+      assert.equal(a.dataNascimento, '1995-07-20');
+      assert.equal(a.telefone, '8499887766');
+      assert.equal(a.ativo, true);
+      assert.equal(a.planoNome, 'Fit Plus');
+      assert.equal(a.statusMatricula, 'ativa');
+    });
+
+    it('deve aceitar telefone nulo e plano_nome nulo', () => {
+      const a = mapearAluno(fixturesAluno.comNulosECamposExtras);
+      assert.equal(a.id, 102);
+      assert.equal(a.nome, 'Pedro Alvares');
+      assert.equal(a.telefone, null);
+      assert.equal(a.ativo, false);
+      assert.equal(a.planoNome, null);
+      assert.equal(a.statusMatricula, 'sem_matricula');
+      assert.equal('cpf_antigo' in a, false);
+    });
+
+    it('deve rejeitar se faltar data_nascimento ou se telefone tiver tipo incorreto', () => {
+      assert.throws(
+        () => mapearAluno(fixturesAluno.invalidoDataInexistente),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+
+      assert.throws(
+        () => mapearAluno(fixturesAluno.invalidoTelefoneNaoString),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+    });
+
+    it('deve preparar dados para envio limpando telefone ou gerando null', () => {
+      const comTel = mapearAlunoParaEnvio('Lucas', '1999-01-01', '(84) 99999-1234');
+      assert.equal(comTel.telefone, '84999991234');
+
+      const semTel = mapearAlunoParaEnvio('Lucas', '1999-01-01', '');
+      assert.equal(semTel.telefone, null);
+
+      const nuloTel = mapearAlunoParaEnvio('Lucas', '1999-01-01', null);
+      assert.equal(nuloTel.telefone, null);
+    });
+  });
+
+  describe('mapearMatricula', () => {
+    it('deve mapear MatriculaDTO valida', () => {
+      const m = mapearMatricula(fixturesMatricula.valida);
+      assert.equal(m.id, 501);
+      assert.equal(m.idAluno, 101);
+      assert.equal(m.idPlano, 10);
+      assert.equal(m.dataInicio, '2026-02-01');
+      assert.equal(m.dataFimEstimada, '2026-08-01');
+      assert.equal(m.status, 'ativa');
+      assert.equal(m.alunoNome, 'Mariana Santos');
+      assert.equal(m.planoNome, 'Fit Plus');
+    });
+
+    it('deve aceitar campos opcionais nulos ou ausentes', () => {
+      const m = mapearMatricula(fixturesMatricula.comNulosECamposExtras);
+      assert.equal(m.id, 502);
+      assert.equal(m.idAluno, 102);
+      assert.equal(m.idPlano, 11);
+      assert.equal(m.status, 'vencida');
+      assert.equal(m.alunoNome, undefined);
+      assert.equal(m.planoNome, undefined);
+      assert.equal('observacao_financeira' in m, false);
+    });
+
+    it('deve rejeitar se status for desconhecido ou ids faltarem', () => {
+      assert.throws(
+        () => mapearMatricula(fixturesMatricula.invalidaSemIds),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+
+      assert.throws(
+        () => mapearMatricula(fixturesMatricula.invalidaStatusInexistente),
+        (erro: Error) => erro.message.includes(ERRO_RESPOSTA_INESPERADA)
+      );
+    });
   });
 });
