@@ -6,16 +6,21 @@ O aplicativo consome a API REST unificada sob o prefixo `/v1`. Toda a lógica de
 
 ---
 
-## 1. Configuração do Ambiente
+## Configuração
 
-O aplicativo lê a URL base da API a partir da variável de ambiente `EXPO_PUBLIC_API_URL`.
+O aplicativo lê a URL base da API e parâmetros a partir das variáveis de ambiente em `.env.local` (ou `.env`).
 
 Copie o arquivo de exemplo:
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
-Defina o valor de `EXPO_PUBLIC_API_URL` no `.env` de acordo com o ambiente de execução:
+Defina o valor de `EXPO_PUBLIC_API_URL` (e opcionalmente `EXPO_PUBLIC_SUPABASE_KEY` / chave de serviço) de acordo com o ambiente de execução:
+
+- `EXPO_PUBLIC_API_URL=http://localhost:3333` (para web ou túnel)
+- `EXPO_PUBLIC_API_URL=http://10.0.2.2:3333` (para emulador Android)
+- `EXPO_PUBLIC_API_URL=http://<IP_LOCAL>:3333` (para Expo Go no aparelho físico)
+- `EXPO_PUBLIC_SUPABASE_KEY=public-anon-key`
 
 | Ambiente | Configuração recomendada |
 |---|---|

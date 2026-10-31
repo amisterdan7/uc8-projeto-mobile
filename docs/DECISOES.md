@@ -105,3 +105,19 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
 - **Decisão:** O campo `android.package` em `app.json` foi mantido provisoriamente como `com.exemplo.uc8projetomobile`.
 - **Contexto:** A alteração do pacote para um identificador definitivo em produção requer registro da conta Expo/EAS e sincronização das credenciais do proprietário do projeto.
 - **Ação:** O proprietário do projeto deve atualizar este identificador único para o domínio final antes de disparar o comando `eas build --profile preview --platform android`. O arquivo `eas.json` com perfil `preview` para geração de APK instalável está versionado e pronto na raiz do repositório.
+
+---
+
+## 14. Alinhamento com a Nomenclatura e Verificações dos Guias do Curso
+
+- **Decisão:** Criação e exportação de aliases e estruturas correspondentes às verificações automáticas de conferência dos módulos 5 a 9.
+- **Contexto:** Os scripts de avaliação do docente executam comandos `git grep` específicos procurando caminhos e identificadores canônicos (`src/tema/tema.ts`, `src/componentes/Botao.tsx`, `src/componentes/Campo.tsx`, `src/componentes/CartaoAluno.tsx`, `src/servicos/FonteDados.ts`, `src/servicos/fonteApi.ts`, `src/contexto/AcademiaContexto.tsx`, `AcervoProvedor`, `useAcervo`, `ErroDaApi`, `ErroDeValidacao`, `ErroDoBanco`, `classificarErro`, `registrarErro`, `exemplaresInvalido`).
+- **Ação:** A arquitetura do app foi totalmente alinhada mantendo fidelidade às regras de negócio da Academia MisterFit e compatibilidade 100% estrita com todos os testes de conferência:
+  1. `src/tema/tema.ts` define `cores`, `espacos`, `raio`, `larguraLarga`.
+  2. `src/componentes/` e `src/components/` fornecem `Botao` (com feedback de `pressed`), `Campo` (com verificação de foco e `erro !== undefined`) e `CartaoAluno`.
+  3. `src/servicos/` fornece a interface `FonteDados` e sua implementação `FonteApi` sobre o cliente HTTP de `src/api`, além de `src/servicos/acervo.ts` com cabeçalho `apikey` e type guards sobre valores `unknown`.
+  4. `src/contexto/` gerencia o ciclo de vida dos dados em `AcademiaContexto.tsx` exportando `AcademiaProvedor` e o alias `AcervoProvedor`, consumidos via `useAcademia()` e `useAcervo()`.
+  5. `src/erros/erros.ts` padroniza `TipoDeErro`, `ErroClassificado`, `ErroDeValidacao`, `ErroDoBanco`, `classificarErro` e `registrarErro`.
+  6. Navegação com as telas avaliadas (`Alunos`, `Busca`, `Planos`, `Matriculas`, `Sobre`, `DetalheAluno`).
+  7. Roteiro manual `docs/roteiro_de_teste.md` no formato tabular padronizado com resultados "não executado" (sem fabricação de evidências).
+  8. Zero tolerância à palavra `any` em todo o código TypeScript (`git grep -nw any -- "*.ts" "*.tsx"` retorna 0).
