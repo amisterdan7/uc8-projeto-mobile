@@ -5,28 +5,34 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
-import { ErroApi, trocarSenhaPropria } from '@/api';
-import { Selo } from '@/components';
+import { useDados } from '@/dados';
+import { Campo, Selo } from '@/components';
+import { ErroDaApi } from '@/api/cliente';
+import { extrairErrosCampos } from '@/erros';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaConta() {
   const insets = useSafeAreaInsets();
   const { usuario, permissoes, sair } = useSessao();
+  const { trocarSenhaPropria } = useDados();
 
   const [modoTrocarSenha, setModoTrocarSenha] = useState(false);
   const [senhaAtual, setSenhaAtual] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmacaoNovaSenha, setConfirmacaoNovaSenha] = useState('');
   const [trocandoSenha, setTrocandoSenha] = useState(false);
-  const [erroTroca, setErroTroca] = useState('');
+
+  const [erroGeral, setErroGeral] = useState('');
+  const [erroSenhaAtual, setErroSenhaAtual] = useState('');
+  const [erroNovaSenha, setErroNovaSenha] = useState('');
+  const [erroConfirmacao, setErroConfirmacao] = useState('');
   const [sucessoTroca, setSucessoTroca] = useState(false);
 
   function handleConfirmarSaida() {
@@ -44,24 +50,38 @@ export function TelaConta() {
     );
   }
 
+  function limparErros() {
+    setErroGeral('');
+    setErroSenhaAtual('');
+    setErroNovaSenha('');
+    setErroConfirmacao('');
+  }
+
   async function handleSalvarNovaSenha() {
-    if (!senhaAtual || !novaSenha) {
-      setErroTroca('Preencha a senha atual e a nova senha.');
-      return;
+    limparErros();
+    let temErro = false;
+
+    if (!senhaAtual) {
+      setErroSenhaAtual('Informe a senha atual.');
+      temErro = true;
     }
 
-    if (novaSenha.length < 6) {
-      setErroTroca('A nova senha deve ter no mínimo 6 caracteres.');
-      return;
+    if (!novaSenha) {
+      setErroNovaSenha('Informe a nova senha.');
+      temErro = true;
+    } else if (novaSenha.length < 8 || novaSenha.length > 128) {
+      setErroNovaSenha('A nova senha deve ter entre 8 e 128 caracteres.');
+      temErro = true;
     }
 
     if (novaSenha !== confirmacaoNovaSenha) {
-      setErroTroca('A confirmação da nova senha não confere.');
-      return;
+      setErroConfirmacao('A confirmação da nova senha não confere.');
+      temErro = true;
     }
 
+    if (temErro) return;
+
     setTrocandoSenha(true);
-    setErroTroca('');
     setSucessoTroca(false);
 
     try {
@@ -78,11 +98,25 @@ export function TelaConta() {
         setModoTrocarSenha(false);
         setSucessoTroca(false);
       }, 2000);
-    } catch (erro: unknown) {
-      if (erro instanceof ErroApi) {
-        setErroTroca(erro.message);
+    } catch (falha: unknown) {
+      if (falha instanceof ErroDaApi) {
+        if (falha.status === 400) {
+          const errosCampos = extrairErrosCampos(falha);
+          if (errosCampos.senha_atual) {
+            setErroSenhaAtual(errosCampos.senha_atual);
+          } else {
+            // Senha atual errada na API retorna 400 com mensagem no body
+            setErroSenhaAtual(falha.message || 'Senha atual incorreta.');
+          }
+
+          if (errosCampos.nova_senha) {
+            setErroNovaSenha(errosCampos.nova_senha);
+          }
+        } else {
+          setErroGeral(falha.message);
+        }
       } else {
-        setErroTroca('Não foi possível alterar a senha. Verifique a senha atual.');
+        setErroGeral('Não foi possível alterar a senha. Verifique a conexão.');
       }
     } finally {
       setTrocandoSenha(false);
@@ -107,19 +141,10 @@ export function TelaConta() {
               <MaterialIcons name="person" size={32} color={colors.white} />
             </View>
             <View style={styles.infoUsuario}>
-              <Text style={estilosComuns.tituloCartao}>
-                {usuario?.nome ?? 'Usuário'}
-              </Text>
-              <Text style={estilosComuns.textoSecundario}>
-                @{usuario?.login}
-              </Text>
+              <Text style={estilosComuns.tituloCartao}>{usuario?.nome}</Text>
+              <Text style={estilosComuns.textoMutavel}>Login: {usuario?.login}</Text>
               <View style={styles.espacoSelo}>
-                <Selo
-                  status={usuario?.perfil === 'admin' ? 'ativa' : 'inativa'}
-                  rotuloPersonalizado={
-                    usuario?.perfil === 'admin' ? 'Administrador' : 'Recepção'
-                  }
-                />
+                <Selo status={usuario?.perfil === 'admin' ? 'admin' : 'recepcao'} />
               </View>
             </View>
           </View>
@@ -146,49 +171,55 @@ export function TelaConta() {
 
         {modoTrocarSenha ? (
           <View style={estilosComuns.cartao}>
-            <Text style={styles.tituloSecao}>Alterar Senha de Acesso</Text>
+            <Text style={styles.tituloSecao}>Trocar Minha Senha</Text>
 
-            <View style={styles.grupoCampo}>
-              <Text style={styles.rotulo}>Senha Atual</Text>
-              <TextInput
-                value={senhaAtual}
-                onChangeText={setSenhaAtual}
-                placeholder="Informe sua senha atual"
-                placeholderTextColor={colors.gray[500]}
-                secureTextEntry
-                style={estilosComuns.input}
-                editable={!trocandoSenha}
-              />
-            </View>
+            <Campo
+              rotulo="Senha Atual"
+              obrigatorio
+              value={senhaAtual}
+              onChangeText={(t) => {
+                setSenhaAtual(t);
+                if (erroSenhaAtual) setErroSenhaAtual('');
+              }}
+              placeholder="Informe sua senha atual"
+              secureTextEntry
+              editable={!trocandoSenha}
+              erro={erroSenhaAtual}
+              iconeEsquerda="lock"
+            />
 
-            <View style={styles.grupoCampo}>
-              <Text style={styles.rotulo}>Nova Senha</Text>
-              <TextInput
-                value={novaSenha}
-                onChangeText={setNovaSenha}
-                placeholder="Mínimo 6 caracteres"
-                placeholderTextColor={colors.gray[500]}
-                secureTextEntry
-                style={estilosComuns.input}
-                editable={!trocandoSenha}
-              />
-            </View>
+            <Campo
+              rotulo="Nova Senha (8 a 128 caracteres)"
+              obrigatorio
+              value={novaSenha}
+              onChangeText={(t) => {
+                setNovaSenha(t);
+                if (erroNovaSenha) setErroNovaSenha('');
+              }}
+              placeholder="Digite a nova senha"
+              secureTextEntry
+              editable={!trocandoSenha}
+              erro={erroNovaSenha}
+              iconeEsquerda="lock-outline"
+            />
 
-            <View style={styles.grupoCampo}>
-              <Text style={styles.rotulo}>Confirmar Nova Senha</Text>
-              <TextInput
-                value={confirmacaoNovaSenha}
-                onChangeText={setConfirmacaoNovaSenha}
-                placeholder="Repita a nova senha"
-                placeholderTextColor={colors.gray[500]}
-                secureTextEntry
-                style={estilosComuns.input}
-                editable={!trocandoSenha}
-              />
-            </View>
+            <Campo
+              rotulo="Confirmar Nova Senha"
+              obrigatorio
+              value={confirmacaoNovaSenha}
+              onChangeText={(t) => {
+                setConfirmacaoNovaSenha(t);
+                if (erroConfirmacao) setErroConfirmacao('');
+              }}
+              placeholder="Repita a nova senha"
+              secureTextEntry
+              editable={!trocandoSenha}
+              erro={erroConfirmacao}
+              iconeEsquerda="check"
+            />
 
-            {erroTroca ? (
-              <Text style={styles.textoErro}>{erroTroca}</Text>
+            {erroGeral ? (
+              <Text style={styles.textoErro}>{erroGeral}</Text>
             ) : null}
 
             {sucessoTroca ? (
@@ -200,7 +231,10 @@ export function TelaConta() {
             <View style={styles.linhaBotoesSenha}>
               <TouchableOpacity
                 style={[styles.botaoSenha, styles.botaoCancelarSenha]}
-                onPress={() => setModoTrocarSenha(false)}
+                onPress={() => {
+                  setModoTrocarSenha(false);
+                  limparErros();
+                }}
                 disabled={trocandoSenha}
               >
                 <Text style={styles.textoBotaoCancelar}>Cancelar</Text>
@@ -224,11 +258,14 @@ export function TelaConta() {
         ) : (
           <TouchableOpacity
             style={styles.botaoTrocarSenhaAbertura}
-            onPress={() => setModoTrocarSenha(true)}
+            onPress={() => {
+              setModoTrocarSenha(true);
+              limparErros();
+            }}
           >
             <MaterialIcons name="lock-reset" size={20} color={colors.blue[400]} />
             <Text style={styles.textoTrocarSenhaAbertura}>
-              Alterar minha senha
+              Trocar minha senha
             </Text>
           </TouchableOpacity>
         )}
@@ -284,29 +321,6 @@ const styles = StyleSheet.create({
     color: colors.gray[300],
     fontSize: 13,
   },
-  botaoTrocarSenhaAbertura: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.gray[800],
-    padding: 16,
-    borderRadius: 12,
-  },
-  textoTrocarSenhaAbertura: {
-    color: colors.blue[400],
-    fontWeight: '600',
-    fontSize: 15,
-  },
-  grupoCampo: {
-    gap: 4,
-    marginTop: 6,
-  },
-  rotulo: {
-    color: colors.gray[300],
-    fontSize: 13,
-  },
   textoErro: {
     color: colors.red[400],
     fontSize: 13,
@@ -316,11 +330,12 @@ const styles = StyleSheet.create({
     color: '#4ade80',
     fontSize: 13,
     marginTop: 4,
+    fontWeight: '600',
   },
   linhaBotoesSenha: {
     flexDirection: 'row',
-    gap: 10,
-    marginTop: 12,
+    gap: 12,
+    marginTop: 14,
   },
   botaoSenha: {
     flex: 1,
@@ -335,22 +350,39 @@ const styles = StyleSheet.create({
   textoBotaoCancelar: {
     color: colors.gray[300],
     fontWeight: '600',
+    fontSize: 14,
+  },
+  botaoTrocarSenhaAbertura: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.gray[800],
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  textoTrocarSenhaAbertura: {
+    color: colors.blue[400],
+    fontSize: 14,
+    fontWeight: '600',
   },
   botaoSair: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 10,
+    borderColor: colors.red[400],
+    borderRadius: 12,
     paddingVertical: 14,
-    marginTop: 12,
+    marginTop: 8,
   },
   textoBotaoSair: {
     color: colors.red[400],
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 15,
   },
 });

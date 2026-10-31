@@ -3,7 +3,13 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { StatusAlunoMatricula, StatusMatricula } from '@/types/entidades';
 import { colors } from '@/styles/colors';
 
-export type TipoSelo = StatusMatricula | StatusAlunoMatricula | 'arquivado' | 'ativo_aluno';
+export type TipoSelo =
+  | StatusMatricula
+  | StatusAlunoMatricula
+  | 'arquivado'
+  | 'ativo_aluno'
+  | 'admin'
+  | 'recepcao';
 
 interface SeloProps {
   status: TipoSelo;
@@ -78,6 +84,20 @@ function obterConfiguracaoSelo(status: TipoSelo): {
         fundo: 'rgba(74, 222, 128, 0.15)',
         borda: 'rgba(74, 222, 128, 0.4)',
         texto: '#4ade80',
+      };
+    case 'admin':
+      return {
+        rotulo: 'Administrador',
+        fundo: 'rgba(147, 51, 234, 0.15)',
+        borda: 'rgba(147, 51, 234, 0.4)',
+        texto: '#c084fc',
+      };
+    case 'recepcao':
+      return {
+        rotulo: 'Recepção',
+        fundo: 'rgba(59, 130, 246, 0.15)',
+        borda: 'rgba(59, 130, 246, 0.4)',
+        texto: colors.blue[400],
       };
     default:
       return {

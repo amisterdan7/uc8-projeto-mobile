@@ -6,3 +6,4 @@ export { TelaMatriculas } from './TelaMatriculas';
 export { TelaConta } from './TelaConta';
 export { TelaDetalheAluno } from './TelaDetalheAluno';
 export { TelaSobre } from './TelaSobre';
+export { TelaUsuarios } from './TelaUsuarios';

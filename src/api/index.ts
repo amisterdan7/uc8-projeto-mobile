@@ -5,3 +5,4 @@ export * from './auth';
 export * from './planos';
 export * from './alunos';
 export * from './matriculas';
+export * from './usuarios';

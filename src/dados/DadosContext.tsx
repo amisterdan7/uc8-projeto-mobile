@@ -5,20 +5,28 @@ import React, {
   useEffect,
   useState,
 } from 'react';
-import type { Aluno, Matricula, Plano } from '@/types/entidades';
+import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
 import type { EstadoTela } from '@/types/estadoTela';
 import { estadoCarregando, estadoErro, estadoSucesso } from '@/types/estadoTela';
 import { type FonteDados, fonteApiPadrao } from './FonteDados';
 import { useSessao } from '@/auth';
 import { registrarErro } from '@/erros';
+import type {
+  AtualizarPlanoDTO,
+  CriarPlanoDTO,
+  CriarUsuarioDTO,
+  TrocarSenhaDTO,
+} from '@/api/tipos';
 
 export interface ContextoDadosData {
   estadoAlunos: EstadoTela<Aluno[]>;
   estadoPlanos: EstadoTela<Plano[]>;
   estadoMatriculas: EstadoTela<Matricula[]>;
+  estadoUsuarios: EstadoTela<Usuario[]>;
   recarregarAlunos: () => Promise<void>;
   recarregarPlanos: () => Promise<void>;
   recarregarMatriculas: () => Promise<void>;
+  recarregarUsuarios: () => Promise<void>;
   recarregarTudo: () => Promise<void>;
   criarAluno: (
     nome: string,
@@ -44,6 +52,13 @@ export interface ContextoDadosData {
     status: 'ativa' | 'inativa'
   ) => Promise<void>;
   excluirMatricula: (id: number) => Promise<void>;
+  criarPlano: (dados: CriarPlanoDTO) => Promise<Plano>;
+  atualizarPlano: (id: number, dados: AtualizarPlanoDTO) => Promise<Plano>;
+  excluirPlano: (id: number) => Promise<void>;
+  trocarSenhaPropria: (dados: TrocarSenhaDTO) => Promise<void>;
+  criarUsuario: (dados: CriarUsuarioDTO) => Promise<Usuario>;
+  alterarAtivoUsuario: (id: number, ativo: boolean) => Promise<Usuario>;
+  redefinirSenhaUsuario: (id: number, senha: string) => Promise<void>;
 }
 
 const DadosContext = createContext<ContextoDadosData | null>(null);
@@ -57,7 +72,7 @@ export function DadosProvider({
   children,
   fonteDados = fonteApiPadrao,
 }: DadosProviderProps) {
-  const { usuario } = useSessao();
+  const { usuario, podeFazer } = useSessao();
 
   const [estadoAlunos, setEstadoAlunos] = useState<EstadoTela<Aluno[]>>(
     estadoCarregando<Aluno[]>()
@@ -67,6 +82,9 @@ export function DadosProvider({
   );
   const [estadoMatriculas, setEstadoMatriculas] = useState<EstadoTela<Matricula[]>>(
     estadoCarregando<Matricula[]>()
+  );
+  const [estadoUsuarios, setEstadoUsuarios] = useState<EstadoTela<Usuario[]>>(
+    estadoCarregando<Usuario[]>()
   );
 
   const recarregarAlunos = useCallback(async () => {
@@ -102,27 +120,46 @@ export function DadosProvider({
     }
   }, [fonteDados]);
 
+  const recarregarUsuarios = useCallback(async () => {
+    setEstadoUsuarios(estadoCarregando<Usuario[]>());
+    try {
+      const dados = await fonteDados.listarUsuarios();
+      setEstadoUsuarios(estadoSucesso(dados));
+    } catch (e: unknown) {
+      const classificado = registrarErro('DadosContext.listarUsuarios', e);
+      setEstadoUsuarios(estadoErro<Usuario[]>(classificado.mensagem));
+    }
+  }, [fonteDados]);
+
   const recarregarTudo = useCallback(async () => {
-    await Promise.all([
+    const tarefas: Promise<void>[] = [
       recarregarAlunos(),
       recarregarPlanos(),
       recarregarMatriculas(),
-    ]);
-  }, [recarregarAlunos, recarregarPlanos, recarregarMatriculas]);
+    ];
+    if (podeFazer('usuarios:listar')) {
+      tarefas.push(recarregarUsuarios());
+    }
+    await Promise.all(tarefas);
+  }, [recarregarAlunos, recarregarPlanos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
 
-  // Carrega ou reseta os dados conforme o estado de autenticação
+  // Carrega ou reseta os dados conforme o estado de autenticacao
   useEffect(() => {
     if (!usuario) {
       setEstadoAlunos(estadoCarregando<Aluno[]>());
       setEstadoPlanos(estadoCarregando<Plano[]>());
       setEstadoMatriculas(estadoCarregando<Matricula[]>());
+      setEstadoUsuarios(estadoCarregando<Usuario[]>());
       return;
     }
 
     recarregarPlanos();
     recarregarAlunos();
     recarregarMatriculas();
-  }, [usuario, recarregarPlanos, recarregarAlunos, recarregarMatriculas]);
+    if (podeFazer('usuarios:listar')) {
+      recarregarUsuarios();
+    }
+  }, [usuario, recarregarPlanos, recarregarAlunos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
 
   const criarAluno = useCallback(
     async (nome: string, dataNascimentoISO: string, telefone?: string | null) => {
@@ -231,15 +268,110 @@ export function DadosProvider({
     [fonteDados, recarregarMatriculas, recarregarAlunos]
   );
 
+  const criarPlano = useCallback(
+    async (dados: CriarPlanoDTO) => {
+      try {
+        const novo = await fonteDados.criarPlano(dados);
+        await recarregarPlanos();
+        return novo;
+      } catch (e: unknown) {
+        registrarErro('DadosContext.criarPlano', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarPlanos]
+  );
+
+  const atualizarPlano = useCallback(
+    async (id: number, dados: AtualizarPlanoDTO) => {
+      try {
+        const atualizado = await fonteDados.atualizarPlano(id, dados);
+        await recarregarPlanos();
+        return atualizado;
+      } catch (e: unknown) {
+        registrarErro('DadosContext.atualizarPlano', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarPlanos]
+  );
+
+  const excluirPlano = useCallback(
+    async (id: number) => {
+      try {
+        await fonteDados.excluirPlano(id);
+        await recarregarPlanos();
+      } catch (e: unknown) {
+        registrarErro('DadosContext.excluirPlano', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarPlanos]
+  );
+
+  const trocarSenhaPropria = useCallback(
+    async (dados: TrocarSenhaDTO) => {
+      try {
+        await fonteDados.trocarSenhaPropria(dados);
+      } catch (e: unknown) {
+        registrarErro('DadosContext.trocarSenhaPropria', e);
+        throw e;
+      }
+    },
+    [fonteDados]
+  );
+
+  const criarUsuario = useCallback(
+    async (dados: CriarUsuarioDTO) => {
+      try {
+        const novo = await fonteDados.criarUsuario(dados);
+        await recarregarUsuarios();
+        return novo;
+      } catch (e: unknown) {
+        registrarErro('DadosContext.criarUsuario', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarUsuarios]
+  );
+
+  const alterarAtivoUsuario = useCallback(
+    async (id: number, ativo: boolean) => {
+      try {
+        const atualizado = await fonteDados.alterarAtivoUsuario(id, ativo);
+        await recarregarUsuarios();
+        return atualizado;
+      } catch (e: unknown) {
+        registrarErro('DadosContext.alterarAtivoUsuario', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarUsuarios]
+  );
+
+  const redefinirSenhaUsuario = useCallback(
+    async (id: number, senha: string) => {
+      try {
+        await fonteDados.redefinirSenhaUsuario(id, senha);
+      } catch (e: unknown) {
+        registrarErro('DadosContext.redefinirSenhaUsuario', e);
+        throw e;
+      }
+    },
+    [fonteDados]
+  );
+
   return (
     <DadosContext.Provider
       value={{
         estadoAlunos,
         estadoPlanos,
         estadoMatriculas,
+        estadoUsuarios,
         recarregarAlunos,
         recarregarPlanos,
         recarregarMatriculas,
+        recarregarUsuarios,
         recarregarTudo,
         criarAluno,
         atualizarAluno,
@@ -249,6 +381,13 @@ export function DadosProvider({
         criarMatricula,
         mudarStatusMatricula,
         excluirMatricula,
+        criarPlano,
+        atualizarPlano,
+        excluirPlano,
+        trocarSenhaPropria,
+        criarUsuario,
+        alterarAtivoUsuario,
+        redefinirSenhaUsuario,
       }}
     >
       {children}

@@ -13,6 +13,7 @@ import {
   TelaMatriculas,
   TelaPlanos,
   TelaSobre,
+  TelaUsuarios,
 } from '@/telas';
 import type {
   AbasAppParamList,
@@ -28,6 +29,9 @@ const StackAutenticado =
 const Tab = createBottomTabNavigator<AbasAppParamList>();
 
 function NavegadorAutenticadoTabs() {
+  const { podeFazer } = useSessao();
+  const podeListarUsuarios = podeFazer('usuarios:listar');
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -88,6 +92,18 @@ function NavegadorAutenticadoTabs() {
           ),
         }}
       />
+      {podeListarUsuarios ? (
+        <Tab.Screen
+          name="Usuarios"
+          component={TelaUsuarios}
+          options={{
+            tabBarLabel: 'Usuários',
+            tabBarIcon: ({ color, size }) => (
+              <MaterialIcons name="security" size={size} color={color} />
+            ),
+          }}
+        />
+      ) : null}
       <Tab.Screen
         name="Sobre"
         component={TelaSobre}
