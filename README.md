@@ -6,7 +6,7 @@ Aplicativo móvel (Expo / React Native + TypeScript) da **Academia MisterFit**, 
 
 ## Configuração
 
-O aplicativo opera em dois modos distintos, configurados através de variáveis de ambiente em `.env.local` (ou `.env`).
+O aplicativo opera em dois modos distintos, configurados através de variáveis de ambiente em `.env.local`.
 
 Copie o arquivo de exemplo para iniciar:
 ```bash

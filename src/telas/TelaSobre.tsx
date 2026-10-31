@@ -41,6 +41,12 @@ export function TelaSobre() {
   const versaoApp = Constants.expoConfig?.version ?? '1.0.0';
   const urlApiOriginal = process.env.EXPO_PUBLIC_API_URL;
   const hostApi = extrairHost(urlApiOriginal);
+  const alertaHttpNaoSeguro =
+    !__DEV__ &&
+    Boolean(
+      urlApiOriginal &&
+      urlApiOriginal.trim().toLowerCase().startsWith('http://')
+    );
 
   useFocusEffect(
     useCallback(() => {
@@ -108,6 +114,15 @@ export function TelaSobre() {
                 <Text style={styles.rotuloDado}>Host do Servidor:</Text>
                 <Text style={styles.valorDado}>{hostApi}</Text>
               </View>
+
+              {alertaHttpNaoSeguro ? (
+                <View style={styles.alertaInseguro}>
+                  <MaterialIcons name="warning" size={18} color="#f59e0b" />
+                  <Text style={styles.textoAlertaInseguro}>
+                    Aviso: A URL configurada utiliza protocolo HTTP não seguro em ambiente fora de desenvolvimento. Para produção, utilize HTTPS.
+                  </Text>
+                </View>
+              ) : null}
 
               <View style={styles.itemDado}>
                 <Text style={styles.rotuloDado}>Usuário Conectado:</Text>
@@ -330,5 +345,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: cores.textoSecundario,
     marginTop: 2,
+  },
+  alertaInseguro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacos.xs,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: raio,
+    padding: espacos.sm,
+    marginVertical: espacos.xs,
+  },
+  textoAlertaInseguro: {
+    flex: 1,
+    fontSize: 12,
+    color: cores.alerta,
   },
 });
