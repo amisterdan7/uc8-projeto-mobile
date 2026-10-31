@@ -121,3 +121,33 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
   6. Navegação com as telas avaliadas (`Alunos`, `Busca`, `Planos`, `Matriculas`, `Sobre`, `DetalheAluno`).
   7. Roteiro manual `docs/roteiro_de_teste.md` no formato tabular padronizado com resultados "não executado" (sem fabricação de evidências).
   8. Zero tolerância à palavra `any` em todo o código TypeScript (`git grep -nw any -- "*.ts" "*.tsx"` retorna 0).
+
+---
+
+## 15. Modo Curso vs Modo Equipe e Separação de Ambientes Supabase
+
+- **Decisão:** Implementação de chaveamento estrito via variável de ambiente `EXPO_PUBLIC_MODO` ('equipe' ou 'curso') e isolamento total entre os projetos de banco de dados.
+- **Contexto:**
+  1. A entidade central do exercício acadêmico é **Planos** (`nome`, `preco`, `duracao_meses`, `descricao`).
+  2. Existem dois projetos Supabase distintos:
+     - O projeto de **Produção** é consumido única e exclusivamente pelo servidor backend da API v1. O aplicativo móvel nunca tem acesso às suas credenciais.
+     - O projeto de **Exercício** é utilizado apenas pelo aplicativo no modo curso, possuindo exclusivamente dados fictícios de planos de treino, com URL e chave anônima públicas por desenho.
+  3. No modo `equipe` (padrão), o app consome a API v1 com autenticação de usuários, sem cache de dados pessoais no aparelho.
+  4. No modo `curso`, o app consome diretamente o Supabase de exercício com `fetch`, sem login, com cache local em SQLite (`expo-sqlite`) e fila de sincronização offline. Um modo jamais consome a fonte de dados do outro.
+
+---
+
+## 16. Limitação Conhecida da Fila de Sincronização (Modo Curso)
+
+- **Decisão:** Manutenção do algoritmo padrão de desfileiramento sequencial orientado a `id` autoincremento.
+- **Contexto:** Na função `sincronizarFila`, cada registro pendente é enviado à nuvem via `POST` e, em seguida, removido da tabela local `pendentes` via `DELETE`.
+- **Limitação:** Caso o aplicativo seja finalizado abruptamente pelo sistema operacional exatamente no intervalo entre a resposta de sucesso da API remota e a confirmação do delete local no SQLite, o registro pode permanecer na fila e ser reenviado na inicialização seguinte, gerando duplicidade no banco.
+- **Justificativa:** Essa abordagem é estritamente aderente ao modelo didático do Módulo 7 e perfeitamente aceitável para dados fictícios de exercícios acadêmicos. O modo corporativo de equipe não utiliza fila local no aparelho.
+
+---
+
+## 17. Nota de Privacidade e Proteção de Dados Pessoais (LGPD)
+
+- **Decisão:** Segregação rígida de persistência local para garantir conformidade de segurança e privacidade.
+- **Contexto:** Dados cadastrais de alunos (nomes, telefones, datas de nascimento e vínculos financeiros de matrículas) constituem dados pessoais sensíveis da operação corporativa.
+- **Garantia:** O banco SQLite local do aplicativo armazena única e exclusivamente planos e preços fictícios no modo curso. No modo corporativo de equipe, nenhum dado de aluno ou matrícula é gravado em disco ou SQLite no aparelho; apenas o token de autenticação JWT com expiração temporária de 8 horas é armazenado na área criptografada nativa do dispositivo (`expo-secure-store`).
