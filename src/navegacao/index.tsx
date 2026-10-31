@@ -7,17 +7,26 @@ import { Carregando } from '@/components';
 import {
   TelaAlunos,
   TelaConta,
+  TelaDetalheAluno,
   TelaLogin,
   TelaMatriculas,
   TelaPlanos,
+  TelaSobre,
 } from '@/telas';
-import type { AbasAppParamList, RotasNaoAutenticadasParamList } from './tipos';
+import type {
+  AbasAppParamList,
+  RotasAutenticadasStackParamList,
+  RotasNaoAutenticadasParamList,
+} from './tipos';
 import { colors } from '@/styles/colors';
 
-const Stack = createNativeStackNavigator<RotasNaoAutenticadasParamList>();
+const StackNaoAutenticado =
+  createNativeStackNavigator<RotasNaoAutenticadasParamList>();
+const StackAutenticado =
+  createNativeStackNavigator<RotasAutenticadasStackParamList>();
 const Tab = createBottomTabNavigator<AbasAppParamList>();
 
-function NavegadorAutenticado() {
+function NavegadorAutenticadoTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -33,7 +42,7 @@ function NavegadorAutenticado() {
         tabBarActiveTintColor: colors.blue[400],
         tabBarInactiveTintColor: colors.gray[400],
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
         },
       }}
@@ -69,6 +78,16 @@ function NavegadorAutenticado() {
         }}
       />
       <Tab.Screen
+        name="Sobre"
+        component={TelaSobre}
+        options={{
+          tabBarLabel: 'Sobre',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="info-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
         name="Conta"
         component={TelaConta}
         options={{
@@ -82,11 +101,23 @@ function NavegadorAutenticado() {
   );
 }
 
+function NavegadorAutenticadoStack() {
+  return (
+    <StackAutenticado.Navigator screenOptions={{ headerShown: false }}>
+      <StackAutenticado.Screen name="Abas" component={NavegadorAutenticadoTabs} />
+      <StackAutenticado.Screen
+        name="DetalheAluno"
+        component={TelaDetalheAluno}
+      />
+    </StackAutenticado.Navigator>
+  );
+}
+
 function NavegadorNaoAutenticado() {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Login" component={TelaLogin} />
-    </Stack.Navigator>
+    <StackNaoAutenticado.Navigator screenOptions={{ headerShown: false }}>
+      <StackNaoAutenticado.Screen name="Login" component={TelaLogin} />
+    </StackNaoAutenticado.Navigator>
   );
 }
 
@@ -97,7 +128,7 @@ export function NavegadorPrincipal() {
     return <Carregando mensagem="Iniciando Academia MisterFit..." />;
   }
 
-  return usuario ? <NavegadorAutenticado /> : <NavegadorNaoAutenticado />;
+  return usuario ? <NavegadorAutenticadoStack /> : <NavegadorNaoAutenticado />;
 }
 
 export * from './tipos';

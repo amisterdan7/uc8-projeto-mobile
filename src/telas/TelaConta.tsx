@@ -78,7 +78,7 @@ export function TelaConta() {
         setModoTrocarSenha(false);
         setSucessoTroca(false);
       }, 2000);
-    } catch (erro: any) {
+    } catch (erro: unknown) {
       if (erro instanceof ErroApi) {
         setErroTroca(erro.message);
       } else {

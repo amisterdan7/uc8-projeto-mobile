@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Alert,
   FlatList,
@@ -8,84 +8,55 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Aluno } from '@/types/entidades';
-import {
-  alterarStatusAtivoAluno,
-  atualizarAluno,
-  criarAluno,
-  ErroApi,
-  excluirAluno,
-  listarAlunos,
-} from '@/api';
+import { semCaso } from '@/types/estadoTela';
+import type { NavegacaoAppProp } from '@/navegacao/tipos';
+import { useDados } from '@/dados';
 import { useSessao } from '@/auth';
+import { colunasPara } from '@/utils/responsividade';
 import { AlunoCard, AlunoForm, Carregando, EstadoErro, EstadoVazio } from '@/components';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaAlunos() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavegacaoAppProp>();
+  const { width } = useWindowDimensions();
+  const numColunas = colunasPara(width);
+
+  const {
+    estadoAlunos,
+    recarregarAlunos,
+    criarAluno,
+    atualizarAluno,
+    arquivarAluno,
+    restaurarAluno,
+    excluirAluno,
+  } = useDados();
+
   const { podeFazer } = useSessao();
-
-  const [alunos, setAlunos] = useState<Aluno[]>([]);
-  const [carregando, setCarregando] = useState(true);
-  const [atualizando, setAtualizando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-
-  const [busca, setBusca] = useState('');
-  const [modalFormularioVisivel, setModalFormularioVisivel] = useState(false);
-  const [alunoEmEdicao, setAlunoEmEdicao] = useState<Aluno | null>(null);
-  const [salvando, setSalvando] = useState(false);
-
   const podeCriar = podeFazer('alunos:criar');
   const podeAtualizar = podeFazer('alunos:atualizar');
   const podeDesativar = podeFazer('alunos:desativar');
   const podeExcluir = podeFazer('alunos:excluir');
 
-  async function carregarDados(silencioso = false) {
-    if (!silencioso) setCarregando(true);
-    setErro(null);
+  const [busca, setBusca] = useState('');
+  const [modalFormularioVisivel, setModalFormularioVisivel] = useState(false);
+  const [alunoEmEdicao, setAlunoEmEdicao] = useState<Aluno | null>(null);
+  const [salvando, setSalvando] = useState(false);
+  const [atualizando, setAtualizando] = useState(false);
 
-    try {
-      const lista = await listarAlunos();
-      setAlunos(lista);
-    } catch (e: any) {
-      if (e instanceof ErroApi) {
-        setErro(e.message);
-      } else {
-        setErro('Não foi possível carregar a lista de alunos.');
-      }
-    } finally {
-      setCarregando(false);
-      setAtualizando(false);
-    }
-  }
-
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  function handlePullToRefresh() {
+  async function handlePullToRefresh() {
     setAtualizando(true);
-    carregarDados(true);
+    await recarregarAlunos();
+    setAtualizando(false);
   }
-
-  const alunosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    if (!termo) return alunos;
-
-    const termoNumeros = termo.replace(/\D/g, '');
-
-    return alunos.filter((aluno) => {
-      const nomeMatch = aluno.nome.toLowerCase().includes(termo);
-      const telNumeros = aluno.telefone ? aluno.telefone.replace(/\D/g, '') : '';
-      const telMatch = termoNumeros.length > 0 && telNumeros.includes(termoNumeros);
-      return nomeMatch || telMatch;
-    });
-  }, [alunos, busca]);
 
   function handleAbrirCriacao() {
     setAlunoEmEdicao(null);
@@ -113,10 +84,8 @@ export function TelaAlunos() {
       }
       setModalFormularioVisivel(false);
       setAlunoEmEdicao(null);
-      await carregarDados(true);
-    } catch (e: any) {
-      const msg = e instanceof ErroApi ? e.message : 'Não foi possível salvar os dados do aluno.';
-      Alert.alert('Erro', msg);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível salvar os dados do aluno.');
     } finally {
       setSalvando(false);
     }
@@ -136,11 +105,13 @@ export function TelaAlunos() {
           style: novoStatus ? 'default' : 'destructive',
           onPress: async () => {
             try {
-              await alterarStatusAtivoAluno(aluno.id, novoStatus);
-              await carregarDados(true);
-            } catch (e: any) {
-              const msg = e instanceof ErroApi ? e.message : `Falha ao ${acaoTexto} aluno.`;
-              Alert.alert('Erro', msg);
+              if (novoStatus) {
+                await restaurarAluno(aluno.id);
+              } else {
+                await arquivarAluno(aluno.id);
+              }
+            } catch {
+              Alert.alert('Erro', `Falha ao ${acaoTexto} aluno.`);
             }
           },
         },
@@ -160,10 +131,8 @@ export function TelaAlunos() {
           onPress: async () => {
             try {
               await excluirAluno(aluno.id);
-              await carregarDados(true);
-            } catch (e: any) {
-              const msg = e instanceof ErroApi ? e.message : 'Falha ao excluir aluno.';
-              Alert.alert('Erro', msg);
+            } catch {
+              Alert.alert('Erro', 'Falha ao excluir o aluno.');
             }
           },
         },
@@ -171,136 +140,173 @@ export function TelaAlunos() {
     );
   }
 
-  if (carregando) {
-    return <Carregando mensagem="Carregando alunos..." />;
-  }
+  // Renderização através de união discriminada e switch exaustivo (M6-R5)
+  switch (estadoAlunos.tipo) {
+    case 'carregando':
+      return <Carregando mensagem="Carregando alunos..." />;
 
-  if (erro) {
-    return (
-      <EstadoErro
-        mensagem={erro}
-        onTentarNovamente={() => carregarDados(false)}
-      />
-    );
-  }
-
-  return (
-    <View style={estilosComuns.container}>
-      <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
-        <View>
-          <Text style={estilosComuns.tituloCabecalho}>Alunos</Text>
-          <Text style={estilosComuns.subtituloCabecalho}>
-            {alunos.length} cadastrado(s)
-          </Text>
-        </View>
-
-        {podeCriar ? (
-          <TouchableOpacity
-            style={styles.botaoAdicionar}
-            onPress={handleAbrirCriacao}
-          >
-            <MaterialIcons name="person-add" size={18} color={colors.white} />
-            <Text style={styles.textoBotaoAdicionar}>Novo Aluno</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      <View style={styles.blocoBusca}>
-        <MaterialIcons
-          name="search"
-          size={20}
-          color={colors.gray[400]}
-          style={styles.iconeBusca}
+    case 'erro':
+      return (
+        <EstadoErro
+          mensagem={estadoAlunos.mensagem}
+          onTentarNovamente={recarregarAlunos}
         />
-        <TextInput
-          value={busca}
-          onChangeText={setBusca}
-          placeholder="Buscar por nome ou telefone..."
-          placeholderTextColor={colors.gray[500]}
-          style={[estilosComuns.input, styles.inputBusca]}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        {busca ? (
-          <TouchableOpacity
-            onPress={() => setBusca('')}
-            style={styles.botaoLimparBusca}
-          >
-            <MaterialIcons name="close" size={18} color={colors.gray[400]} />
-          </TouchableOpacity>
-        ) : null}
-      </View>
+      );
 
-      <FlatList
-        data={alunosFiltrados}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={[
-          estilosComuns.conteudo,
-          { paddingBottom: insets.bottom + 20 },
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={atualizando}
-            onRefresh={handlePullToRefresh}
-            tintColor={colors.blue[400]}
-          />
-        }
-        ListEmptyComponent={
-          <EstadoVazio
-            mensagem={
-              busca
-                ? 'Nenhum aluno encontrado para a busca informada.'
-                : 'Nenhum aluno cadastrado.'
+    case 'sucesso': {
+      const listaAlunos = estadoAlunos.dados;
+      const termo = busca.trim().toLowerCase();
+      const termoNumeros = termo.replace(/\D/g, '');
+
+      const alunosFiltrados = !termo
+        ? listaAlunos
+        : listaAlunos.filter((aluno) => {
+            const nomeMatch = aluno.nome.toLowerCase().includes(termo);
+            const telNumeros = aluno.telefone ? aluno.telefone.replace(/\D/g, '') : '';
+            const telMatch = termoNumeros.length > 0 && telNumeros.includes(termoNumeros);
+            return nomeMatch || telMatch;
+          });
+
+      return (
+        <View style={estilosComuns.container}>
+          <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
+            <View>
+              <Text style={estilosComuns.tituloCabecalho}>Alunos</Text>
+              <Text style={estilosComuns.subtituloCabecalho}>
+                {listaAlunos.length} cadastrado(s)
+              </Text>
+            </View>
+
+            {podeCriar ? (
+              <TouchableOpacity
+                style={styles.botaoAdicionar}
+                onPress={handleAbrirCriacao}
+                accessibilityRole="button"
+                accessibilityLabel="Cadastrar novo aluno"
+              >
+                <MaterialIcons name="person-add" size={18} color={colors.white} />
+                <Text style={styles.textoBotaoAdicionar}>Novo Aluno</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <View style={styles.blocoBusca}>
+            <MaterialIcons
+              name="search"
+              size={20}
+              color={colors.gray[400]}
+              style={styles.iconeBusca}
+            />
+            <TextInput
+              value={busca}
+              onChangeText={setBusca}
+              placeholder="Buscar por nome ou telefone..."
+              placeholderTextColor={colors.gray[500]}
+              style={[estilosComuns.input, styles.inputBusca]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Campo de busca de alunos por nome ou telefone"
+            />
+            {busca ? (
+              <TouchableOpacity
+                onPress={() => setBusca('')}
+                style={styles.botaoLimparBusca}
+                accessibilityLabel="Limpar busca"
+              >
+                <MaterialIcons name="close" size={18} color={colors.gray[400]} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <FlatList
+            key={numColunas}
+            data={alunosFiltrados}
+            numColumns={numColunas}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={[
+              estilosComuns.conteudo,
+              { paddingBottom: insets.bottom + 20 },
+            ]}
+            columnWrapperStyle={numColunas > 1 ? styles.linhaColunas : undefined}
+            refreshControl={
+              <RefreshControl
+                refreshing={atualizando}
+                onRefresh={handlePullToRefresh}
+                tintColor={colors.blue[400]}
+              />
             }
-            icone="people-outline"
+            ListEmptyComponent={
+              <EstadoVazio
+                mensagem={
+                  busca
+                    ? 'Nenhum aluno encontrado para a busca informada.'
+                    : 'Nenhum aluno cadastrado.'
+                }
+                icone="people-outline"
+              />
+            }
+            renderItem={({ item }) => (
+              <View style={numColunas > 1 ? styles.itemGrade : undefined}>
+                <AlunoCard
+                  aluno={item}
+                  podeEditar={podeAtualizar}
+                  podeDesativar={podeDesativar}
+                  podeExcluir={podeExcluir}
+                  onPress={(aluno) => {
+                    navigation.navigate('DetalheAluno', { alunoId: aluno.id });
+                  }}
+                  onEditar={handleAbrirEdicao}
+                  onAlternarAtivo={handleAlternarAtivo}
+                  onExcluir={handleExcluir}
+                />
+              </View>
+            )}
           />
-        }
-        renderItem={({ item }) => (
-          <AlunoCard
-            aluno={item}
-            podeEditar={podeAtualizar}
-            podeDesativar={podeDesativar}
-            podeExcluir={podeExcluir}
-            onEditar={handleAbrirEdicao}
-            onAlternarAtivo={handleAlternarAtivo}
-            onExcluir={handleExcluir}
-          />
-        )}
-      />
 
-      <Modal
-        visible={modalFormularioVisivel}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => {
-          if (!salvando) {
-            setModalFormularioVisivel(false);
-            setAlunoEmEdicao(null);
-          }
-        }}
-      >
-        <View
-          style={[
-            estilosComuns.container,
-            { paddingTop: insets.top + 16, paddingHorizontal: 16 },
-          ]}
-        >
-          <AlunoForm
-            alunoInicial={alunoEmEdicao}
-            salvando={salvando}
-            onSubmit={handleSalvarAluno}
-            onCancelar={() => {
-              setModalFormularioVisivel(false);
-              setAlunoEmEdicao(null);
+          <Modal
+            visible={modalFormularioVisivel}
+            animationType="slide"
+            presentationStyle="pageSheet"
+            onRequestClose={() => {
+              if (!salvando) {
+                setModalFormularioVisivel(false);
+                setAlunoEmEdicao(null);
+              }
             }}
-          />
+          >
+            <View
+              style={[
+                estilosComuns.container,
+                { paddingTop: insets.top + 16, paddingHorizontal: 16 },
+              ]}
+            >
+              <AlunoForm
+                alunoInicial={alunoEmEdicao}
+                salvando={salvando}
+                onSubmit={handleSalvarAluno}
+                onCancelar={() => {
+                  setModalFormularioVisivel(false);
+                  setAlunoEmEdicao(null);
+                }}
+              />
+            </View>
+          </Modal>
         </View>
-      </Modal>
-    </View>
-  );
+      );
+    }
+
+    default:
+      return semCaso(estadoAlunos);
+  }
 }
 
 const styles = StyleSheet.create({
+  linhaColunas: {
+    gap: 12,
+  },
+  itemGrade: {
+    flex: 1,
+  },
   botaoAdicionar: {
     flexDirection: 'row',
     alignItems: 'center',
