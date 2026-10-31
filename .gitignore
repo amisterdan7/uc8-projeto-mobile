@@ -42,3 +42,12 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# auditoria e guias locais
+auditoria_contexto*.txt
+docs/AUDITORIA_*.md
+docs/guia_modulo/
+docs/guia-modulo/
+docs/guia_modulo_txt/
+guia-modulo/
+converter_guias.py

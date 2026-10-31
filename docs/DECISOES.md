@@ -1,6 +1,6 @@
 # Registro de Decisões de Arquitetura e Implementação (Mobile)
 
-Este documento registra as decisões técnicas tomadas durante a integração do aplicativo mobile da Academia MisterFit com a API unificada v1.
+Este documento registra as decisões técnicas tomadas durante a integração e evolução do aplicativo mobile da Academia MisterFit com a API unificada v1.
 
 ---
 
@@ -58,3 +58,50 @@ Este documento registra as decisões técnicas tomadas durante a integração do
 - **Contexto:** A API emite tokens com validade de 8 horas e pode retornar 401 caso o token expire ou o usuário seja desativado.
 - **Ação:** Ao detectar 401, o cliente HTTP dispara imediatamente a limpeza do token no SecureStore, zera o estado de sessão e notifica o usuário via alerta nativo, redirecionando para a tela de Login sem travamentos.
 - **Perfis e Ações:** O perfil `admin` recebe permissão curinga `*` exibindo todas as opções de gerenciamento. O perfil `recepcao` não vê botões de exclusão, arquivamento ou inativação (`alunos:desativar`, `alunos:excluir`, `matriculas:atualizar-status`, `matriculas:excluir`), assegurando alinhamento visual com as políticas de segurança do backend.
+
+---
+
+## 8. Abstração de Dados via Interface `FonteDados` (M6-R6)
+
+- **Decisão:** Criação da interface `FonteDados` em `src/dados/FonteDados.ts` e implementação única `FonteApi` sobre o cliente HTTP de `src/api`.
+- **Contexto:** Para desacoplar as telas da camada de rede direta e atender aos padrões de inversão de dependência do módulo acadêmico, o estado global das entidades (`Alunos`, `Planos`, `Matrículas`) é gerenciado pelo `DadosContext`.
+- **Ação:** Nenhuma tela chama `src/api` diretamente. Todas as operações de leitura e mutação passam por `useDados()`, que dispara o recarregamento automático das entidades afetadas após cada mutação. O `DadosProvider` reside dentro do `SessaoProvider` e reinicializa seu estado completamente no encerramento de sessão.
+
+---
+
+## 9. Estados de Tela por União Discriminada e Verificação Exaustiva (M6-R5)
+
+- **Decisão:** Eliminação de variáveis booleanas e strings soltas de controle (`carregando`, `erro`, `dados`) em favor de `EstadoTela<T> = { tipo: 'carregando' } | { tipo: 'erro'; mensagem: string } | { tipo: 'sucesso'; dados: T }`.
+- **Contexto:** Estados independentes permitiam combinações inconsistentes (ex.: `carregando: true` e `erro: "falha"` ao mesmo tempo).
+- **Ação:** As telas utilizam a união discriminada e processam sua renderização através de `switch (estado.tipo)`, com garantia de cobertura total pelo helper `semCaso(x: never): never`.
+
+---
+
+## 10. Tratamento Centralizado de Erros e Buffer Seguro em Memória (M8-R1, M8-R3)
+
+- **Decisão:** Criação do módulo `src/erros/erros.ts` com as funções `classificarErro`, `registrarErro` e `sanitizar`.
+- **Contexto:** Mensagens de erro de baixo nível podiam expor tokens, senhas ou dados sensíveis nos logs ou assustar o usuário com mensagens técnicas.
+- **Ação:** Os erros são categorizados em `'rede' | 'sessao' | 'permissao' | 'validacao' | 'conflito' | 'servidor' | 'desconhecido'` e convertidos em mensagens amigáveis em português do Brasil. Um buffer circular em memória guarda os últimos 50 eventos (sem dados pessoais, corpos de requisição ou tokens), exibidos na tela "Sobre" para diagnóstico da equipe.
+
+---
+
+## 11. Responsividade e Adaptação em Grade (M5-R3)
+
+- **Decisão:** Uso do hook `useWindowDimensions` e da função pura `colunasPara(largura: number): number`.
+- **Contexto:** O aplicativo deve oferecer experiência consistente tanto em smartphones verticais quanto em tablets ou aparelhos em orientação horizontal.
+- **Ação:** Larguras abaixo de 600px utilizam 1 coluna; entre 600px e 899px utilizam 2 colunas; a partir de 900px utilizam 3 colunas. O FlatList aplica a propriedade dinâmica `numColumns` e `key={numColunas}`.
+
+---
+
+## 12. Pendências Arquiteturais C1 e C2 (Fora do Escopo Atual)
+
+- **Decisão:** O aplicativo permanece operando estritamente online conectado à API v1. Não foram adicionados banco SQLite local, cache offline nem fila de sincronização em segundo plano.
+- **Contexto:** Conforme alinhado nas diretrizes do projeto, as decisões C1 (estratégia de persistência local / offline-first) e C2 (mecanismo de fila de resolução de conflitos) dependem de definições de infraestrutura pendentes e não devem ser contornadas no cliente mobile sem alinhamento prévio.
+
+---
+
+## 13. Identificador de Pacote Android (`android.package`) e Build EAS (M9-R2)
+
+- **Decisão:** O campo `android.package` em `app.json` foi mantido provisoriamente como `com.exemplo.uc8projetomobile`.
+- **Contexto:** A alteração do pacote para um identificador definitivo em produção requer registro da conta Expo/EAS e sincronização das credenciais do proprietário do projeto.
+- **Ação:** O proprietário do projeto deve atualizar este identificador único para o domínio final antes de disparar o comando `eas build --profile preview --platform android`. O arquivo `eas.json` com perfil `preview` para geração de APK instalável está versionado e pronto na raiz do repositório.
