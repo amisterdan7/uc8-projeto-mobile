@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -18,9 +19,12 @@ import type { Aluno } from '@/types/entidades';
 import { semCaso } from '@/types/estadoTela';
 import type { NavegacaoAppProp } from '@/navegacao/tipos';
 import { useDados } from '@/dados';
+import { useAcademia, useAcervo } from '../contexto';
+import { registrarErro } from '../erros/erros';
 import { useSessao } from '@/auth';
 import { colunasPara } from '@/utils/responsividade';
 import { AlunoCard, AlunoForm, Carregando, EstadoErro, EstadoVazio } from '@/components';
+import { cores, espacos, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -28,7 +32,10 @@ export function TelaAlunos() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavegacaoAppProp>();
   const { width } = useWindowDimensions();
+  const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
+
+  const { estado: estadoAcademia } = useAcervo();
 
   const {
     estadoAlunos,
@@ -84,7 +91,8 @@ export function TelaAlunos() {
       }
       setModalFormularioVisivel(false);
       setAlunoEmEdicao(null);
-    } catch {
+    } catch (falha: unknown) {
+      registrarErro('cadastro', falha);
       Alert.alert('Erro', 'Não foi possível salvar os dados do aluno.');
     } finally {
       setSalvando(false);
@@ -143,7 +151,12 @@ export function TelaAlunos() {
   // Renderização através de união discriminada e switch exaustivo (M6-R5)
   switch (estadoAlunos.tipo) {
     case 'carregando':
-      return <Carregando mensagem="Carregando alunos..." />;
+      return (
+        <View style={estilosComuns.container}>
+          <ActivityIndicator size="large" color={cores.primaria} />
+          <Carregando mensagem="Carregando alunos..." />
+        </View>
+      );
 
     case 'erro':
       return (
@@ -218,10 +231,16 @@ export function TelaAlunos() {
             ) : null}
           </View>
 
+          {estadoAcademia.tipo === 'pronto' && estadoAcademia.origem === 'aparelho' && (
+            <Text style={{ color: cores.alerta, paddingHorizontal: espacos.md, marginBottom: espacos.sm }}>
+              Mostrando os alunos guardados no aparelho: {estadoAcademia.motivo}
+            </Text>
+          )}
+
           <FlatList
-            key={numColunas}
+            key={duasColunas ? 'duas' : 'uma'}
             data={alunosFiltrados}
-            numColumns={numColunas}
+            numColumns={duasColunas ? 2 : 1}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={[
               estilosComuns.conteudo,

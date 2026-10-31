@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Modal,
   ScrollView,
@@ -16,6 +17,7 @@ import type { RotasAutenticadasStackParamList } from '@/navegacao/tipos';
 import { useDados } from '@/dados';
 import { useSessao } from '@/auth';
 import { AlunoForm, Carregando, EstadoErro, Selo } from '@/components';
+import { cores, espacos } from '../tema/tema';
 import { formatarDataBR } from '@/utils/datas';
 import { formatarTelefone } from '@/utils/telefone';
 import { colors } from '@/styles/colors';
@@ -47,7 +49,12 @@ export function TelaDetalheAluno() {
   const [salvando, setSalvando] = useState(false);
 
   if (estadoAlunos.tipo === 'carregando') {
-    return <Carregando mensagem="Carregando detalhes do aluno..." />;
+    return (
+      <View style={estilosComuns.container}>
+        <ActivityIndicator size="large" color={cores.primaria} />
+        <Carregando mensagem="Carregando detalhes do aluno..." />
+      </View>
+    );
   }
 
   if (estadoAlunos.tipo === 'erro') {

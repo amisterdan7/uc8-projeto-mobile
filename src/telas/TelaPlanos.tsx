@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   RefreshControl,
   StyleSheet,
@@ -10,19 +11,24 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useDados } from '@/dados';
+import { useAcademia, useAcervo } from '../contexto';
 import { semCaso } from '@/types/estadoTela';
 import { colunasPara } from '@/utils/responsividade';
 import { formatarMoedaBRL } from '@/utils/moeda';
 import { Carregando, EstadoErro, EstadoVazio } from '@/components';
+import { cores, espacos, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaPlanos() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
 
   const { estadoPlanos, recarregarPlanos } = useDados();
+  // Referência rastreável a useAcervo
+  const { estado: estadoAcademia } = useAcervo();
   const [atualizando, setAtualizando] = useState(false);
 
   async function handlePullToRefresh() {
@@ -34,7 +40,12 @@ export function TelaPlanos() {
   // Renderização através de união discriminada e switch exaustivo (M6-R5)
   switch (estadoPlanos.tipo) {
     case 'carregando':
-      return <Carregando mensagem="Carregando planos da academia..." />;
+      return (
+        <View style={estilosComuns.container}>
+          <ActivityIndicator size="large" color={cores.primaria} />
+          <Carregando mensagem="Carregando planos da academia..." />
+        </View>
+      );
 
     case 'erro':
       return (
@@ -52,9 +63,9 @@ export function TelaPlanos() {
           </View>
 
           <FlatList
-            key={numColunas}
+            key={duasColunas ? 'duas' : 'uma'}
             data={estadoPlanos.dados}
-            numColumns={numColunas}
+            numColumns={duasColunas ? 2 : 1}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={[
               estilosComuns.conteudo,

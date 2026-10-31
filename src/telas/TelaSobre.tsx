@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   FlatList,
+  PixelRatio,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
-import { limparEventosErro, obterEventosErro, type EventoErro } from '@/erros';
+import { limparEventosErro, obterEventosErro, registrarErro, type EventoErro } from '../erros/erros';
+import { cores, espacos, raio } from '../tema/tema';
 import { formatarDataBR } from '@/utils/datas';
-import { colors } from '@/styles/colors';
-import { estilosComuns } from '@/styles/comum';
+import { Botao } from '../componentes/Botao';
 
 export function extrairHost(urlTexto?: string): string {
   if (!urlTexto) return 'localhost:3333';
@@ -27,7 +30,9 @@ export function extrairHost(urlTexto?: string): string {
 
 export function TelaSobre() {
   const insets = useSafeAreaInsets();
-  const { usuario } = useSessao();
+  const { width, height, fontScale } = useWindowDimensions();
+  const { usuario, sair } = useSessao();
+  const [guardados, setGuardados] = useState('...');
   const [eventos, setEventos] = useState<ReadonlyArray<EventoErro>>(() =>
     obterEventosErro()
   );
@@ -36,6 +41,26 @@ export function TelaSobre() {
   const versaoApp = Constants.expoConfig?.version ?? '1.0.0';
   const urlApiOriginal = process.env.EXPO_PUBLIC_API_URL;
   const hostApi = extrairHost(urlApiOriginal);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelado = false;
+      try {
+        if (!cancelado) {
+          // Em modo online/API v1, sem persistência SQLite offline por enquanto (Decisão C1)
+          setGuardados('0');
+        }
+      } catch (erro: unknown) {
+        registrarErro('contagem', erro);
+        if (!cancelado) {
+          setGuardados('indisponível');
+        }
+      }
+      return () => {
+        cancelado = true;
+      };
+    }, [])
+  );
 
   function handleLimparLogs() {
     limparEventosErro();
@@ -47,32 +72,32 @@ export function TelaSobre() {
   }
 
   return (
-    <View style={estilosComuns.container}>
-      <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
-        <Text style={estilosComuns.tituloCabecalho}>Sobre o Sistema</Text>
+    <View style={[styles.tela, { paddingTop: insets.top + espacos.md }]}>
+      <View style={styles.cabecalho}>
+        <Text style={styles.titulo}>Sobre o Sistema</Text>
       </View>
 
       <FlatList
         data={eventos}
         keyExtractor={(_, index) => String(index)}
         contentContainerStyle={[
-          estilosComuns.conteudo,
-          { paddingBottom: insets.bottom + 24 },
+          styles.conteudo,
+          { paddingBottom: insets.bottom + espacos.lg },
         ]}
         ListHeaderComponent={
           <View style={styles.blocoCabecalho}>
-            <View style={estilosComuns.cartao}>
+            <View style={styles.cartao}>
               <View style={styles.linhaInfo}>
-                <MaterialIcons name="fitness-center" size={24} color={colors.blue[400]} />
+                <MaterialIcons name="fitness-center" size={24} color={cores.primaria} />
                 <View>
-                  <Text style={estilosComuns.tituloCartao}>{nomeApp}</Text>
-                  <Text style={estilosComuns.textoSecundario}>Versão {versaoApp}</Text>
+                  <Text style={styles.tituloCartao}>{nomeApp}</Text>
+                  <Text style={styles.textoSecundario}>Versão {versaoApp}</Text>
                 </View>
               </View>
             </View>
 
-            <View style={estilosComuns.cartao}>
-              <Text style={styles.tituloSecao}>Ambiente de Integração</Text>
+            <View style={styles.cartao}>
+              <Text style={styles.tituloSecao}>Ambiente e Dispositivo</Text>
 
               <View style={styles.itemDado}>
                 <Text style={styles.rotuloDado}>Origem dos Dados:</Text>
@@ -97,6 +122,18 @@ export function TelaSobre() {
                   {usuario?.perfil === 'admin' ? 'Administrador' : 'Recepção'}
                 </Text>
               </View>
+
+              <Text style={styles.medida}>
+                Janela: {Math.round(width)} x {Math.round(height)} dp
+              </Text>
+              <Text style={styles.medida}>Densidade: {PixelRatio.get()}x</Text>
+              <Text style={styles.medida}>Escala da fonte: {fontScale}</Text>
+              <Text style={styles.medida}>Guardados no aparelho: {guardados}</Text>
+            </View>
+
+            <View style={styles.cartao}>
+              <Text style={styles.tituloSecao}>Sessão</Text>
+              <Botao titulo="Sair da Conta" variante="secundario" onPress={sair} />
             </View>
 
             <View style={styles.linhaCabecalhoLogs}>
@@ -109,7 +146,7 @@ export function TelaSobre() {
                   onPress={handleRecarregarLogs}
                   accessibilityLabel="Atualizar lista de eventos"
                 >
-                  <MaterialIcons name="refresh" size={16} color={colors.blue[400]} />
+                  <MaterialIcons name="refresh" size={16} color={cores.primaria} />
                 </TouchableOpacity>
 
                 {eventos.length > 0 ? (
@@ -118,15 +155,15 @@ export function TelaSobre() {
                     onPress={handleLimparLogs}
                     accessibilityLabel="Limpar histórico de erros"
                   >
-                    <MaterialIcons name="delete-sweep" size={16} color={colors.red[400]} />
+                    <MaterialIcons name="delete-sweep" size={16} color={cores.erro} />
                   </TouchableOpacity>
                 ) : null}
               </View>
             </View>
 
             {eventos.length === 0 ? (
-              <View style={[estilosComuns.cartao, styles.cartaoSemErros]}>
-                <MaterialIcons name="check-circle-outline" size={20} color="#4ade80" />
+              <View style={[styles.cartao, styles.cartaoSemErros]}>
+                <MaterialIcons name="check-circle-outline" size={20} color={cores.sucesso} />
                 <Text style={styles.textoSemErros}>
                   Nenhum erro registrado em memória nesta sessão.
                 </Text>
@@ -140,7 +177,7 @@ export function TelaSobre() {
           const dataBR = formatarDataBR(dataIso);
 
           return (
-            <View style={[estilosComuns.cartao, styles.itemLog]}>
+            <View style={[styles.cartao, styles.itemLog]}>
               <View style={styles.linhaLogTopo}>
                 <Text style={styles.origemLog}>{item.origem}</Text>
                 <Text style={styles.tipoLog}>[{item.tipo.toUpperCase()}]</Text>
@@ -154,6 +191,9 @@ export function TelaSobre() {
                   <Text style={styles.codigoLog}>Código: {item.statusOuCodigo}</Text>
                 ) : null}
               </View>
+              {item.detalhe ? (
+                <Text style={styles.detalheLog}>{item.detalhe}</Text>
+              ) : null}
             </View>
           );
         }}
@@ -163,93 +203,132 @@ export function TelaSobre() {
 }
 
 const styles = StyleSheet.create({
+  tela: {
+    flex: 1,
+    backgroundColor: cores.fundo,
+  },
+  cabecalho: {
+    paddingHorizontal: espacos.md,
+    paddingBottom: espacos.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: cores.borda,
+  },
+  titulo: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: cores.texto,
+  },
+  conteudo: {
+    padding: espacos.md,
+    gap: espacos.sm,
+  },
   blocoCabecalho: {
-    gap: 12,
+    gap: espacos.sm,
+  },
+  cartao: {
+    backgroundColor: cores.superficie,
+    borderRadius: raio,
+    borderWidth: 1,
+    borderColor: cores.borda,
+    padding: espacos.md,
+    gap: espacos.xs,
   },
   linhaInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: espacos.sm,
+  },
+  tituloCartao: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: cores.texto,
+  },
+  textoSecundario: {
+    fontSize: 13,
+    color: cores.textoSecundario,
   },
   tituloSecao: {
-    color: colors.white,
     fontSize: 15,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontWeight: '700',
+    color: cores.texto,
+    marginBottom: espacos.xs,
   },
   itemDado: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: cores.borda,
   },
   rotuloDado: {
-    color: colors.gray[400],
     fontSize: 13,
+    color: cores.textoSecundario,
   },
   valorDado: {
-    color: colors.white,
     fontSize: 13,
     fontWeight: '600',
+    color: cores.texto,
+  },
+  medida: {
+    marginTop: espacos.xs,
+    color: cores.textoSecundario,
+    fontSize: 13,
   },
   linhaCabecalhoLogs: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: espacos.sm,
   },
   linhaBotoesLogs: {
     flexDirection: 'row',
-    gap: 8,
+    gap: espacos.xs,
   },
   botaoAcaoLog: {
-    padding: 6,
-    backgroundColor: colors.gray[800],
-    borderRadius: 6,
+    padding: espacos.xs,
   },
   cartaoSemErros: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(74, 222, 128, 0.08)',
-    borderColor: 'rgba(74, 222, 128, 0.25)',
+    gap: espacos.sm,
   },
   textoSemErros: {
-    color: '#4ade80',
     fontSize: 13,
+    color: cores.textoSecundario,
   },
   itemLog: {
-    backgroundColor: colors.gray[900],
-    padding: 10,
     gap: 4,
-    marginBottom: 8,
+    paddingVertical: espacos.sm,
   },
   linhaLogTopo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
   },
   origemLog: {
-    color: colors.white,
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: cores.texto,
   },
   tipoLog: {
-    color: colors.red[400],
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 'bold',
+    color: cores.alerta,
   },
   linhaLogDetalhe: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   dataLog: {
-    color: colors.gray[400],
-    fontSize: 12,
+    fontSize: 11,
+    color: cores.textoSecundario,
   },
   codigoLog: {
-    color: colors.gray[400],
+    fontSize: 11,
+    color: cores.textoSecundario,
+  },
+  detalheLog: {
     fontSize: 12,
+    color: cores.textoSecundario,
+    marginTop: 2,
   },
 });

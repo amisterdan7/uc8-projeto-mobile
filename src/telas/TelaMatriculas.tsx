@@ -19,6 +19,9 @@ import { semCaso } from '@/types/estadoTela';
 import { useDados } from '@/dados';
 import { useSessao } from '@/auth';
 import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
+import { useAcademia, useAcervo } from '../contexto';
+import { registrarErro } from '../erros/erros';
+import { cores, espacos, larguraLarga } from '../tema/tema';
 import { colunasPara } from '@/utils/responsividade';
 import {
   aplicarMascaraData,
@@ -32,7 +35,10 @@ import { estilosComuns } from '@/styles/comum';
 export function TelaMatriculas() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
+
+  const { estado: estadoAcademia } = useAcervo();
 
   const {
     estadoMatriculas,
@@ -206,10 +212,16 @@ export function TelaMatriculas() {
             ) : null}
           </View>
 
+          {estadoAcademia.tipo === 'pronto' && estadoAcademia.origem === 'aparelho' && (
+            <Text style={{ color: cores.alerta, paddingHorizontal: espacos.md, marginBottom: espacos.sm }}>
+              Mostrando as matrículas guardadas no aparelho: {estadoAcademia.motivo}
+            </Text>
+          )}
+
           <FlatList
-            key={numColunas}
+            key={duasColunas ? 'duas' : 'uma'}
             data={listaMatriculas}
-            numColumns={numColunas}
+            numColumns={duasColunas ? 2 : 1}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={[
               estilosComuns.conteudo,

@@ -15,6 +15,7 @@ import {
 } from '@/utils/datas';
 import { aplicarMascaraTelefone, limparTelefone } from '@/utils/telefone';
 import { Campo } from './Campo';
+import { ErroDeValidacao } from '../erros/erros';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -42,6 +43,9 @@ export function AlunoForm({
   const [erroNome, setErroNome] = useState('');
   const [erroNascimento, setErroNascimento] = useState('');
   const [erroTelefone, setErroTelefone] = useState('');
+
+  const exemplaresInvalido =
+    nome.trim().length < 3 || !validarDataNascimentoBR(nascimentoBR).valida;
 
   function handleNomeChange(texto: string) {
     setNome(texto);
@@ -148,9 +152,9 @@ export function AlunoForm({
         ) : null}
 
         <TouchableOpacity
-          style={[styles.botao, estilosComuns.botaoPrimario, styles.botaoSalvar]}
+          style={[styles.botao, estilosComuns.botaoPrimario, styles.botaoSalvar, exemplaresInvalido && { opacity: 0.5 }]}
           onPress={handleSubmit}
-          disabled={salvando}
+          disabled={salvando || exemplaresInvalido}
         >
           {salvando ? (
             <ActivityIndicator color={colors.white} />
