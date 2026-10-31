@@ -89,9 +89,9 @@ export async function requisitarApi<T>(
       body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });
-  } catch (erro: any) {
+  } catch (erro: unknown) {
     clearTimeout(timer);
-    if (erro?.name === 'AbortError') {
+    if (erro instanceof Error && erro.name === 'AbortError') {
       throw new ErroApi(
         'Tempo limite de conexão excedido. Verifique se o servidor da API está ativo.',
         'TIMEOUT',
