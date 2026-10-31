@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  RefreshControl,
   StyleSheet,
   Text,
   TextInput,
@@ -29,6 +30,13 @@ export function TelaBusca() {
   // Alias useAcervo também referenciado para rastreabilidade
   const acervo = useAcervo();
   const [termo, setTermo] = useState('');
+  const [atualizando, setAtualizando] = useState(false);
+
+  async function handlePullToRefresh() {
+    setAtualizando(true);
+    await recarregar();
+    setAtualizando(false);
+  }
 
   const listaAlunos: Aluno[] =
     estado.tipo === 'pronto' ? estado.alunos : acervo.estado.tipo === 'pronto' ? acervo.estado.alunos : [];
@@ -86,6 +94,13 @@ export function TelaBusca() {
           numColumns={duasColunas ? 2 : 1}
           columnWrapperStyle={duasColunas ? estilos.colunas : undefined}
           keyExtractor={(item) => String(item.id)}
+          refreshControl={
+            <RefreshControl
+              refreshing={atualizando}
+              onRefresh={handlePullToRefresh}
+              tintColor={cores.primaria}
+            />
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={estilos.item}
