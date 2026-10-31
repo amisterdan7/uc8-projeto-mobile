@@ -7,7 +7,9 @@
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "scheme": "uc8projetomobile",
-    "plugins": ["expo-router"],
+    "plugins": [
+      "expo-secure-store"
+    ],
     "ios": {
       "supportsTablet": true
     },
