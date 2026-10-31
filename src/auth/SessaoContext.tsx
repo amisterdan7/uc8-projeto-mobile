@@ -3,9 +3,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
 } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState, type AppStateStatus } from 'react-native';
 import type { Usuario } from '@/types/entidades';
 import {
   autenticarUsuario,
@@ -13,6 +14,7 @@ import {
   mapearUsuario,
   obterDadosUsuarioLogado,
   registrarCallbackSessaoExpirada,
+  registrarCallbackSemPermissao,
 } from '@/api';
 import {
   obterTokenArmazenado,
@@ -27,6 +29,7 @@ export interface ContextoSessaoData {
   entrar: (login: string, senha: string) => Promise<void>;
   sair: () => Promise<void>;
   podeFazer: (acao: string) => boolean;
+  recarregarPermissoes: () => Promise<void>;
 }
 
 const SessaoContext = createContext<ContextoSessaoData>({} as ContextoSessaoData);
@@ -35,6 +38,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [permissoes, setPermissoes] = useState<string[]>([]);
   const [carregando, setCarregando] = useState<boolean>(true);
+  const ultimoFocoRef = useRef(Date.now());
 
   const sair = useCallback(async () => {
     definirTokenApi(null);
@@ -51,9 +55,47 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     );
   }, [sair]);
 
+  const recarregarPermissoes = useCallback(async () => {
+    try {
+      const respostaEu = await obterDadosUsuarioLogado();
+      setUsuario(mapearUsuario(respostaEu.usuario));
+      setPermissoes(respostaEu.permissoes ?? []);
+    } catch {
+      await sair();
+      Alert.alert(
+        'Sessão encerrada',
+        'Sua sessão não pôde ser revalidada no servidor. Faça login novamente.'
+      );
+    }
+  }, [sair]);
+
   useEffect(() => {
     registrarCallbackSessaoExpirada(tratarSessaoExpirada);
-  }, [tratarSessaoExpirada]);
+    registrarCallbackSemPermissao(() => {
+      recarregarPermissoes();
+    });
+  }, [tratarSessaoExpirada, recarregarPermissoes]);
+
+  // Ciclo de vida: ao voltar ao primeiro plano depois de mais de 5 minutos, releia /auth/eu (C4)
+  useEffect(() => {
+    const assinatura = AppState.addEventListener(
+      'change',
+      (proximoEstado: AppStateStatus) => {
+        if (proximoEstado === 'active') {
+          const decorrido = Date.now() - ultimoFocoRef.current;
+          const cincoMinutos = 5 * 60 * 1000;
+          if (decorrido > cincoMinutos && usuario) {
+            recarregarPermissoes();
+          }
+          ultimoFocoRef.current = Date.now();
+        }
+      }
+    );
+
+    return () => {
+      assinatura.remove();
+    };
+  }, [usuario, recarregarPermissoes]);
 
   // Carrega sessão ao inicializar o app
   useEffect(() => {
@@ -127,6 +169,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
         entrar,
         sair,
         podeFazer,
+        recarregarPermissoes,
       }}
     >
       {children}

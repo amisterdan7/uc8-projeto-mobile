@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,15 +12,18 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Matricula } from '@/types/entidades';
+import type { AbasAppParamList } from '@/navegacao/tipos';
 import { semCaso } from '@/types/estadoTela';
 import { useDados } from '@/dados';
 import { useSessao } from '@/auth';
+import { ErroDaApi } from '@/api';
 import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
 import { useAcademia, useAcervo } from '../contexto';
-import { registrarErro } from '../erros/erros';
+import { extrairErrosCampos, registrarErro } from '../erros/erros';
 import { cores, espacos, larguraLarga } from '../tema/tema';
 import { colunasPara } from '@/utils/responsividade';
 import {
@@ -34,6 +37,7 @@ import { estilosComuns } from '@/styles/comum';
 
 export function TelaMatriculas() {
   const insets = useSafeAreaInsets();
+  const route = useRoute<RouteProp<AbasAppParamList, 'Matriculas'>>();
   const { width } = useWindowDimensions();
   const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
@@ -61,7 +65,19 @@ export function TelaMatriculas() {
   const [dataInicioBR, setDataInicioBR] = useState('');
   const [salvandoMatricula, setSalvandoMatricula] = useState(false);
   const [erroFormulario, setErroFormulario] = useState('');
+  const [errosCampos, setErrosCampos] = useState<Record<string, string>>({});
   const [atualizando, setAtualizando] = useState(false);
+
+  useEffect(() => {
+    if (route.params?.alunoId && podeCriar) {
+      setAlunoSelecionadoId(route.params.alunoId);
+      const planos = estadoPlanos.tipo === 'sucesso' ? estadoPlanos.dados : [];
+      if (planos.length > 0 && !planoSelecionadoId) {
+        setPlanoSelecionadoId(planos[0].id);
+      }
+      setModalCriacaoVisivel(true);
+    }
+  }, [route.params?.alunoId, podeCriar, estadoPlanos]);
 
   async function handlePullToRefresh() {
     setAtualizando(true);
@@ -71,6 +87,7 @@ export function TelaMatriculas() {
 
   function handleAbrirCriacao() {
     setErroFormulario('');
+    setErrosCampos({});
     setDataInicioBR('');
 
     const alunosAtivos =
@@ -93,7 +110,9 @@ export function TelaMatriculas() {
     let dataISO: string | undefined = undefined;
     if (dataInicioBR.trim()) {
       if (dataInicioBR.length !== 10) {
-        setErroFormulario('Data de início deve estar no formato DD/MM/AAAA ou ser deixada vazia (hoje).');
+        setErroFormulario(
+          'Data de início deve estar no formato DD/MM/AAAA ou ser deixada vazia (hoje).'
+        );
         return;
       }
       dataISO = dataBRparaISO(dataInicioBR);
@@ -101,6 +120,7 @@ export function TelaMatriculas() {
 
     setSalvandoMatricula(true);
     setErroFormulario('');
+    setErrosCampos({});
 
     try {
       const nova = await criarMatricula(
@@ -115,8 +135,27 @@ export function TelaMatriculas() {
         'Matrícula Criada com Sucesso!',
         `A matrícula foi registrada. Término estimado calculado pela API: ${dataFimFormatada}.`
       );
-    } catch {
-      setErroFormulario('Falha ao registrar matrícula no servidor.');
+    } catch (falha: unknown) {
+      registrarErro('cadastro matricula', falha);
+      if (falha instanceof ErroDaApi && falha.status === 409) {
+        const msgTexto = (falha.message || '').toLowerCase();
+        if (msgTexto.includes('arquivado')) {
+          setErroFormulario('O aluno está arquivado e não pode receber nova matrícula.');
+        } else if (msgTexto.includes('ativa')) {
+          setErroFormulario('O aluno já possui uma matrícula ativa não vencida.');
+        } else {
+          setErroFormulario(falha.message || 'Conflito ao registrar matrícula.');
+        }
+      } else if (falha instanceof ErroDaApi && falha.status === 400 && falha.detalhes) {
+        setErrosCampos(extrairErrosCampos(falha));
+        setErroFormulario('Verifique os campos destacados.');
+      } else {
+        const msg =
+          falha instanceof Error
+            ? falha.message
+            : 'Falha ao registrar matrícula no servidor.';
+        setErroFormulario(msg);
+      }
     } finally {
       setSalvandoMatricula(false);
     }
@@ -137,8 +176,17 @@ export function TelaMatriculas() {
           onPress: async () => {
             try {
               await mudarStatusMatricula(item.id, novoStatus);
-            } catch {
-              Alert.alert('Erro', `Falha ao ${acao} matrícula.`);
+            } catch (falha: unknown) {
+              if (falha instanceof ErroDaApi && falha.status === 409) {
+                Alert.alert(
+                  'Não foi possível reativar',
+                  'Já existe uma matrícula ativa para este aluno.'
+                );
+              } else {
+                const msg =
+                  falha instanceof Error ? falha.message : `Falha ao ${acao} matrícula.`;
+                Alert.alert('Erro', msg);
+              }
             }
           },
         },
@@ -417,11 +465,15 @@ export function TelaMatriculas() {
                     onChangeText={(t) => {
                       setDataInicioBR(aplicarMascaraData(t));
                       if (erroFormulario) setErroFormulario('');
+                      if (errosCampos['data_inicio']) {
+                        setErrosCampos((antigos) => ({ ...antigos, data_inicio: '' }));
+                      }
                     }}
                     placeholder="DD/MM/AAAA (vazio = data atual)"
                     keyboardType="number-pad"
                     maxLength={10}
                     editable={!salvandoMatricula}
+                    erro={errosCampos['data_inicio']}
                     iconeEsquerda="event"
                   />
 

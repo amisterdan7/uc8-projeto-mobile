@@ -13,9 +13,11 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Aluno, Matricula } from '@/types/entidades';
-import type { RotasAutenticadasStackParamList } from '@/navegacao/tipos';
+import type { NavegacaoAppProp, RotasAutenticadasStackParamList } from '@/navegacao/tipos';
 import { useDados } from '@/dados';
 import { useSessao } from '@/auth';
+import { ErroDaApi } from '@/api';
+import { extrairErrosCampos } from '../erros/erros';
 import { AlunoForm, Carregando, EstadoErro, Selo } from '@/components';
 import { cores, espacos } from '../tema/tema';
 import { formatarDataBR } from '@/utils/datas';
@@ -27,7 +29,7 @@ type RotaDetalheProp = RouteProp<RotasAutenticadasStackParamList, 'DetalheAluno'
 
 export function TelaDetalheAluno() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavegacaoAppProp>();
   const route = useRoute<RotaDetalheProp>();
   const { alunoId } = route.params;
 
@@ -44,8 +46,10 @@ export function TelaDetalheAluno() {
   const podeAtualizar = podeFazer('alunos:atualizar');
   const podeDesativar = podeFazer('alunos:desativar');
   const podeExcluir = podeFazer('alunos:excluir');
+  const podeCriarMatricula = podeFazer('matriculas:criar');
 
   const [modalEdicaoVisivel, setModalEdicaoVisivel] = useState(false);
+  const [errosEdicao, setErrosEdicao] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
 
   if (estadoAlunos.tipo === 'carregando') {
@@ -88,12 +92,27 @@ export function TelaDetalheAluno() {
   ) {
     if (!aluno) return;
     setSalvando(true);
+    setErrosEdicao({});
     try {
       await atualizarAluno(aluno.id, nome, dataNascimentoISO, telefone);
       setModalEdicaoVisivel(false);
       Alert.alert('Sucesso', 'Dados do aluno atualizados com sucesso.');
-    } catch {
-      Alert.alert('Erro', 'Não foi possível atualizar os dados do aluno.');
+    } catch (falha: unknown) {
+      if (falha instanceof ErroDaApi && falha.status === 409) {
+        Alert.alert(
+          'Não foi possível salvar',
+          'Já existe um aluno com esse nome e data de nascimento.'
+        );
+      } else if (falha instanceof ErroDaApi && falha.status === 400 && falha.detalhes) {
+        setErrosEdicao(extrairErrosCampos(falha));
+        Alert.alert('Dados inválidos', 'Verifique os campos destacados em vermelho.');
+      } else {
+        const msg =
+          falha instanceof Error
+            ? falha.message
+            : 'Não foi possível atualizar os dados do aluno.';
+        Alert.alert('Erro', msg);
+      }
     } finally {
       setSalvando(false);
     }
@@ -132,7 +151,7 @@ export function TelaDetalheAluno() {
     if (!aluno) return;
     Alert.alert(
       'Excluir Aluno Definitivamente',
-      `Esta ação é irreversível. O aluno "${aluno.nome}" e todas as suas matrículas serão removidos.`,
+      `A exclusão permanente só é possível para alunos sem histórico de matrículas. Deseja prosseguir com a exclusão de "${aluno.nome}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -142,8 +161,17 @@ export function TelaDetalheAluno() {
             try {
               await excluirAluno(aluno.id);
               navigation.goBack();
-            } catch {
-              Alert.alert('Erro', 'Falha ao excluir o aluno.');
+            } catch (erro: unknown) {
+              if (erro instanceof ErroDaApi && erro.status === 409) {
+                Alert.alert(
+                  'Não é possível excluir',
+                  'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
+                );
+              } else {
+                const msg =
+                  erro instanceof Error ? erro.message : 'Falha ao excluir o aluno.';
+                Alert.alert('Erro', msg);
+              }
             }
           },
         },
@@ -204,6 +232,26 @@ export function TelaDetalheAluno() {
                 Plano Atual: {aluno.planoNome}
               </Text>
             </View>
+          ) : null}
+
+          {podeCriarMatricula &&
+          (aluno.statusMatricula === 'vencida' ||
+            aluno.statusMatricula === 'inativa' ||
+            aluno.statusMatricula === 'sem_matricula') ? (
+            <TouchableOpacity
+              style={[estilosComuns.botaoAcao, styles.botaoRenovar]}
+              onPress={() => {
+                navigation.navigate('Abas', {
+                  screen: 'Matriculas',
+                  params: { alunoId: aluno.id },
+                });
+              }}
+            >
+              <MaterialIcons name="autorenew" size={16} color={colors.green[300]} />
+              <Text style={[estilosComuns.textoBotaoAcao, styles.textoRenovar]}>
+                Renovar Matrícula
+              </Text>
+            </TouchableOpacity>
           ) : null}
 
           {(podeAtualizar || podeDesativar || (podeExcluir && !aluno.ativo)) ? (
@@ -294,8 +342,12 @@ export function TelaDetalheAluno() {
           <AlunoForm
             alunoInicial={aluno}
             salvando={salvando}
+            errosExternos={errosEdicao}
             onSubmit={handleSalvarEdicao}
-            onCancelar={() => setModalEdicaoVisivel(false)}
+            onCancelar={() => {
+              setModalEdicaoVisivel(false);
+              setErrosEdicao({});
+            }}
           />
         </View>
       </Modal>
@@ -304,6 +356,16 @@ export function TelaDetalheAluno() {
 }
 
 const styles = StyleSheet.create({
+  botaoRenovar: {
+    borderColor: colors.green[300],
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    marginTop: 8,
+    alignSelf: 'flex-start',
+  },
+  textoRenovar: {
+    color: colors.green[300],
+    fontWeight: 'bold',
+  },
   botaoVoltar: {
     padding: 4,
   },

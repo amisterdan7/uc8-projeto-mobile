@@ -13,7 +13,8 @@ export type AbasAppParamList = {
   Alunos: undefined;
   Busca: undefined;
   Planos: undefined;
-  Matriculas: undefined;
+  Matriculas: { alunoId?: number } | undefined;
+  Usuarios: undefined;
   Sobre: undefined;
   Conta: undefined;
 };

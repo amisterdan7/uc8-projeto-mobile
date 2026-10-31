@@ -20,7 +20,8 @@ import { semCaso } from '@/types/estadoTela';
 import type { NavegacaoAppProp } from '@/navegacao/tipos';
 import { useDados } from '@/dados';
 import { useAcademia, useAcervo } from '../contexto';
-import { registrarErro } from '../erros/erros';
+import { extrairErrosCampos, registrarErro } from '../erros/erros';
+import { ErroDaApi } from '@/api';
 import { useSessao } from '@/auth';
 import { colunasPara } from '@/utils/responsividade';
 import { AlunoCard, AlunoForm, Carregando, EstadoErro, EstadoVazio } from '@/components';
@@ -52,10 +53,12 @@ export function TelaAlunos() {
   const podeAtualizar = podeFazer('alunos:atualizar');
   const podeDesativar = podeFazer('alunos:desativar');
   const podeExcluir = podeFazer('alunos:excluir');
+  const podeCriarMatricula = podeFazer('matriculas:criar');
 
   const [busca, setBusca] = useState('');
   const [modalFormularioVisivel, setModalFormularioVisivel] = useState(false);
   const [alunoEmEdicao, setAlunoEmEdicao] = useState<Aluno | null>(null);
+  const [errosFormulario, setErrosFormulario] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
 
@@ -67,12 +70,21 @@ export function TelaAlunos() {
 
   function handleAbrirCriacao() {
     setAlunoEmEdicao(null);
+    setErrosFormulario({});
     setModalFormularioVisivel(true);
   }
 
   function handleAbrirEdicao(aluno: Aluno) {
     setAlunoEmEdicao(aluno);
+    setErrosFormulario({});
     setModalFormularioVisivel(true);
+  }
+
+  function handleRenovar(aluno: Aluno) {
+    navigation.navigate('Abas', {
+      screen: 'Matriculas',
+      params: { alunoId: aluno.id },
+    });
   }
 
   async function handleSalvarAluno(
@@ -81,6 +93,7 @@ export function TelaAlunos() {
     telefone: string
   ) {
     setSalvando(true);
+    setErrosFormulario({});
     try {
       if (alunoEmEdicao) {
         await atualizarAluno(alunoEmEdicao.id, nome, dataNascimentoISO, telefone);
@@ -93,7 +106,21 @@ export function TelaAlunos() {
       setAlunoEmEdicao(null);
     } catch (falha: unknown) {
       registrarErro('cadastro', falha);
-      Alert.alert('Erro', 'Não foi possível salvar os dados do aluno.');
+      if (falha instanceof ErroDaApi && falha.status === 409) {
+        Alert.alert(
+          'Não foi possível salvar',
+          'Já existe um aluno com esse nome e data de nascimento.'
+        );
+      } else if (falha instanceof ErroDaApi && falha.status === 400 && falha.detalhes) {
+        setErrosFormulario(extrairErrosCampos(falha));
+        Alert.alert('Dados inválidos', 'Verifique os campos destacados em vermelho.');
+      } else {
+        const msg =
+          falha instanceof Error
+            ? falha.message
+            : 'Não foi possível salvar os dados do aluno.';
+        Alert.alert('Erro', msg);
+      }
     } finally {
       setSalvando(false);
     }
@@ -130,7 +157,7 @@ export function TelaAlunos() {
   function handleExcluir(aluno: Aluno) {
     Alert.alert(
       'Excluir Aluno Definitivamente',
-      `Esta ação é irreversível. O aluno "${aluno.nome}" e todas as suas matrículas serão removidos do sistema.`,
+      `A exclusão permanente só é possível para alunos sem histórico de matrículas. Deseja prosseguir com a exclusão de "${aluno.nome}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -139,8 +166,18 @@ export function TelaAlunos() {
           onPress: async () => {
             try {
               await excluirAluno(aluno.id);
-            } catch {
-              Alert.alert('Erro', 'Falha ao excluir o aluno.');
+              Alert.alert('Sucesso', 'Aluno excluído com sucesso.');
+            } catch (erro: unknown) {
+              if (erro instanceof ErroDaApi && erro.status === 409) {
+                Alert.alert(
+                  'Não é possível excluir',
+                  'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
+                );
+              } else {
+                const msg =
+                  erro instanceof Error ? erro.message : 'Falha ao excluir o aluno.';
+                Alert.alert('Erro', msg);
+              }
             }
           },
         },
@@ -264,22 +301,34 @@ export function TelaAlunos() {
                 icone="people-outline"
               />
             }
-            renderItem={({ item }) => (
-              <View style={numColunas > 1 ? styles.itemGrade : undefined}>
-                <AlunoCard
-                  aluno={item}
-                  podeEditar={podeAtualizar}
-                  podeDesativar={podeDesativar}
-                  podeExcluir={podeExcluir}
-                  onPress={(aluno) => {
-                    navigation.navigate('DetalheAluno', { alunoId: aluno.id });
-                  }}
-                  onEditar={handleAbrirEdicao}
-                  onAlternarAtivo={handleAlternarAtivo}
-                  onExcluir={handleExcluir}
-                />
-              </View>
-            )}
+            renderItem={({ item }) => {
+              const podeRenovar =
+                podeCriarMatricula &&
+                Boolean(
+                  item.statusMatricula === 'vencida' ||
+                    item.statusMatricula === 'inativa' ||
+                    item.statusMatricula === 'sem_matricula'
+                );
+
+              return (
+                <View style={numColunas > 1 ? styles.itemGrade : undefined}>
+                  <AlunoCard
+                    aluno={item}
+                    podeEditar={podeAtualizar}
+                    podeDesativar={podeDesativar}
+                    podeExcluir={podeExcluir}
+                    podeRenovar={podeRenovar}
+                    onPress={(aluno) => {
+                      navigation.navigate('DetalheAluno', { alunoId: aluno.id });
+                    }}
+                    onEditar={handleAbrirEdicao}
+                    onAlternarAtivo={handleAlternarAtivo}
+                    onExcluir={handleExcluir}
+                    onRenovar={handleRenovar}
+                  />
+                </View>
+              );
+            }}
           />
 
           <Modal
@@ -290,6 +339,7 @@ export function TelaAlunos() {
               if (!salvando) {
                 setModalFormularioVisivel(false);
                 setAlunoEmEdicao(null);
+                setErrosFormulario({});
               }
             }}
           >
@@ -302,10 +352,12 @@ export function TelaAlunos() {
               <AlunoForm
                 alunoInicial={alunoEmEdicao}
                 salvando={salvando}
+                errosExternos={errosFormulario}
                 onSubmit={handleSalvarAluno}
                 onCancelar={() => {
                   setModalFormularioVisivel(false);
                   setAlunoEmEdicao(null);
+                  setErrosFormulario({});
                 }}
               />
             </View>

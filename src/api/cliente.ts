@@ -25,6 +25,7 @@ export { ErroDaApi as ErroApi };
 
 let tokenAtual: string | null = null;
 let callbackSessaoExpirada: (() => void) | null = null;
+let callbackSemPermissao: (() => void) | null = null;
 
 export function definirTokenApi(token: string | null): void {
   tokenAtual = token;
@@ -36,6 +37,10 @@ export function obterTokenApi(): string | null {
 
 export function registrarCallbackSessaoExpirada(callback: () => void): void {
   callbackSessaoExpirada = callback;
+}
+
+export function registrarCallbackSemPermissao(callback: () => void): void {
+  callbackSemPermissao = callback;
 }
 
 export function obterUrlBase(): string {
@@ -97,13 +102,13 @@ export async function requisitarApi<T>(
     clearTimeout(timer);
     if (erro instanceof Error && erro.name === 'AbortError') {
       throw new ErroDaApi(
-        'Tempo limite de conexão excedido. Verifique se o servidor da API está ativo.',
+        'Tempo limite excedido. Sem conexão com o servidor.',
         'TIMEOUT',
         408
       );
     }
     throw new ErroDaApi(
-      'Não foi possível conectar ao servidor. Verifique sua conexão ou a URL configurada.',
+      'Sem conexão com o servidor.',
       'FALHA_CONEXAO',
       503
     );
@@ -117,13 +122,17 @@ export async function requisitarApi<T>(
       if (callbackSessaoExpirada) {
         callbackSessaoExpirada();
       }
+    } else if (resposta.status === 403) {
+      if (callbackSemPermissao) {
+        callbackSemPermissao();
+      }
     }
 
     let corpoErro: RespostaErroApi | null = null;
     try {
       corpoErro = await resposta.json();
     } catch {
-      // resposta sem json legível
+      // resposta sem json legivel
     }
 
     const mensagem =
@@ -155,15 +164,15 @@ function obterMensagemPadraoPorStatus(status: number): string {
     case 401:
       return 'Sua sessão expirou ou credenciais inválidas. Faça login novamente.';
     case 403:
-      return 'Você não tem permissão para realizar esta operação.';
+      return 'Você não tem permissão para esta ação.';
     case 404:
       return 'Recurso não encontrado.';
     case 409:
       return 'Conflito com o estado atual do registro.';
     case 429:
-      return 'Limite de tentativas excedido. Aguarde antes de tentar novamente.';
+      return 'Limite de requisições excedido.';
     case 503:
-      return 'Serviço ou banco de dados indisponível no momento.';
+      return 'Servidor indisponível.';
     case 500:
     default:
       return 'Ocorreu um erro interno no servidor.';

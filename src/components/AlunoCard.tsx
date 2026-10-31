@@ -13,10 +13,12 @@ interface AlunoCardProps {
   podeEditar?: boolean;
   podeDesativar?: boolean;
   podeExcluir?: boolean;
+  podeRenovar?: boolean;
   onPress?: (aluno: Aluno) => void;
   onEditar?: (aluno: Aluno) => void;
   onAlternarAtivo?: (aluno: Aluno) => void;
   onExcluir?: (aluno: Aluno) => void;
+  onRenovar?: (aluno: Aluno) => void;
 }
 
 export function AlunoCard({
@@ -24,10 +26,12 @@ export function AlunoCard({
   podeEditar = false,
   podeDesativar = false,
   podeExcluir = false,
+  podeRenovar = false,
   onPress,
   onEditar,
   onAlternarAtivo,
   onExcluir,
+  onRenovar,
 }: AlunoCardProps) {
   const isArquivado = !aluno.ativo;
 
@@ -73,8 +77,18 @@ export function AlunoCard({
         </View>
       </TouchableOpacity>
 
-      {(podeEditar || podeDesativar || (podeExcluir && isArquivado)) ? (
+      {(podeEditar || podeDesativar || (podeExcluir && isArquivado) || podeRenovar) ? (
         <View style={estilosComuns.linhaAcoes}>
+          {podeRenovar && onRenovar ? (
+            <TouchableOpacity
+              style={estilosComuns.botaoAcao}
+              onPress={() => onRenovar(aluno)}
+            >
+              <MaterialIcons name="autorenew" size={15} color={colors.green[300]} />
+              <Text style={estilosComuns.textoBotaoAcao}>Renovar</Text>
+            </TouchableOpacity>
+          ) : null}
+
           {podeEditar && onEditar ? (
             <TouchableOpacity
               style={estilosComuns.botaoAcao}

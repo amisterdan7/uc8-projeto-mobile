@@ -22,6 +22,7 @@ import { estilosComuns } from '@/styles/comum';
 interface AlunoFormProps {
   alunoInicial?: Aluno | null;
   salvando?: boolean;
+  errosExternos?: Record<string, string>;
   onSubmit: (nome: string, dataNascimentoISO: string, telefone: string) => void;
   onCancelar?: () => void;
 }
@@ -29,6 +30,7 @@ interface AlunoFormProps {
 export function AlunoForm({
   alunoInicial,
   salvando = false,
+  errosExternos,
   onSubmit,
   onCancelar,
 }: AlunoFormProps) {
@@ -111,7 +113,7 @@ export function AlunoForm({
         placeholder="Ex.: Maria Souza"
         autoCapitalize="words"
         editable={!salvando}
-        erro={erroNome}
+        erro={erroNome || errosExternos?.nome}
         iconeEsquerda="person"
       />
 
@@ -124,7 +126,7 @@ export function AlunoForm({
         keyboardType="number-pad"
         maxLength={10}
         editable={!salvando}
-        erro={erroNascimento}
+        erro={erroNascimento || errosExternos?.data_nascimento}
         iconeEsquerda="cake"
       />
 
@@ -136,7 +138,7 @@ export function AlunoForm({
         keyboardType="phone-pad"
         maxLength={15}
         editable={!salvando}
-        erro={erroTelefone}
+        erro={erroTelefone || errosExternos?.telefone}
         iconeEsquerda="phone"
       />
 

@@ -5,7 +5,9 @@ import {
   ErroDeValidacao,
   ErroDoBanco,
   classificarErro,
+  extrairErrosCampos,
   limparEventosErro,
+  mapearDetalhesErro,
   obterEventosErro,
   registrarErro,
   sanitizar,
@@ -62,33 +64,37 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
       assert.match(res.mensagem, /sessão/i);
     });
 
-    it('deve classificar HTTP 403 como erro de api', () => {
-      const erro = new ErroDaApi('Sem permissão', 'SEM_PERMISSAO', 403);
+    it('deve classificar HTTP 403 como erro de api com mensagem exata de permissao', () => {
+      const erro = new ErroDaApi('Sem permissao', 'SEM_PERMISSAO', 403);
       const res = classificarErro(erro);
       assert.equal(res.tipo, 'api');
-      assert.match(res.mensagem, /permissão/i);
+      assert.equal(res.mensagem, 'Você não tem permissão para esta ação.');
     });
 
-    it('deve classificar HTTP 400 como erro de api com detalhes', () => {
-      const erro = new ErroDaApi('Data de nascimento inválida', 'VALIDACAO', 400);
+    it('deve classificar HTTP 429 exibindo a mensagem do servidor', () => {
+      const erro = new ErroDaApi('Limite excedido. Tente em 30s.', 'LIMITE_EXCEDIDO', 429);
       const res = classificarErro(erro);
       assert.equal(res.tipo, 'api');
-      assert.equal(res.mensagem, 'Data de nascimento inválida');
+      assert.equal(res.mensagem, 'Limite excedido. Tente em 30s.');
     });
 
-    it('deve classificar HTTP 409 como erro de api de conflito', () => {
-      const erro = new ErroDaApi('Aluno já possui matrícula ativa', 'CONFLITO', 409);
+    it('deve classificar HTTP 503 como Servidor indisponível', () => {
+      const erro = new ErroDaApi('DB down', 'BANCO_INDISPONIVEL', 503);
       const res = classificarErro(erro);
       assert.equal(res.tipo, 'api');
-      assert.equal(res.mensagem, 'Aluno já possui matrícula ativa');
+      assert.equal(res.mensagem, 'Servidor indisponível.');
     });
 
-    it('deve classificar TIMEOUT ou FALHA_CONEXAO como erro de rede', () => {
+    it('deve classificar TIMEOUT ou FALHA_CONEXAO como Sem conexão com o servidor', () => {
       const erroTimeout = new ErroDaApi('Tempo limite', 'TIMEOUT', 408);
-      assert.equal(classificarErro(erroTimeout).tipo, 'rede');
+      const resTimeout = classificarErro(erroTimeout);
+      assert.equal(resTimeout.tipo, 'rede');
+      assert.equal(resTimeout.mensagem, 'Sem conexão com o servidor.');
 
       const erroConexao = new ErroDaApi('Falha de rede', 'FALHA_CONEXAO', 503);
-      assert.equal(classificarErro(erroConexao).tipo, 'rede');
+      const resConexao = classificarErro(erroConexao);
+      assert.equal(resConexao.tipo, 'rede');
+      assert.equal(resConexao.mensagem, 'Sem conexão com o servidor.');
     });
 
     it('deve classificar falha nativa de fetch como erro de rede', () => {
@@ -96,6 +102,32 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
       const res = classificarErro(erroRede);
       assert.equal(res.tipo, 'rede');
       assert.match(res.mensagem, /conexão com o servidor/i);
+    });
+  });
+
+  describe('mapearDetalhesErro e extrairErrosCampos (400)', () => {
+    it('deve converter detalhes de erro da API em dicionario de campos', () => {
+      const detalhes = [
+        { campo: 'nome', mensagem: 'O nome deve ter entre 3 e 100 caracteres.' },
+        { campo: 'data_nascimento', mensagem: 'Data de nascimento invalida.' },
+      ];
+      const mapa = mapearDetalhesErro(detalhes);
+      assert.equal(mapa.nome, 'O nome deve ter entre 3 e 100 caracteres.');
+      assert.equal(mapa.data_nascimento, 'Data de nascimento invalida.');
+    });
+
+    it('deve extrair campos de uma instancia de ErroDaApi com detalhes', () => {
+      const erro = new ErroDaApi('Dados invalidos', 'VALIDACAO', 400, [
+        { campo: 'preco', mensagem: 'Preco deve ser positivo.' },
+      ]);
+      const mapa = extrairErrosCampos(erro);
+      assert.equal(mapa.preco, 'Preco deve ser positivo.');
+    });
+
+    it('deve retornar mapa vazio se nao houver detalhes', () => {
+      const erro = new ErroDaApi('Sem detalhes', 'ERRO', 500);
+      assert.deepEqual(extrairErrosCampos(erro), {});
+      assert.deepEqual(mapearDetalhesErro(undefined), {});
     });
   });
 

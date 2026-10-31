@@ -67,14 +67,16 @@ export function classificarErro(erro: unknown): ErroClassificado {
     if (erro.codigo === 'TIMEOUT' || erro.codigo === 'FALHA_CONEXAO') {
       return {
         tipo: 'rede',
-        mensagem: 'Sem conexão com o servidor. Verifique a rede e tente de novo.',
+        mensagem: 'Sem conexão com o servidor.',
         detalhe: `${erro.name} ${erro.codigo}: ${sanitizar(erro.message)}`,
       };
     }
 
     let mensagem = `O servidor recusou a operação (${erro.status}).`;
-    if (erro.status === 401 || erro.status === 403) {
-      mensagem = 'Sua sessão expirou ou você não tem permissão para esta operação.';
+    if (erro.status === 401) {
+      mensagem = 'Sua sessão expirou. Faça login novamente.';
+    } else if (erro.status === 403) {
+      mensagem = 'Você não tem permissão para esta ação.';
     } else if (erro.status === 400) {
       mensagem = sanitizar(erro.message || 'Dados inválidos na requisição.');
     } else if (erro.status === 404) {
@@ -82,9 +84,9 @@ export function classificarErro(erro: unknown): ErroClassificado {
     } else if (erro.status === 409) {
       mensagem = sanitizar(erro.message || 'Conflito com o estado atual do registro.');
     } else if (erro.status === 429) {
-      mensagem = 'Limite de tentativas excedido. Aguarde 60 segundos.';
+      mensagem = sanitizar(erro.message) || 'Limite de tentativas excedido.';
     } else if (erro.status >= 500) {
-      mensagem = 'Serviço temporariamente indisponível.';
+      mensagem = 'Servidor indisponível.';
     }
 
     return {
@@ -185,3 +187,32 @@ export function obterEventosErro(): ReadonlyArray<EventoErro> {
 export function limparEventosErro(): void {
   bufferErros.length = 0;
 }
+
+/**
+ * Converte a lista de detalhes da API (400) em um mapa de mensagens por campo.
+ */
+export function mapearDetalhesErro(
+  detalhes?: { campo: string; mensagem: string }[]
+): Record<string, string> {
+  const mapa: Record<string, string> = {};
+  if (!detalhes || !Array.isArray(detalhes)) {
+    return mapa;
+  }
+  for (const item of detalhes) {
+    if (item && typeof item.campo === 'string' && typeof item.mensagem === 'string') {
+      mapa[item.campo] = item.mensagem;
+    }
+  }
+  return mapa;
+}
+
+/**
+ * Extrai erros de campos a partir de uma excecao ErroDaApi.
+ */
+export function extrairErrosCampos(erro: unknown): Record<string, string> {
+  if (erro instanceof ErroDaApi && erro.detalhes) {
+    return mapearDetalhesErro(erro.detalhes);
+  }
+  return {};
+}
+
