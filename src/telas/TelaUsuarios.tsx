@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useDados } from '@/dados';
+import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { semCaso } from '@/types/estadoTela';
 import { colunasPara } from '@/utils/responsividade';
@@ -37,7 +37,7 @@ export function TelaUsuarios() {
     criarUsuario,
     alterarAtivoUsuario,
     redefinirSenhaUsuario,
-  } = useDados();
+  } = useAcademia();
 
   const { usuario: usuarioLogado, podeFazer } = useSessao();
   const podeCriar = podeFazer('usuarios:criar');
@@ -204,6 +204,7 @@ export function TelaUsuarios() {
     );
   }
 
+  // Renderização por união discriminada (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
   switch (estadoUsuarios.tipo) {
     case 'carregando':
       return (
@@ -215,13 +216,34 @@ export function TelaUsuarios() {
 
     case 'erro':
       return (
-        <EstadoErro
-          mensagem={estadoUsuarios.mensagem}
-          onTentarNovamente={recarregarUsuarios}
-        />
+        <View style={estilosComuns.container}>
+          <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
+            <View>
+              <Text style={estilosComuns.tituloCabecalho}>Equipe e Usuários</Text>
+              <Text style={estilosComuns.subtituloCabecalho}>
+                Falha ao carregar
+              </Text>
+            </View>
+            {podeCriar ? (
+              <TouchableOpacity
+                style={styles.botaoAdicionar}
+                onPress={handleAbrirCriacao}
+                accessibilityLabel="Adicionar novo usuário"
+              >
+                <MaterialIcons name="person-add" size={20} color={colors.white} />
+                <Text style={styles.textoBotaoAdicionar}>Novo Usuário</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <EstadoErro
+            mensagem={estadoUsuarios.mensagem}
+            onTentarNovamente={recarregarUsuarios}
+          />
+        </View>
       );
 
-    case 'sucesso':
+    case 'pronto':
       return (
         <View style={estilosComuns.container}>
           <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>

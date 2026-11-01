@@ -15,9 +15,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useDados } from '@/dados';
+import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
-import { useAcervo } from '../contexto';
 import { semCaso } from '@/types/estadoTela';
 import { colunasPara } from '@/utils/responsividade';
 import { formatarMoedaBRL } from '@/utils/moeda';
@@ -35,14 +34,12 @@ export function TelaPlanos() {
   const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
 
-  const { estadoPlanos, recarregarPlanos, criarPlano, atualizarPlano, excluirPlano } = useDados();
+  const { estadoPlanos, recarregarPlanos, criarPlano, atualizarPlano, excluirPlano } = useAcademia();
   const { podeFazer } = useSessao();
   const podeCriar = podeFazer('planos:criar');
   const podeAtualizar = podeFazer('planos:atualizar');
   const podeExcluir = podeFazer('planos:excluir');
 
-  // Referencia rastreavel a useAcervo
-  const { estado: estadoAcademia } = useAcervo();
   const [atualizando, setAtualizando] = useState(false);
 
   // Estados do Modal de Criacao / Edicao de Plano
@@ -193,7 +190,7 @@ export function TelaPlanos() {
     );
   }
 
-  // Renderizacao atraves de uniao discriminada e switch exaustivo (M6-R5)
+  // Renderizacao atraves de uniao discriminada e switch exaustivo (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
   switch (estadoPlanos.tipo) {
     case 'carregando':
       return (
@@ -205,13 +202,34 @@ export function TelaPlanos() {
 
     case 'erro':
       return (
-        <EstadoErro
-          mensagem={estadoPlanos.mensagem}
-          onTentarNovamente={recarregarPlanos}
-        />
+        <View style={estilosComuns.container}>
+          <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
+            <View>
+              <Text style={estilosComuns.tituloCabecalho}>Planos e Mensalidades</Text>
+              <Text style={estilosComuns.subtituloCabecalho}>
+                Falha ao carregar
+              </Text>
+            </View>
+            {podeCriar ? (
+              <TouchableOpacity
+                style={styles.botaoAdicionar}
+                onPress={handleAbrirCriacao}
+                accessibilityLabel="Cadastrar novo plano"
+              >
+                <MaterialIcons name="add" size={20} color={colors.white} />
+                <Text style={styles.textoBotaoAdicionar}>Novo Plano</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <EstadoErro
+            mensagem={estadoPlanos.mensagem}
+            onTentarNovamente={recarregarPlanos}
+          />
+        </View>
       );
 
-    case 'sucesso':
+    case 'pronto':
       return (
         <View style={estilosComuns.container}>
           <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>

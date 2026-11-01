@@ -21,7 +21,7 @@ export function EstadoErro({
       {onTentarNovamente ? (
         <TouchableOpacity style={styles.botao} onPress={onTentarNovamente}>
           <MaterialIcons name="refresh" size={18} color={colors.white} />
-          <Text style={styles.textoBotao}>Tentar novamente</Text>
+          <Text style={styles.textoBotao}>Tentar de novo</Text>
         </TouchableOpacity>
       ) : null}
     </View>

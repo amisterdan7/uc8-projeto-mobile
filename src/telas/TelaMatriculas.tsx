@@ -18,13 +18,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { Matricula } from '@/types/entidades';
 import type { AbasAppParamList } from '@/navegacao/tipos';
 import { semCaso } from '@/types/estadoTela';
-import { useDados } from '@/dados';
+import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
 import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
-import { useAcademia, useAcervo } from '../contexto';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
-import { cores, espacos, larguraLarga } from '../tema/tema';
+import { cores, larguraLarga } from '../tema/tema';
 import { colunasPara } from '@/utils/responsividade';
 import {
   aplicarMascaraData,
@@ -42,8 +41,6 @@ export function TelaMatriculas() {
   const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
 
-  const { estado: estadoAcademia } = useAcervo();
-
   const {
     estadoMatriculas,
     estadoAlunos,
@@ -52,7 +49,7 @@ export function TelaMatriculas() {
     criarMatricula,
     mudarStatusMatricula,
     excluirMatricula,
-  } = useDados();
+  } = useAcademia();
 
   const { podeFazer } = useSessao();
   const podeCriar = podeFazer('matriculas:criar');
@@ -71,7 +68,7 @@ export function TelaMatriculas() {
   useEffect(() => {
     if (route.params?.alunoId && podeCriar) {
       setAlunoSelecionadoId(route.params.alunoId);
-      const planos = estadoPlanos.tipo === 'sucesso' ? estadoPlanos.dados : [];
+      const planos = estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
       if (planos.length > 0 && !planoSelecionadoId) {
         setPlanoSelecionadoId(planos[0].id);
       }
@@ -91,10 +88,10 @@ export function TelaMatriculas() {
     setDataInicioBR('');
 
     const alunosAtivos =
-      estadoAlunos.tipo === 'sucesso'
+      estadoAlunos.tipo === 'pronto'
         ? estadoAlunos.dados.filter((a) => a.ativo)
         : [];
-    const planos = estadoPlanos.tipo === 'sucesso' ? estadoPlanos.dados : [];
+    const planos = estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
 
     setAlunoSelecionadoId(alunosAtivos.length > 0 ? alunosAtivos[0].id : null);
     setPlanoSelecionadoId(planos.length > 0 ? planos[0].id : null);
@@ -215,27 +212,50 @@ export function TelaMatriculas() {
     );
   }
 
-  // Renderização através de união discriminada e switch exaustivo (M6-R5)
+  // Renderização através de união discriminada e switch exaustivo (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
   switch (estadoMatriculas.tipo) {
     case 'carregando':
       return <Carregando mensagem="Carregando matrículas..." />;
 
     case 'erro':
       return (
-        <EstadoErro
-          mensagem={estadoMatriculas.mensagem}
-          onTentarNovamente={recarregarMatriculas}
-        />
+        <View style={estilosComuns.container}>
+          <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
+            <View>
+              <Text style={estilosComuns.tituloCabecalho}>Matrículas</Text>
+              <Text style={estilosComuns.subtituloCabecalho}>
+                Falha ao carregar
+              </Text>
+            </View>
+
+            {podeCriar ? (
+              <TouchableOpacity
+                style={styles.botaoAdicionar}
+                onPress={handleAbrirCriacao}
+                accessibilityRole="button"
+                accessibilityLabel="Criar nova matrícula"
+              >
+                <MaterialIcons name="add-task" size={18} color={colors.white} />
+                <Text style={styles.textoBotaoAdicionar}>Nova Matrícula</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <EstadoErro
+            mensagem={estadoMatriculas.mensagem}
+            onTentarNovamente={recarregarMatriculas}
+          />
+        </View>
       );
 
-    case 'sucesso': {
+    case 'pronto': {
       const listaMatriculas = estadoMatriculas.dados;
       const alunosAtivos =
-        estadoAlunos.tipo === 'sucesso'
+        estadoAlunos.tipo === 'pronto'
           ? estadoAlunos.dados.filter((a) => a.ativo)
           : [];
       const planosDisponiveis =
-        estadoPlanos.tipo === 'sucesso' ? estadoPlanos.dados : [];
+        estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
 
       return (
         <View style={estilosComuns.container}>
@@ -259,12 +279,6 @@ export function TelaMatriculas() {
               </TouchableOpacity>
             ) : null}
           </View>
-
-          {estadoAcademia.tipo === 'pronto' && estadoAcademia.origem === 'aparelho' && (
-            <Text style={{ color: cores.alerta, paddingHorizontal: espacos.md, marginBottom: espacos.sm }}>
-              Mostrando as matrículas guardadas no aparelho: {estadoAcademia.motivo}
-            </Text>
-          )}
 
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}

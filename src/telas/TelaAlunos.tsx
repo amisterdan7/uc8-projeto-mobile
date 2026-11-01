@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,14 +18,13 @@ import { MaterialIcons } from '@expo/vector-icons';
 import type { Aluno } from '@/types/entidades';
 import { semCaso } from '@/types/estadoTela';
 import type { NavegacaoAppProp } from '@/navegacao/tipos';
-import { useDados } from '@/dados';
-import { useAcademia, useAcervo } from '../contexto';
+import { useAcademia } from '../contexto';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
 import { ErroDaApi } from '@/api';
 import { useSessao } from '@/auth';
 import { colunasPara, filtrarAlunos } from '@/utils';
-import { AlunoCard, AlunoForm, Carregando, EstadoErro, EstadoVazio } from '@/components';
-import { cores, espacos, larguraLarga } from '../tema/tema';
+import { AlunoCard, AlunoForm, Carregando, EstadoVazio } from '@/components';
+import { cores, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -36,8 +35,6 @@ export function TelaAlunos() {
   const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
 
-  const { estado: estadoAcademia } = useAcervo();
-
   const {
     estadoAlunos,
     recarregarAlunos,
@@ -46,7 +43,7 @@ export function TelaAlunos() {
     arquivarAluno,
     restaurarAluno,
     excluirAluno,
-  } = useDados();
+  } = useAcademia();
 
   const { podeFazer } = useSessao();
   const podeCriar = podeFazer('alunos:criar');
@@ -185,7 +182,7 @@ export function TelaAlunos() {
     );
   }
 
-  // Renderização através de união discriminada e switch exaustivo (M6-R5)
+  // Renderização por união discriminada (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
   switch (estadoAlunos.tipo) {
     case 'carregando':
       return (
@@ -219,6 +216,34 @@ export function TelaAlunos() {
             ) : null}
           </View>
 
+          <View style={styles.blocoBusca}>
+            <MaterialIcons
+              name="search"
+              size={20}
+              color={colors.gray[400]}
+              style={styles.iconeBusca}
+            />
+            <TextInput
+              value={busca}
+              onChangeText={setBusca}
+              placeholder="Buscar por nome ou telefone..."
+              placeholderTextColor={colors.gray[500]}
+              style={[estilosComuns.input, styles.inputBusca]}
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Campo de busca de alunos por nome ou telefone"
+            />
+            {busca ? (
+              <TouchableOpacity
+                onPress={() => setBusca('')}
+                style={styles.botaoLimparBusca}
+                accessibilityLabel="Limpar busca"
+              >
+                <MaterialIcons name="close" size={18} color={colors.gray[400]} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
           <View style={styles.cartaoErroTopo}>
             <View style={styles.linhaErroTopo}>
               <MaterialIcons name="error-outline" size={24} color={colors.red[400]} />
@@ -243,7 +268,7 @@ export function TelaAlunos() {
         </View>
       );
 
-    case 'sucesso': {
+    case 'pronto': {
       const listaAlunos = estadoAlunos.dados;
       const alunosFiltrados = filtrarAlunos(listaAlunos, busca);
 
@@ -297,12 +322,6 @@ export function TelaAlunos() {
               </TouchableOpacity>
             ) : null}
           </View>
-
-          {estadoAcademia.tipo === 'pronto' && estadoAcademia.origem === 'aparelho' && (
-            <Text style={{ color: cores.alerta, paddingHorizontal: espacos.md, marginBottom: espacos.sm }}>
-              Mostrando os alunos guardados no aparelho: {estadoAcademia.motivo}
-            </Text>
-          )}
 
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}
