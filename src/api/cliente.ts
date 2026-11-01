@@ -23,6 +23,8 @@ export class ErroDaApi extends Error {
 
 export { ErroDaApi as ErroApi };
 
+export const TIMEOUT_PADRAO_MS = 15000;
+
 let tokenAtual: string | null = null;
 let callbackSessaoExpirada: (() => void) | null = null;
 let callbackSemPermissao: (() => void) | null = null;
@@ -61,7 +63,7 @@ export async function requisitarApi<T>(
 ): Promise<T> {
   const {
     body,
-    timeoutMs = 10000,
+    timeoutMs = TIMEOUT_PADRAO_MS,
     autenticado = true,
     headers: headersCustomizados,
     ...outrasOpcoes

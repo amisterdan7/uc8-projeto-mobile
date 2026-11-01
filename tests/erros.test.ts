@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ErroDaApi } from '../src/api/cliente';
+import { ErroDaApi, TIMEOUT_PADRAO_MS, requisitarApi } from '../src/api/cliente';
 import {
   ErroDeValidacao,
   ErroDoBanco,
@@ -146,6 +146,40 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
       // O primeiro deve ser o item 6 (1 a 5 descartados)
       assert.equal(eventos[0].origem, 'Origem_6');
       assert.equal(eventos[49].origem, 'Origem_55');
+    });
+  });
+
+  describe('TIMEOUT_PADRAO_MS em cliente.ts (I6)', () => {
+    it('deve definir constante nomeada de 15 segundos (15000 ms)', () => {
+      assert.equal(TIMEOUT_PADRAO_MS, 15000);
+    });
+
+    it('deve abortar requisição e lançar ErroDaApi com código TIMEOUT quando exceder timeoutMs', async () => {
+      const fetchOriginal = globalThis.fetch;
+      globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            const abortErr = new Error('The operation was aborted.');
+            abortErr.name = 'AbortError';
+            reject(abortErr);
+          });
+        })) as typeof fetch;
+
+      try {
+        await assert.rejects(
+          () => requisitarApi('/alunos', { timeoutMs: 20 }),
+          (erro: unknown) => {
+            assert.equal(erro instanceof ErroDaApi, true);
+            if (erro instanceof ErroDaApi) {
+              assert.equal(erro.codigo, 'TIMEOUT');
+              assert.equal(erro.status, 408);
+            }
+            return true;
+          }
+        );
+      } finally {
+        globalThis.fetch = fetchOriginal;
+      }
     });
   });
 });
