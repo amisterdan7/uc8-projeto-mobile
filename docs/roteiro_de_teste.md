@@ -32,7 +32,9 @@ Legenda do resultado: **aprovado** (o observado é o esperado), **falha** (não 
 | C34 | Gerenciamento de Usuários - Admin (C17) | Aba Usuários com login admin; cadastrar novo colaborador; alternar status ativo; redefinir senha | Usuário criado (`POST /usuarios`); desativação do próprio usuário bloqueada na interface e tratada; senha alterada via modal | não executado | - | - |
 | C35 | Alteração da Própria Senha (C18) | Aba Conta; informar senha atual e nova senha de 8 a 128 caracteres | Senha atualizada via `POST /auth/trocar-senha`; erro 400 mapeado para campo de senha atual se incorreta | não executado | - | - |
 | C36 | Busca sem resultado na tela Alunos | Na aba Alunos, digitar termo inexistente no campo de busca | Lista exibe estado vazio com mensagem exata "Nenhum aluno encontrado para a busca." | não executado | - | - |
-| C37 | Tratamento de erro 503/timeout na tela Alunos | Simular servidor offline ou timeout ao recarregar alunos | Cartão no topo da tela Alunos informa erro e disponibiliza botão funcional "Tentar de novo" | não executado | - | - |
+| C37 | Tratamento de erro 503/timeout na tela Alunos | Simular servidor offline ou timeout (15s) ao recarregar alunos | Cabeçalho e campo de busca permanecem visíveis na tela Alunos; área da lista informa o erro e disponibiliza botão funcional "Tentar de novo" | não executado | - | - |
+| C38 | Busca parcial por telefone mascarado na tela Alunos | Na aba Alunos, digitar "9992" no campo de busca | Encontra imediatamente o aluno com telefone "(22) 99922-3344" sem disparar requisição à API | não executado | - | - |
+| C39 | Carga única por entidade no login (AcademiaContexto) | Efetuar login no modo equipe e inspecionar chamadas de rede | Cada entidade (`/v1/alunos`, `/v1/planos`, `/v1/matriculas`) é requisitada apenas uma vez na abertura da sessão | não executado | - | - |
 
 ## Modo curso (Supabase + SQLite + Fila)
 

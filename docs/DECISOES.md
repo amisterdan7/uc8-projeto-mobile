@@ -171,13 +171,33 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
 
 ---
 
-## 19. Unificação da Busca Local de Alunos e Remoção da Aba Redundante (Modo Equipe)
+## 19. Unificação da Busca Local de Alunos, Contexto Único (`AcademiaContexto`) e Padronização de Estados (Modo Equipe)
 
-- **Decisão:** A aba "Busca" foi removida da barra de navegação do modo equipe (`src/navegacao/index.tsx`). A busca de alunos passou a ser realizada de forma unificada e local na própria tela `TelaAlunos`.
-- **Contexto:** A `TelaAlunos` já possuía campo de busca dedicado. A existência de uma aba separada "Busca" gerava duplicidade de interface e requisições concorrentes da listagem de alunos através de múltiplos contextos.
-- **Implementação:**
-  1. A filtragem foi isolada na função pura `filtrarAlunos` em `src/utils/filtroAlunos.ts`, normalizando diacríticos (sem acento), minúsculas e tolerando formatação e valores nulos de telefone, coberta por testes unitários dedicados em `tests/filtroAlunos.test.ts`.
-  2. A filtragem opera em memória sobre o estado de alunos previamente carregado no `DadosContext`, sem disparar requisições à API ao digitar.
-  3. Em falhas de rede, timeout ou indisponibilidade (503), a `TelaAlunos` exibe um cartão de erro no topo da própria tela com mensagem informativa e botão funcional "Tentar de novo", mantendo a tela identificável e sem enviar o erro apenas para a aba Sobre.
-  4. O estado vazio diferencia busca sem resultados (*"Nenhum aluno encontrado para a busca."*) de cadastro vazio (*"Nenhum aluno cadastrado."*).
-  5. A aba "Busca" do modo curso (`src/navegacao/NavegadorCurso.tsx` -> `TelaBuscaPlanos.tsx`) foi mantida intacta para consulta local de planos no SQLite.
+- **Decisão 1 — Remoção da Aba "Busca" no Modo Equipe e Busca Local em `TelaAlunos`:**
+  - A aba "Busca" foi removida da barra de navegação do modo equipe (`src/navegacao/index.tsx` e `AbasAppParamList` em `src/navegacao/tipos.ts`) e o arquivo `src/telas/TelaBusca.tsx` foi removido.
+  - A busca de alunos é realizada de forma unificada e local na própria `TelaAlunos`, através da função pura `filtrarAlunos(alunos, termo)` em `src/utils/filtroAlunos.ts` (insensível a maiúsculas/minúsculas e acentos via `NFD`, suportando busca parcial de telefone com ou sem máscara — ex.: `"9992"` encontra `"(22) 99922-3344"` — e tratando `telefone: null`), sem disparar novas chamadas à API a cada tecla digitada.
+  - A aba "Busca" do modo curso (`src/navegacao/NavegadorPlanos.tsx` -> `TelaBuscaPlanos.tsx`) permaneceu intacta.
+
+- **Decisão 2 — Unificação em Contexto Único (`AcademiaContexto`) e Padronização dos Literais de Estado:**
+  - Anteriormente coexistiam dois contextos no modo equipe (`src/dados/DadosContext.tsx` e `src/contexto/AcademiaContexto.tsx`), o que disparava chamadas duplicadas de `/v1/alunos`, `/v1/planos` e `/v1/matriculas` no login.
+  - Os contextos foram unificados em um único contexto em `src/contexto/AcademiaContexto.tsx` (`AcademiaContexto`, `AcademiaProvedor`, `useAcademia`), consumindo a interface `FonteDados` (`src/servicos/FonteDados.ts`) e a implementação `FonteApi` (`src/servicos/fonteApi.ts`). O diretório duplicado `src/dados/` e o alias `src/contexto/AcervoContexto.tsx` foram removidos.
+  - Os literais da união discriminada `EstadoTela<T>` (`src/types/estadoTela.ts`) foram padronizados para `tipo: 'carregando'` | `tipo: 'erro'` | `tipo: 'pronto'` em todas as telas do modo equipe.
+  - Cada entidade (`alunos`, `planos`, `matriculas` e, quando autorizado por `usuarios:listar`, `usuarios`) é carregada uma única vez ao autenticar; após cada mutação, apenas as entidades afetadas são recarregadas; no logout (`usuario === null`), todos os estados retornam para `{ tipo: 'carregando' }`.
+
+- **Mapa Antes / Depois dos Contextos por Tela (Modo Equipe):**
+
+| Arquivo / Tela | Antes (Contextos Consumidos) | Depois (Contexto Único) |
+|---|---|---|
+| `App.tsx` | `<AcervoProvedor>` + `<DadosProvider>` aninhados | `<AcademiaProvedor>` único |
+| `src/telas/TelaAlunos.tsx` | `useDados()` (`src/dados/DadosContext.tsx`) + `useAcervo()` (`src/contexto/AcademiaContexto.tsx`) | `useAcademia()` (`src/contexto/AcademiaContexto.tsx`) |
+| `src/telas/TelaBusca.tsx` | `useAcademia()` / `useAcervo()` (`src/contexto/AcademiaContexto.tsx`) | Removida (busca integrada em `TelaAlunos.tsx`) |
+| `src/telas/TelaDetalheAluno.tsx` | `useDados()` (`src/dados/DadosContext.tsx`) | `useAcademia()` (`src/contexto/AcademiaContexto.tsx`) |
+| `src/telas/TelaPlanos.tsx` | `useDados()` (`src/dados/DadosContext.tsx`) + `useAcervo()` | `useAcademia()` (`src/contexto/AcademiaContexto.tsx`) |
+| `src/telas/TelaMatriculas.tsx` | `useDados()` (`src/dados/DadosContext.tsx`) + `useAcervo()` | `useAcademia()` (`src/contexto/AcademiaContexto.tsx`) |
+| `src/telas/TelaUsuarios.tsx` | `useDados()` (`src/dados/DadosContext.tsx`) | `useAcademia()` (`src/contexto/AcademiaContexto.tsx`) |
+| `src/telas/TelaConta.tsx` | `useDados()` (`src/dados/DadosContext.tsx`) | `useAcademia()` (`src/contexto/AcademiaContexto.tsx`) |
+
+- **Decisão 3 — Erro Dentro da Própria Tela e Timeout Nomeado de 15s:**
+  - Em falhas de rede, timeout ou HTTP 503, `TelaAlunos` mantém o cabeçalho e o campo de busca visíveis e exibe o bloco de erro com o botão `"Tentar de novo"` na área da lista. O mesmo padrão de erro dentro da tela (preservando o cabeçalho da tela visível com botão `"Tentar de novo"`) foi aplicado em `TelaPlanos`, `TelaMatriculas` e `TelaUsuarios`.
+  - O estado vazio de `TelaAlunos` exibe `"Nenhum aluno encontrado para a busca."` quando há filtro ativo sem correspondência e `"Nenhum aluno cadastrado."` quando a lista base está vazia.
+  - O timeout padrão do cliente HTTP (`src/api/cliente.ts`) foi padronizado na constante nomeada exportada `TIMEOUT_PADRAO_MS = 15000` (15 segundos).

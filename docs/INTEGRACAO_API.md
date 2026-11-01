@@ -39,13 +39,13 @@ Nenhuma tela acessa diretamente a camada de rede do cliente HTTP (`src/api`). A 
 [ Telas (React Native) ]
           │
           ▼
-[ useDados() / DadosContext ]
+[ useAcademia() / AcademiaContexto (src/contexto/AcademiaContexto.tsx) ]
           │
           ▼
-[ Interface FonteDados ]
+[ Interface FonteDados (src/servicos/FonteDados.ts) ]
           │
           ▼
-[ Implementação FonteApi ]
+[ Implementação FonteApi (src/servicos/fonteApi.ts) ]
           │
           ▼
 [ Cliente HTTP e Mapeadores (src/api) ]
@@ -55,7 +55,7 @@ Nenhuma tela acessa diretamente a camada de rede do cliente HTTP (`src/api`). A 
 ```
 
 - **Mapeadores Tolerantes (`src/api/mapeadores.ts`):** Convertem notação `snake_case` da API para `camelCase` das entidades TypeScript, ignoram propriedades adicionais desconhecidas e aceitam valores `null` em campos opcionais (`telefone`, `plano_nome`, `descricao`).
-- **Estados de Tela (`src/tipos/estadoTela.ts`):** Toda comunicação assíncrona é refletida em uniões discriminadas `{ tipo: 'carregando' } | { tipo: 'erro'; mensagem: string } | { tipo: 'sucesso'; dados: T }`.
+- **Estados de Tela (`src/types/estadoTela.ts`):** Toda comunicação assíncrona é refletida em uniões discriminadas `{ tipo: 'carregando' } | { tipo: 'erro'; mensagem: string } | { tipo: 'pronto'; dados: T }`.
 
 ---
 
@@ -69,7 +69,7 @@ Todos os erros retornados pela API são padronizados através da classe `ErroDaA
 - **HTTP 409 (Conflito):** Tratamento contextual na interface (aluno duplicado, exclusão de aluno com matrículas, aluno inativo recebendo matrícula, desativação da própria conta).
 - **HTTP 429 (Muitas Requisições):** Respeita a mensagem da API orientando o tempo de espera antes de nova tentativa.
 - **HTTP 503 (Banco Indisponível):** Exibe *"Serviço temporariamente indisponível. Tente novamente em instantes."* sem travar o aplicativo.
-- **Falha de Rede / Timeout:** Detectado via `AbortController` (10 segundos) e exibido amigavelmente com botão *"Tentar de novo"*.
+- **Falha de Rede / Timeout:** Detectado via `AbortController` com constante nomeada `TIMEOUT_PADRAO_MS = 15000` (15 segundos) em `src/api/cliente.ts` e exibido dentro da própria tela com cabeçalho preservado e botão *"Tentar de novo"*.
 
 ---
 
