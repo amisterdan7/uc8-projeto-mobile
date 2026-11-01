@@ -6,11 +6,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { modo } from './src/config/modo';
 import { SessaoProvider } from '@/auth';
-import { DadosProvider } from '@/dados';
-import { AcademiaProvedor, AcervoProvedor } from '@/contexto';
+import { AcademiaProvedor } from '@/contexto';
 import { NavegadorPrincipal } from '@/navegacao';
 import { PlanosProvedor } from './src/contexto/PlanosContexto';
-import { NavegadorCurso } from './src/navegacao/NavegadorCurso';
+import { NavegadorPlanos } from './src/navegacao/NavegadorPlanos';
 import { colors } from '@/styles/colors';
 
 export default function App() {
@@ -20,7 +19,7 @@ export default function App() {
         <PlanosProvedor>
           <NavigationContainer>
             <StatusBar style="light" />
-            <NavegadorCurso />
+            <NavegadorPlanos />
           </NavigationContainer>
         </PlanosProvedor>
       </SafeAreaProvider>
@@ -49,14 +48,12 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SessaoProvider>
-        <AcervoProvedor>
-          <DadosProvider>
-            <NavigationContainer>
-              <StatusBar style="light" />
-              <NavegadorPrincipal />
-            </NavigationContainer>
-          </DadosProvider>
-        </AcervoProvedor>
+        <AcademiaProvedor>
+          <NavigationContainer>
+            <StatusBar style="light" />
+            <NavegadorPrincipal />
+          </NavigationContainer>
+        </AcademiaProvedor>
       </SessaoProvider>
     </SafeAreaProvider>
   );

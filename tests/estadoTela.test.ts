@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   estadoCarregando,
   estadoErro,
-  estadoSucesso,
+  estadoPronto,
   semCaso,
   type EstadoTela,
 } from '../src/types/estadoTela';
@@ -19,9 +19,9 @@ describe('Estados de Tela por União Discriminada (M6-R5)', () => {
     assert.deepEqual(estado, { tipo: 'erro', mensagem: 'Erro de conexão' });
   });
 
-  it('deve instanciar estado de sucesso com dados tipados', () => {
-    const estado = estadoSucesso<string[]>(['Basic', 'Fit']);
-    assert.deepEqual(estado, { tipo: 'sucesso', dados: ['Basic', 'Fit'] });
+  it('deve instanciar estado pronto com dados tipados', () => {
+    const estado = estadoPronto<string[]>(['Basic', 'Fit']);
+    assert.deepEqual(estado, { tipo: 'pronto', dados: ['Basic', 'Fit'] });
   });
 
   it('deve permitir switch exaustivo discriminado', () => {
@@ -31,7 +31,7 @@ describe('Estados de Tela por União Discriminada (M6-R5)', () => {
           return 'Em andamento';
         case 'erro':
           return `Falhou: ${e.mensagem}`;
-        case 'sucesso':
+        case 'pronto':
           return `Recebido: ${e.dados}`;
         default:
           return semCaso(e);
@@ -40,7 +40,7 @@ describe('Estados de Tela por União Discriminada (M6-R5)', () => {
 
     assert.equal(processar(estadoCarregando()), 'Em andamento');
     assert.equal(processar(estadoErro('404')), 'Falhou: 404');
-    assert.equal(processar(estadoSucesso(42)), 'Recebido: 42');
+    assert.equal(processar(estadoPronto(42)), 'Recebido: 42');
   });
 
   it('deve disparar exceção ao chamar semCaso', () => {

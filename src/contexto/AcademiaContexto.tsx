@@ -6,249 +6,396 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import type { Aluno, Matricula, Plano } from '../types/entidades';
-import { ErroDeValidacao, registrarErro } from '../erros/erros';
-import { type DadosEdicaoAluno, type DadosNovaMatricula, type DadosNovoAluno, type FonteDados } from '../servicos/FonteDados';
-import { fonteApi } from '../servicos/fonteApi';
-import { useSessao } from '../auth';
-
-export type EstadoAcademia =
-  | { tipo: 'carregando' }
-  | { tipo: 'erro'; mensagem: string }
-  | {
-      tipo: 'pronto';
-      alunos: Aluno[];
-      matriculas: Matricula[];
-      planos: Plano[];
-      origem: 'nuvem';
-    }
-  | {
-      tipo: 'pronto';
-      alunos: Aluno[];
-      matriculas: Matricula[];
-      planos: Plano[];
-      origem: 'aparelho';
-      motivo: string;
-    };
+import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
+import type { EstadoTela } from '@/types/estadoTela';
+import { estadoCarregando, estadoErro, estadoPronto } from '@/types/estadoTela';
+import type { FonteDados } from '@/servicos/FonteDados';
+import { fonteApi } from '@/servicos/fonteApi';
+import { useSessao } from '@/auth';
+import { registrarErro } from '@/erros';
+import type {
+  AtualizarPlanoDTO,
+  CriarPlanoDTO,
+  CriarUsuarioDTO,
+  TrocarSenhaDTO,
+} from '@/api/tipos';
 
 export interface ValorDaAcademia {
-  estado: EstadoAcademia;
-  recarregar: () => Promise<void>;
-  incluirAluno: (dados: DadosNovoAluno) => Promise<Aluno>;
-  atualizarAluno: (id: number, dados: DadosEdicaoAluno) => Promise<Aluno>;
-  alternarStatusAluno: (id: number, ativo: boolean) => Promise<void>;
-  incluirMatricula: (dados: DadosNovaMatricula) => Promise<Matricula>;
-  atualizarStatusMatricula: (id: number, status: 'ativa' | 'inativa') => Promise<void>;
-  buscarAluno: (id: number) => Aluno | undefined;
-  buscarMatriculasDoAluno: (idAluno: number) => Matricula[];
-  buscarPlano: (idPlano: number) => Plano | undefined;
+  estadoAlunos: EstadoTela<Aluno[]>;
+  estadoPlanos: EstadoTela<Plano[]>;
+  estadoMatriculas: EstadoTela<Matricula[]>;
+  estadoUsuarios: EstadoTela<Usuario[]>;
+  recarregarAlunos: () => Promise<void>;
+  recarregarPlanos: () => Promise<void>;
+  recarregarMatriculas: () => Promise<void>;
+  recarregarUsuarios: () => Promise<void>;
+  recarregarTudo: () => Promise<void>;
+  criarAluno: (
+    nome: string,
+    dataNascimentoISO: string,
+    telefone?: string | null
+  ) => Promise<Aluno>;
+  atualizarAluno: (
+    id: number,
+    nome: string,
+    dataNascimentoISO: string,
+    telefone?: string | null
+  ) => Promise<Aluno>;
+  arquivarAluno: (id: number) => Promise<void>;
+  restaurarAluno: (id: number) => Promise<void>;
+  excluirAluno: (id: number) => Promise<void>;
+  criarMatricula: (
+    idAluno: number,
+    idPlano: number,
+    dataInicioISO?: string
+  ) => Promise<Matricula>;
+  mudarStatusMatricula: (
+    id: number,
+    status: 'ativa' | 'inativa'
+  ) => Promise<void>;
+  excluirMatricula: (id: number) => Promise<void>;
+  criarPlano: (dados: CriarPlanoDTO) => Promise<Plano>;
+  atualizarPlano: (id: number, dados: AtualizarPlanoDTO) => Promise<Plano>;
+  excluirPlano: (id: number) => Promise<void>;
+  trocarSenhaPropria: (dados: TrocarSenhaDTO) => Promise<void>;
+  criarUsuario: (dados: CriarUsuarioDTO) => Promise<Usuario>;
+  alterarAtivoUsuario: (id: number, ativo: boolean) => Promise<Usuario>;
+  redefinirSenhaUsuario: (id: number, senha: string) => Promise<void>;
 }
 
-const AcademiaContexto = createContext<ValorDaAcademia | undefined>(undefined);
-export const AcervoContexto = AcademiaContexto;
+export const AcademiaContexto = createContext<ValorDaAcademia | undefined>(undefined);
+
+interface AcademiaProvedorProps {
+  children: ReactNode;
+  fonteDados?: FonteDados;
+}
 
 export function AcademiaProvedor({
   children,
-  fonte = fonteApi,
-}: {
-  children: ReactNode;
-  fonte?: FonteDados;
-}) {
-  const { usuario } = useSessao();
-  const [estado, setEstado] = useState<EstadoAcademia>({ tipo: 'carregando' });
-  const [tentativa, setTentativa] = useState(0);
+  fonteDados = fonteApi,
+}: AcademiaProvedorProps) {
+  const { usuario, podeFazer } = useSessao();
 
-  const sincronizar = useCallback(async () => {
-    // Sincronização offline reservada para quando o banco local for ativado
-  }, []);
+  const [estadoAlunos, setEstadoAlunos] = useState<EstadoTela<Aluno[]>>({
+    tipo: 'carregando',
+  });
+  const [estadoPlanos, setEstadoPlanos] = useState<EstadoTela<Plano[]>>({
+    tipo: 'carregando',
+  });
+  const [estadoMatriculas, setEstadoMatriculas] = useState<EstadoTela<Matricula[]>>({
+    tipo: 'carregando',
+  });
+  const [estadoUsuarios, setEstadoUsuarios] = useState<EstadoTela<Usuario[]>>({
+    tipo: 'carregando',
+  });
 
-  const carregar = useCallback(async () => {
-    setEstado({ tipo: 'carregando' });
+  const recarregarAlunos = useCallback(async () => {
+    setEstadoAlunos(estadoCarregando<Aluno[]>());
     try {
-      await sincronizar().catch((erro: unknown) => {
-        registrarErro('sincronizar', erro);
-      });
-
-      const [alunos, planos, matriculas] = await Promise.all([
-        fonte.listarAlunos().catch((erro: unknown) => {
-          registrarErro('carga alunos', erro);
-          throw erro;
-        }),
-        fonte.listarPlanos().catch((erro: unknown) => {
-          registrarErro('carga planos', erro);
-          throw erro;
-        }),
-        fonte.listarMatriculas().catch((erro: unknown) => {
-          registrarErro('carga matriculas', erro);
-          throw erro;
-        }),
-      ]);
-
-      setEstado({
-        tipo: 'pronto',
-        alunos,
-        planos,
-        matriculas,
-        origem: 'nuvem',
-      });
-    } catch (erro: unknown) {
-      const classificado = registrarErro('carga', erro);
-      setEstado({ tipo: 'erro', mensagem: classificado.mensagem });
+      const dados = await fonteDados.listarAlunos();
+      setEstadoAlunos(estadoPronto(dados));
+    } catch (e: unknown) {
+      const classificado = registrarErro('AcademiaContexto.listarAlunos', e);
+      setEstadoAlunos(estadoErro<Aluno[]>(classificado.mensagem));
     }
-  }, [fonte, sincronizar]);
+  }, [fonteDados]);
 
+  const recarregarPlanos = useCallback(async () => {
+    setEstadoPlanos(estadoCarregando<Plano[]>());
+    try {
+      const dados = await fonteDados.listarPlanos();
+      setEstadoPlanos(estadoPronto(dados));
+    } catch (e: unknown) {
+      const classificado = registrarErro('AcademiaContexto.listarPlanos', e);
+      setEstadoPlanos(estadoErro<Plano[]>(classificado.mensagem));
+    }
+  }, [fonteDados]);
+
+  const recarregarMatriculas = useCallback(async () => {
+    setEstadoMatriculas(estadoCarregando<Matricula[]>());
+    try {
+      const dados = await fonteDados.listarMatriculas();
+      setEstadoMatriculas(estadoPronto(dados));
+    } catch (e: unknown) {
+      const classificado = registrarErro('AcademiaContexto.listarMatriculas', e);
+      setEstadoMatriculas(estadoErro<Matricula[]>(classificado.mensagem));
+    }
+  }, [fonteDados]);
+
+  const recarregarUsuarios = useCallback(async () => {
+    setEstadoUsuarios(estadoCarregando<Usuario[]>());
+    try {
+      const dados = await fonteDados.listarUsuarios();
+      setEstadoUsuarios(estadoPronto(dados));
+    } catch (e: unknown) {
+      const classificado = registrarErro('AcademiaContexto.listarUsuarios', e);
+      setEstadoUsuarios(estadoErro<Usuario[]>(classificado.mensagem));
+    }
+  }, [fonteDados]);
+
+  const recarregarTudo = useCallback(async () => {
+    const tarefas: Promise<void>[] = [
+      recarregarAlunos(),
+      recarregarPlanos(),
+      recarregarMatriculas(),
+    ];
+    if (podeFazer('usuarios:listar')) {
+      tarefas.push(recarregarUsuarios());
+    }
+    await Promise.all(tarefas);
+  }, [recarregarAlunos, recarregarPlanos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
+
+  // Carrega cada entidade uma vez no login e zera todo o estado no logout
   useEffect(() => {
-    if (usuario) {
-      carregar();
-    } else {
-      setEstado({ tipo: 'carregando' });
-    }
-  }, [usuario, tentativa, carregar]);
-
-  async function recarregar(): Promise<void> {
-    setTentativa((t) => t + 1);
-  }
-
-  async function incluirAluno(dados: DadosNovoAluno): Promise<Aluno> {
-    if (!dados.nome || dados.nome.trim().length < 3) {
-      throw new ErroDeValidacao('O nome do aluno deve ter no mínimo 3 caracteres.');
-    }
-    if (!dados.dataNascimento || dados.dataNascimento.trim() === '') {
-      throw new ErroDeValidacao('Informe a data de nascimento.');
-    }
-    const hoje = new Date().toISOString().slice(0, 10);
-    if (dados.dataNascimento >= hoje) {
-      throw new ErroDeValidacao('A data de nascimento não pode ser hoje nem no futuro.');
+    if (!usuario) {
+      setEstadoAlunos({ tipo: 'carregando' });
+      setEstadoPlanos({ tipo: 'carregando' });
+      setEstadoMatriculas({ tipo: 'carregando' });
+      setEstadoUsuarios({ tipo: 'carregando' });
+      return;
     }
 
-    try {
-      const novo = await fonte.criarAluno(dados);
-      setEstado((atual) =>
-        atual.tipo === 'pronto' ? { ...atual, alunos: [novo, ...atual.alunos] } : atual
-      );
-      return novo;
-    } catch (erro: unknown) {
-      registrarErro('cadastro aluno', erro);
-      throw erro;
+    recarregarPlanos();
+    recarregarAlunos();
+    recarregarMatriculas();
+    if (podeFazer('usuarios:listar')) {
+      recarregarUsuarios();
     }
-  }
+  }, [usuario, recarregarPlanos, recarregarAlunos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
 
-  async function atualizarAluno(id: number, dados: DadosEdicaoAluno): Promise<Aluno> {
-    if (!dados.nome || dados.nome.trim().length < 3) {
-      throw new ErroDeValidacao('O nome do aluno deve ter no mínimo 3 caracteres.');
-    }
-    if (!dados.dataNascimento || dados.dataNascimento.trim() === '') {
-      throw new ErroDeValidacao('Informe a data de nascimento.');
-    }
+  const criarAluno = useCallback(
+    async (nome: string, dataNascimentoISO: string, telefone?: string | null) => {
+      try {
+        const aluno = await fonteDados.criarAluno(nome, dataNascimentoISO, telefone);
+        await recarregarAlunos();
+        return aluno;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.criarAluno', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarAlunos]
+  );
 
-    try {
-      const atualizado = await fonte.atualizarAluno(id, dados);
-      setEstado((atual) =>
-        atual.tipo === 'pronto'
-          ? {
-              ...atual,
-              alunos: atual.alunos.map((a) => (a.id === id ? atualizado : a)),
-            }
-          : atual
-      );
-      return atualizado;
-    } catch (erro: unknown) {
-      registrarErro('atualizar aluno', erro);
-      throw erro;
-    }
-  }
+  const atualizarAluno = useCallback(
+    async (id: number, nome: string, dataNascimentoISO: string, telefone?: string | null) => {
+      try {
+        const aluno = await fonteDados.atualizarAluno(id, nome, dataNascimentoISO, telefone);
+        await recarregarAlunos();
+        return aluno;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.atualizarAluno', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarAlunos]
+  );
 
-  async function alternarStatusAluno(id: number, ativo: boolean): Promise<void> {
-    try {
-      await fonte.alternarStatusAluno(id, ativo);
-      setEstado((atual) =>
-        atual.tipo === 'pronto'
-          ? {
-              ...atual,
-              alunos: atual.alunos.map((a) => (a.id === id ? { ...a, ativo } : a)),
-            }
-          : atual
-      );
-    } catch (erro: unknown) {
-      registrarErro('status aluno', erro);
-      throw erro;
-    }
-  }
+  const arquivarAluno = useCallback(
+    async (id: number) => {
+      try {
+        await fonteDados.alterarStatusAtivoAluno(id, false);
+        await recarregarAlunos();
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.arquivarAluno', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarAlunos]
+  );
 
-  async function incluirMatricula(dados: DadosNovaMatricula): Promise<Matricula> {
-    if (!dados.idAluno) {
-      throw new ErroDeValidacao('Selecione o aluno para a matrícula.');
-    }
-    if (!dados.idPlano) {
-      throw new ErroDeValidacao('Selecione o plano da matrícula.');
-    }
+  const restaurarAluno = useCallback(
+    async (id: number) => {
+      try {
+        await fonteDados.alterarStatusAtivoAluno(id, true);
+        await recarregarAlunos();
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.restaurarAluno', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarAlunos]
+  );
 
-    try {
-      const nova = await fonte.criarMatricula(dados);
-      setEstado((atual) =>
-        atual.tipo === 'pronto'
-          ? { ...atual, matriculas: [nova, ...atual.matriculas] }
-          : atual
-      );
-      return nova;
-    } catch (erro: unknown) {
-      registrarErro('cadastro matricula', erro);
-      throw erro;
-    }
-  }
+  const excluirAluno = useCallback(
+    async (id: number) => {
+      try {
+        await fonteDados.excluirAluno(id);
+        await Promise.all([recarregarAlunos(), recarregarMatriculas()]);
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.excluirAluno', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarAlunos, recarregarMatriculas]
+  );
 
-  async function atualizarStatusMatricula(id: number, status: 'ativa' | 'inativa'): Promise<void> {
-    try {
-      await fonte.atualizarStatusMatricula(id, status);
-      setEstado((atual) =>
-        atual.tipo === 'pronto'
-          ? {
-              ...atual,
-              matriculas: atual.matriculas.map((m) => (m.id === id ? { ...m, status } : m)),
-            }
-          : atual
-      );
-    } catch (erro: unknown) {
-      registrarErro('status matricula', erro);
-      throw erro;
-    }
-  }
+  const criarMatricula = useCallback(
+    async (idAluno: number, idPlano: number, dataInicioISO?: string) => {
+      try {
+        const matricula = await fonteDados.criarMatricula(idAluno, idPlano, dataInicioISO);
+        await Promise.all([recarregarMatriculas(), recarregarAlunos()]);
+        return matricula;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.criarMatricula', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarMatriculas, recarregarAlunos]
+  );
 
-  function buscarAluno(id: number): Aluno | undefined {
-    return estado.tipo === 'pronto' ? estado.alunos.find((a) => a.id === id) : undefined;
-  }
+  const mudarStatusMatricula = useCallback(
+    async (id: number, status: 'ativa' | 'inativa') => {
+      try {
+        await fonteDados.atualizarStatusMatricula(id, status);
+        await Promise.all([recarregarMatriculas(), recarregarAlunos()]);
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.mudarStatusMatricula', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarMatriculas, recarregarAlunos]
+  );
 
-  function buscarMatriculasDoAluno(idAluno: number): Matricula[] {
-    return estado.tipo === 'pronto'
-      ? estado.matriculas.filter((m) => m.idAluno === idAluno)
-      : [];
-  }
+  const excluirMatricula = useCallback(
+    async (id: number) => {
+      try {
+        await fonteDados.excluirMatricula(id);
+        await Promise.all([recarregarMatriculas(), recarregarAlunos()]);
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.excluirMatricula', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarMatriculas, recarregarAlunos]
+  );
 
-  function buscarPlano(idPlano: number): Plano | undefined {
-    return estado.tipo === 'pronto' ? estado.planos.find((p) => p.id === idPlano) : undefined;
-  }
+  const criarPlano = useCallback(
+    async (dados: CriarPlanoDTO) => {
+      try {
+        const novo = await fonteDados.criarPlano(dados);
+        await recarregarPlanos();
+        return novo;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.criarPlano', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarPlanos]
+  );
+
+  const atualizarPlano = useCallback(
+    async (id: number, dados: AtualizarPlanoDTO) => {
+      try {
+        const atualizado = await fonteDados.atualizarPlano(id, dados);
+        await recarregarPlanos();
+        return atualizado;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.atualizarPlano', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarPlanos]
+  );
+
+  const excluirPlano = useCallback(
+    async (id: number) => {
+      try {
+        await fonteDados.excluirPlano(id);
+        await recarregarPlanos();
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.excluirPlano', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarPlanos]
+  );
+
+  const trocarSenhaPropria = useCallback(
+    async (dados: TrocarSenhaDTO) => {
+      try {
+        await fonteDados.trocarSenhaPropria(dados);
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.trocarSenhaPropria', e);
+        throw e;
+      }
+    },
+    [fonteDados]
+  );
+
+  const criarUsuario = useCallback(
+    async (dados: CriarUsuarioDTO) => {
+      try {
+        const novo = await fonteDados.criarUsuario(dados);
+        await recarregarUsuarios();
+        return novo;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.criarUsuario', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarUsuarios]
+  );
+
+  const alterarAtivoUsuario = useCallback(
+    async (id: number, ativo: boolean) => {
+      try {
+        const atualizado = await fonteDados.alterarAtivoUsuario(id, ativo);
+        await recarregarUsuarios();
+        return atualizado;
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.alterarAtivoUsuario', e);
+        throw e;
+      }
+    },
+    [fonteDados, recarregarUsuarios]
+  );
+
+  const redefinirSenhaUsuario = useCallback(
+    async (id: number, senha: string) => {
+      try {
+        await fonteDados.redefinirSenhaUsuario(id, senha);
+      } catch (e: unknown) {
+        registrarErro('AcademiaContexto.redefinirSenhaUsuario', e);
+        throw e;
+      }
+    },
+    [fonteDados]
+  );
 
   return (
     <AcademiaContexto.Provider
       value={{
-        estado,
-        recarregar,
-        incluirAluno,
+        estadoAlunos,
+        estadoPlanos,
+        estadoMatriculas,
+        estadoUsuarios,
+        recarregarAlunos,
+        recarregarPlanos,
+        recarregarMatriculas,
+        recarregarUsuarios,
+        recarregarTudo,
+        criarAluno,
         atualizarAluno,
-        alternarStatusAluno,
-        incluirMatricula,
-        atualizarStatusMatricula,
-        buscarAluno,
-        buscarMatriculasDoAluno,
-        buscarPlano,
+        arquivarAluno,
+        restaurarAluno,
+        excluirAluno,
+        criarMatricula,
+        mudarStatusMatricula,
+        excluirMatricula,
+        criarPlano,
+        atualizarPlano,
+        excluirPlano,
+        trocarSenhaPropria,
+        criarUsuario,
+        alterarAtivoUsuario,
+        redefinirSenhaUsuario,
       }}
     >
       {children}
     </AcademiaContexto.Provider>
   );
 }
-
-export const AcervoProvedor = AcademiaProvedor;
 
 export function useAcademia(): ValorDaAcademia {
   const contexto = useContext(AcademiaContexto);
@@ -257,5 +404,3 @@ export function useAcademia(): ValorDaAcademia {
   }
   return contexto;
 }
-
-export const useAcervo = useAcademia;

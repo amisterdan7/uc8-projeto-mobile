@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
-import { useDados } from '@/dados';
+import { useAcademia } from '@/contexto';
 import { Campo, Selo } from '@/components';
 import { ErroDaApi } from '@/api/cliente';
 import { extrairErrosCampos } from '@/erros';
@@ -21,7 +21,7 @@ import { estilosComuns } from '@/styles/comum';
 export function TelaConta() {
   const insets = useSafeAreaInsets();
   const { usuario, permissoes, sair } = useSessao();
-  const { trocarSenhaPropria } = useDados();
+  const { trocarSenhaPropria } = useAcademia();
 
   const [modoTrocarSenha, setModoTrocarSenha] = useState(false);
   const [senhaAtual, setSenhaAtual] = useState('');

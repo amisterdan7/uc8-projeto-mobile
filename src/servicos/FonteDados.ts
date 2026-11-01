@@ -1,33 +1,41 @@
-import type { Aluno, Matricula, Plano } from '../types/entidades';
+import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
+import type {
+  AtualizarPlanoDTO,
+  CriarPlanoDTO,
+  CriarUsuarioDTO,
+  TrocarSenhaDTO,
+} from '@/api/tipos';
 
-export interface DadosNovoAluno {
-  nome: string;
-  dataNascimento: string; // formato AAAA-MM-DD
-  telefone?: string | null;
-}
-
-export interface DadosEdicaoAluno {
-  nome: string;
-  dataNascimento: string; // formato AAAA-MM-DD
-  telefone?: string | null;
-}
-
-export interface DadosNovaMatricula {
-  idAluno: number;
-  idPlano: number;
-  dataInicio?: string; // formato AAAA-MM-DD
-}
-
+/**
+ * Interface abstrata que define as operações de leitura e escrita necessárias para as telas.
+ * Atende ao requisito M6-R6 como ponto de desacoplamento.
+ */
 export interface FonteDados {
-  listarAlunos(): Promise<Aluno[]>;
-  buscarAlunoPorId(id: number): Promise<Aluno | undefined>;
-  criarAluno(dados: DadosNovoAluno): Promise<Aluno>;
-  atualizarAluno(id: number, dados: DadosEdicaoAluno): Promise<Aluno>;
-  alternarStatusAluno(id: number, ativo: boolean): Promise<void>;
-
   listarPlanos(): Promise<Plano[]>;
+  criarPlano(dados: CriarPlanoDTO): Promise<Plano>;
+  atualizarPlano(id: number, dados: AtualizarPlanoDTO): Promise<Plano>;
+  excluirPlano(id: number): Promise<void>;
+
+  listarAlunos(): Promise<Aluno[]>;
+  criarAluno(nome: string, dataNascimentoISO: string, telefone?: string | null): Promise<Aluno>;
+  atualizarAluno(
+    id: number,
+    nome: string,
+    dataNascimentoISO: string,
+    telefone?: string | null
+  ): Promise<Aluno>;
+  alterarStatusAtivoAluno(id: number, ativo: boolean): Promise<void>;
+  excluirAluno(id: number): Promise<void>;
 
   listarMatriculas(): Promise<Matricula[]>;
-  criarMatricula(dados: DadosNovaMatricula): Promise<Matricula>;
+  criarMatricula(idAluno: number, idPlano: number, dataInicioISO?: string): Promise<Matricula>;
   atualizarStatusMatricula(id: number, status: 'ativa' | 'inativa'): Promise<void>;
+  excluirMatricula(id: number): Promise<void>;
+
+  trocarSenhaPropria(dados: TrocarSenhaDTO): Promise<void>;
+
+  listarUsuarios(): Promise<Usuario[]>;
+  criarUsuario(dados: CriarUsuarioDTO): Promise<Usuario>;
+  alterarAtivoUsuario(id: number, ativo: boolean): Promise<Usuario>;
+  redefinirSenhaUsuario(id: number, senha: string): Promise<void>;
 }

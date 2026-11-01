@@ -1,27 +1,37 @@
 /**
- * Representação dos estados fundamentais de uma tela ou recurso por união discriminada.
- * Atende ao requisito M6-R5 do guia do módulo.
+ * Tipo genérico para modelar estados de tela com união discriminada.
+ * Impede estados contraditórios (ex: carregando = true e erro != null simultaneamente)
+ * e obriga o tratamento exaustivo nas telas (M6-R5).
  */
 export type EstadoTela<T> =
   | { tipo: 'carregando' }
   | { tipo: 'erro'; mensagem: string }
-  | { tipo: 'sucesso'; dados: T };
+  | { tipo: 'pronto'; dados: T };
 
 /**
- * Função utilitária para garantir verificação exaustiva em blocos switch/if no TypeScript.
+ * Cria um estado de tela no modo de carregamento.
  */
-export function semCaso(x: never): never {
-  throw new Error(`Caso não tratado em união discriminada: ${JSON.stringify(x)}`);
-}
-
 export function estadoCarregando<T>(): EstadoTela<T> {
   return { tipo: 'carregando' };
 }
 
+/**
+ * Cria um estado de tela com falha e mensagem descritiva.
+ */
 export function estadoErro<T>(mensagem: string): EstadoTela<T> {
   return { tipo: 'erro', mensagem };
 }
 
-export function estadoSucesso<T>(dados: T): EstadoTela<T> {
-  return { tipo: 'sucesso', dados };
+/**
+ * Cria um estado de tela pronto com os dados carregados.
+ */
+export function estadoPronto<T>(dados: T): EstadoTela<T> {
+  return { tipo: 'pronto', dados };
+}
+
+/**
+ * Auxiliar para garantir exaustividade em blocos switch sobre uniões discriminadas.
+ */
+export function semCaso(valor: never): never {
+  throw new Error(`Caso não tratado em união discriminada: ${JSON.stringify(valor)}`);
 }

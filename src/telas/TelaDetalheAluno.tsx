@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Aluno, Matricula } from '@/types/entidades';
 import type { NavegacaoAppProp, RotasAutenticadasStackParamList } from '@/navegacao/tipos';
-import { useDados } from '@/dados';
+import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
 import { extrairErrosCampos } from '../erros/erros';
@@ -40,7 +40,7 @@ export function TelaDetalheAluno() {
     arquivarAluno,
     restaurarAluno,
     excluirAluno,
-  } = useDados();
+  } = useAcademia();
 
   const { podeFazer } = useSessao();
   const podeAtualizar = podeFazer('alunos:atualizar');
@@ -81,7 +81,7 @@ export function TelaDetalheAluno() {
   }
 
   const matriculasDoAluno =
-    estadoMatriculas.tipo === 'sucesso'
+    estadoMatriculas.tipo === 'pronto'
       ? estadoMatriculas.dados.filter((m) => m.idAluno === alunoId)
       : [];
 
