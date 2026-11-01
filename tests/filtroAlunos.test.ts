@@ -17,7 +17,7 @@ const alunosExemplo: Aluno[] = [
     id: 2,
     nome: 'Maria Conceição',
     dataNascimento: '1985-02-15',
-    telefone: '(21) 91234-5678',
+    telefone: '(22) 99922-3344',
     ativo: true,
     statusMatricula: 'vencida',
     planoNome: 'Plano Básico',
@@ -93,13 +93,18 @@ describe('Função Pura: filtrarAlunos (src/utils/filtroAlunos.ts)', () => {
     assert.equal(buscaDigitos.length, 1);
     assert.equal(buscaDigitos[0].id, 1);
 
+    // Busca parcial por "9992" acha "(22) 99922-3344"
+    const buscaParcial = filtrarAlunos(alunosExemplo, '9992');
+    assert.equal(buscaParcial.length, 1);
+    assert.equal(buscaParcial[0].id, 2);
+
     // Busca com DDD e formatação parcial
-    const buscaFormatada = filtrarAlunos(alunosExemplo, '(21) 91234');
+    const buscaFormatada = filtrarAlunos(alunosExemplo, '(22) 99922');
     assert.equal(buscaFormatada.length, 1);
     assert.equal(buscaFormatada[0].id, 2);
 
     // Busca apenas pelos primeiros dígitos
-    const buscaDdd = filtrarAlunos(alunosExemplo, '2191234');
+    const buscaDdd = filtrarAlunos(alunosExemplo, '2299922');
     assert.equal(buscaDdd.length, 1);
     assert.equal(buscaDdd[0].id, 2);
   });
