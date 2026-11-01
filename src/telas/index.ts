@@ -1,6 +1,5 @@
 export { TelaLogin } from './TelaLogin';
 export { TelaAlunos } from './TelaAlunos';
-export { TelaBusca } from './TelaBusca';
 export { TelaPlanos } from './TelaPlanos';
 export { TelaMatriculas } from './TelaMatriculas';
 export { TelaConta } from './TelaConta';
