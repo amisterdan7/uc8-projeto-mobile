@@ -9,7 +9,7 @@ import { SessaoProvider } from '@/auth';
 import { AcademiaProvedor } from '@/contexto';
 import { NavegadorPrincipal } from '@/navegacao';
 import { PlanosProvedor } from './src/contexto/PlanosContexto';
-import { NavegadorPlanos } from './src/navegacao/NavegadorPlanos';
+import { NavegadorCurso } from './src/navegacao/NavegadorCurso';
 import { colors } from '@/styles/colors';
 
 export default function App() {
@@ -19,7 +19,7 @@ export default function App() {
         <PlanosProvedor>
           <NavigationContainer>
             <StatusBar style="light" />
-            <NavegadorPlanos />
+            <NavegadorCurso />
           </NavigationContainer>
         </PlanosProvedor>
       </SafeAreaProvider>
