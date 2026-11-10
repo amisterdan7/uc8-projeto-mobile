@@ -25,7 +25,6 @@ import { ErroDaApi } from '@/api/cliente';
 import { extrairErrosCampos, registrarErro } from '@/erros';
 import type { Plano, RecursoPlano } from '@/types/entidades';
 import { cores, espacos, larguraLarga } from '../tema/tema';
-import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaPlanos() {
@@ -221,7 +220,7 @@ export function TelaPlanos() {
                 onPress={handleAbrirCriacao}
                 accessibilityLabel="Cadastrar novo plano"
               >
-                <MaterialIcons name="add" size={20} color={colors.white} />
+                <MaterialIcons name="add" size={20} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Novo Plano</Text>
               </TouchableOpacity>
             ) : null}
@@ -245,7 +244,7 @@ export function TelaPlanos() {
                 onPress={handleAbrirCriacao}
                 accessibilityLabel="Cadastrar novo plano"
               >
-                <MaterialIcons name="add" size={20} color={colors.white} />
+                <MaterialIcons name="add" size={20} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Novo Plano</Text>
               </TouchableOpacity>
             ) : null}
@@ -265,7 +264,7 @@ export function TelaPlanos() {
               <RefreshControl
                 refreshing={atualizando}
                 onRefresh={handlePullToRefresh}
-                tintColor={colors.blue[400]}
+                tintColor={cores.primaria}
               />
             }
             ListEmptyComponent={
@@ -315,7 +314,7 @@ export function TelaPlanos() {
                           <MaterialIcons
                             name="check"
                             size={16}
-                            color={colors.blue[400]}
+                            color={cores.primaria}
                           />
                           <Text style={styles.textoRecurso}>{rec.descricao}</Text>
                         </View>
@@ -330,7 +329,7 @@ export function TelaPlanos() {
                           style={estilosComuns.botaoAcao}
                           onPress={() => handleAbrirEdicao(item)}
                         >
-                          <MaterialIcons name="edit" size={15} color={colors.blue[400]} />
+                          <MaterialIcons name="edit" size={15} color={cores.primaria} />
                           <Text style={estilosComuns.textoBotaoAcao}>Editar</Text>
                         </TouchableOpacity>
                       ) : null}
@@ -343,7 +342,7 @@ export function TelaPlanos() {
                           <MaterialIcons
                             name="delete-forever"
                             size={15}
-                            color={colors.red[400]}
+                            color={cores.erro}
                           />
                           <Text style={[estilosComuns.textoBotaoAcao, styles.textoExcluir]}>
                             Excluir
@@ -443,8 +442,8 @@ export function TelaPlanos() {
                   <Switch
                     value={destaque}
                     onValueChange={setDestaque}
-                    trackColor={{ false: colors.gray[800], true: colors.blue[500] }}
-                    thumbColor={colors.white}
+                    trackColor={{ false: cores.borda, true: cores.primaria }}
+                    thumbColor={cores.texto}
                   />
                 </View>
 
@@ -457,7 +456,7 @@ export function TelaPlanos() {
                         onPress={() => handleRemoverRecurso(index)}
                         style={styles.botaoRemoverRecurso}
                       >
-                        <MaterialIcons name="close" size={16} color={colors.red[400]} />
+                        <MaterialIcons name="close" size={16} color={cores.erro} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -478,7 +477,7 @@ export function TelaPlanos() {
                       onPress={handleAdicionarRecurso}
                       disabled={salvando || !novoRecursoTexto.trim()}
                     >
-                      <MaterialIcons name="add" size={20} color={colors.white} />
+                      <MaterialIcons name="add" size={20} color={cores.texto} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -501,7 +500,7 @@ export function TelaPlanos() {
                     disabled={salvando}
                   >
                     {salvando ? (
-                      <ActivityIndicator color={colors.white} />
+                      <ActivityIndicator color={cores.texto} />
                     ) : (
                       <Text style={estilosComuns.textoBotaoPrimario}>
                         {planoEmEdicao ? 'Salvar Alterações' : 'Criar Plano'}
@@ -559,7 +558,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   duracao: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 14,
     fontWeight: 'normal',
   },
@@ -567,11 +566,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.gray[800],
+    borderTopColor: cores.borda,
     gap: 6,
   },
   tituloRecursos: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 2,
@@ -582,7 +581,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textoRecurso: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
   },
   botaoAdicionar: {
@@ -603,7 +602,7 @@ const styles = StyleSheet.create({
     backgroundColor: cores.erroSuave,
   },
   textoExcluir: {
-    color: colors.red[400],
+    color: cores.erro,
   },
   linhaSwitch: {
     flexDirection: 'row',
@@ -612,7 +611,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   rotuloSwitch: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -621,7 +620,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rotuloRecursosForm: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -629,15 +628,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.card,
+    backgroundColor: cores.cartao,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
   },
   textoRecursoItem: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
     flex: 1,
   },
@@ -651,7 +650,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   botaoAddRecurso: {
-    backgroundColor: colors.blue[500],
+    backgroundColor: cores.primaria,
     height: 48,
     width: 48,
     borderRadius: 8,
@@ -672,10 +671,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   botaoCancelarModal: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: cores.borda,
   },
   textoCancelarModal: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontWeight: '600',
     fontSize: 14,
   },

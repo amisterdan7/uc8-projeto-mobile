@@ -23,7 +23,6 @@ import { ErroDaApi } from '@/api/cliente';
 import { extrairErrosCampos, registrarErro } from '@/erros';
 import type { PerfilUsuario, Usuario } from '@/types/entidades';
 import { cores, larguraLarga } from '../tema/tema';
-import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaUsuarios() {
@@ -233,7 +232,7 @@ export function TelaUsuarios() {
                   accessibilityRole="button"
                   accessibilityLabel="Voltar para Conta"
                 >
-                  <MaterialIcons name="arrow-back" size={24} color={colors.white} />
+                  <MaterialIcons name="arrow-back" size={24} color={cores.texto} />
                 </TouchableOpacity>
               ) : null}
               <View>
@@ -249,7 +248,7 @@ export function TelaUsuarios() {
                 onPress={handleAbrirCriacao}
                 accessibilityLabel="Adicionar novo usuário"
               >
-                <MaterialIcons name="person-add" size={20} color={colors.white} />
+                <MaterialIcons name="person-add" size={20} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Novo Usuário</Text>
               </TouchableOpacity>
             ) : null}
@@ -274,7 +273,7 @@ export function TelaUsuarios() {
                   accessibilityRole="button"
                   accessibilityLabel="Voltar para Conta"
                 >
-                  <MaterialIcons name="arrow-back" size={24} color={colors.white} />
+                  <MaterialIcons name="arrow-back" size={24} color={cores.texto} />
                 </TouchableOpacity>
               ) : null}
               <Text style={estilosComuns.tituloCabecalho}>Equipe e Usuários</Text>
@@ -285,7 +284,7 @@ export function TelaUsuarios() {
                 onPress={handleAbrirCriacao}
                 accessibilityLabel="Adicionar novo usuário"
               >
-                <MaterialIcons name="person-add" size={20} color={colors.white} />
+                <MaterialIcons name="person-add" size={20} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Novo Usuário</Text>
               </TouchableOpacity>
             ) : null}
@@ -305,7 +304,7 @@ export function TelaUsuarios() {
               <RefreshControl
                 refreshing={atualizando}
                 onRefresh={handlePullToRefresh}
-                tintColor={colors.blue[400]}
+                tintColor={cores.primaria}
               />
             }
             ListEmptyComponent={
@@ -351,7 +350,7 @@ export function TelaUsuarios() {
                           <MaterialIcons
                             name={ativo ? 'block' : 'check-circle'}
                             size={15}
-                            color={ativo ? colors.red[400] : colors.blue[400]}
+                            color={ativo ? cores.erro : cores.primaria}
                           />
                           <Text style={estilosComuns.textoBotaoAcao}>
                             {ativo ? 'Desativar' : 'Ativar'}
@@ -367,7 +366,7 @@ export function TelaUsuarios() {
                           <MaterialIcons
                             name="lock-reset"
                             size={15}
-                            color={colors.blue[400]}
+                            color={cores.primaria}
                           />
                           <Text style={estilosComuns.textoBotaoAcao}>
                             Redefinir Senha
@@ -502,7 +501,7 @@ export function TelaUsuarios() {
                   disabled={salvandoUsuario}
                 >
                   {salvandoUsuario ? (
-                    <ActivityIndicator color={colors.white} />
+                    <ActivityIndicator color={cores.texto} />
                   ) : (
                     <Text style={estilosComuns.textoBotaoPrimario}>Cadastrar</Text>
                   )}
@@ -559,7 +558,7 @@ export function TelaUsuarios() {
                     disabled={salvandoSenha}
                   >
                     {salvandoSenha ? (
-                      <ActivityIndicator color={colors.white} />
+                      <ActivityIndicator color={cores.texto} />
                     ) : (
                       <Text style={estilosComuns.textoBotaoPrimario}>Redefinir</Text>
                     )}
@@ -606,7 +605,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   avisoProprioUsuario: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 12,
     fontStyle: 'italic',
     marginTop: 8,
@@ -615,13 +614,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.blue[500],
+    backgroundColor: cores.primaria,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 8,
   },
   textoBotaoAdicionar: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
     fontSize: 13,
   },
@@ -630,7 +629,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rotuloPerfil: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -643,8 +642,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.gray[800],
-    backgroundColor: colors.card,
+    borderColor: cores.borda,
+    backgroundColor: cores.cartao,
     alignItems: 'center',
   },
   opcaoPerfilSelecionada: {
@@ -652,7 +651,7 @@ const styles = StyleSheet.create({
     backgroundColor: cores.primariaSuave,
   },
   textoOpcaoPerfil: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -672,10 +671,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   botaoCancelarModal: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: cores.borda,
   },
   textoCancelarModal: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -686,11 +685,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   caixaModalSenha: {
-    backgroundColor: colors.card,
+    backgroundColor: cores.cartao,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     gap: 12,
   },
 });

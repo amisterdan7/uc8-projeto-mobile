@@ -28,7 +28,6 @@ import {
 import { formatarDataBR } from '@/utils/datas';
 import { extrairHost } from './TelaSobre';
 import { cores } from '@/tema/tema';
-import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaConta() {
@@ -179,7 +178,7 @@ export function TelaConta() {
 
           <View style={styles.linhaIdentidade}>
             <View style={styles.avatar}>
-              <MaterialIcons name="person" size={32} color={colors.white} />
+              <MaterialIcons name="person" size={32} color={cores.texto} />
             </View>
             <View style={styles.infoUsuario}>
               <Text style={estilosComuns.tituloCartao}>{usuario?.nome}</Text>
@@ -208,7 +207,7 @@ export function TelaConta() {
                     <MaterialIcons
                       name="check-circle"
                       size={16}
-                      color={colors.blue[400]}
+                      color={cores.primaria}
                     />
                     <Text style={styles.textoPermissao}>{p}</Text>
                   </View>
@@ -294,7 +293,7 @@ export function TelaConta() {
                   disabled={trocandoSenha}
                 >
                   {trocandoSenha ? (
-                    <ActivityIndicator color={colors.white} />
+                    <ActivityIndicator color={cores.texto} />
                   ) : (
                     <Text style={estilosComuns.textoBotaoPrimario}>
                       Confirmar Troca
@@ -314,7 +313,7 @@ export function TelaConta() {
               <MaterialIcons
                 name="lock-reset"
                 size={20}
-                color={colors.blue[400]}
+                color={cores.primaria}
               />
               <Text style={styles.textoTrocarSenhaAbertura}>
                 Trocar minha senha
@@ -340,7 +339,7 @@ export function TelaConta() {
                 <MaterialIcons
                   name="security"
                   size={20}
-                  color={colors.blue[300]}
+                  color={cores.primaria}
                 />
                 <Text style={styles.textoBotaoEquipe}>
                   Gerenciar usuários da equipe
@@ -349,7 +348,7 @@ export function TelaConta() {
               <MaterialIcons
                 name="chevron-right"
                 size={22}
-                color={colors.gray[400]}
+                color={cores.textoSecundario}
               />
             </TouchableOpacity>
           </View>
@@ -397,7 +396,7 @@ export function TelaConta() {
                 <MaterialIcons
                   name="refresh"
                   size={16}
-                  color={colors.blue[300]}
+                  color={cores.primaria}
                 />
                 <Text style={styles.textoAcaoLog}>Atualizar</Text>
               </TouchableOpacity>
@@ -412,9 +411,9 @@ export function TelaConta() {
                   <MaterialIcons
                     name="delete-sweep"
                     size={16}
-                    color={colors.red[400]}
+                    color={cores.erro}
                   />
-                  <Text style={[styles.textoAcaoLog, { color: colors.red[400] }]}>
+                  <Text style={[styles.textoAcaoLog, { color: cores.erro }]}>
                     Limpar
                   </Text>
                 </TouchableOpacity>
@@ -427,7 +426,7 @@ export function TelaConta() {
               <MaterialIcons
                 name="check-circle-outline"
                 size={18}
-                color={colors.green[300]}
+                color={cores.sucesso}
               />
               <Text style={estilosComuns.textoMutavel}>
                 Nenhum erro registrado nesta sessão.
@@ -474,7 +473,7 @@ export function TelaConta() {
           accessibilityRole="button"
           accessibilityLabel="Sair da conta"
         >
-          <MaterialIcons name="logout" size={20} color={colors.red[400]} />
+          <MaterialIcons name="logout" size={20} color={cores.erro} />
           <Text style={styles.textoBotaoSair}>Sair</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -492,7 +491,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: colors.blue[600],
+    backgroundColor: cores.primaria,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -504,13 +503,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tituloSecao: {
-    color: colors.white,
+    color: cores.texto,
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
   },
   subtituloSecao: {
-    color: colors.gray[200],
+    color: cores.texto,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -518,7 +517,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.gray[800],
+    borderTopColor: cores.borda,
     gap: 6,
   },
   gradePermissoes: {
@@ -530,18 +529,18 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textoPermissao: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
   },
   blocoTrocaSenha: {
     marginTop: 8,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.gray[800],
+    borderTopColor: cores.borda,
     gap: 8,
   },
   textoErro: {
-    color: colors.red[400],
+    color: cores.erro,
     fontSize: 13,
     marginTop: 4,
   },
@@ -564,10 +563,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   botaoCancelarSenha: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: cores.borda,
   },
   textoBotaoCancelar: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -576,15 +575,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.fundo,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     borderRadius: 10,
     paddingVertical: 12,
     marginTop: 8,
   },
   textoTrocarSenhaAbertura: {
-    color: colors.blue[400],
+    color: cores.primaria,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -592,9 +591,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.fundo,
     borderWidth: 1,
-    borderColor: colors.blue[500],
+    borderColor: cores.primaria,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
@@ -606,7 +605,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   textoBotaoEquipe: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -616,17 +615,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.gray[800],
+    borderBottomColor: cores.borda,
     gap: 8,
   },
   rotuloDado: {
     fontSize: 13,
-    color: colors.gray[400],
+    color: cores.textoSecundario,
   },
   valorDado: {
     fontSize: 13,
     fontWeight: '600',
-    color: colors.white,
+    color: cores.texto,
     flexShrink: 1,
     textAlign: 'right',
   },
@@ -649,12 +648,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 6,
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.fundo,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
   },
   textoAcaoLog: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -665,18 +664,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.fundo,
   },
   listaLogs: {
     gap: 8,
     marginTop: 6,
   },
   itemLog: {
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.fundo,
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     gap: 4,
   },
   linhaLogTopo: {
@@ -686,7 +685,7 @@ const styles = StyleSheet.create({
   origemLog: {
     fontSize: 13,
     fontWeight: 'bold',
-    color: colors.white,
+    color: cores.texto,
   },
   tipoLog: {
     fontSize: 11,
@@ -699,15 +698,15 @@ const styles = StyleSheet.create({
   },
   dataLog: {
     fontSize: 11,
-    color: colors.gray[400],
+    color: cores.textoSecundario,
   },
   codigoLog: {
     fontSize: 11,
-    color: colors.gray[400],
+    color: cores.textoSecundario,
   },
   detalheLog: {
     fontSize: 12,
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     marginTop: 2,
   },
   botaoSair: {
@@ -723,7 +722,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   textoBotaoSair: {
-    color: colors.red[400],
+    color: cores.erro,
     fontSize: 14,
     fontWeight: 'bold',
   },

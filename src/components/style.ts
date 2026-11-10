@@ -1,4 +1,4 @@
-import { colors } from '@/styles/colors';
+import { cores } from '@/tema/tema';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     name: {
         fontSize: 16,
         fontWeight: "bold",
-        color: colors.gray[400]
+        color: cores.textoSecundario
     }
 
 });

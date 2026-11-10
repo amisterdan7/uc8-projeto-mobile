@@ -25,8 +25,7 @@ import { useSessao } from '@/auth';
 import { colunasPara, filtrarAlunos, formatarDataBR } from '@/utils';
 import { AlunoCard, AlunoForm, Carregando, EstadoVazio } from '@/components';
 import type { DadosSubmissaoAluno } from '@/components/AlunoForm';
-import { cores, espacos, larguraLarga, raios } from '../tema/tema';
-import { colors } from '@/styles/colors';
+import { cores, espacos, foco, larguraLarga, raios } from '../tema/tema';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaAlunos() {
@@ -57,6 +56,7 @@ export function TelaAlunos() {
   const podeExcluir = podeFazer('alunos:excluir');
 
   const [busca, setBusca] = useState('');
+  const [buscaFocada, setBuscaFocada] = useState(false);
   const [modalFormularioVisivel, setModalFormularioVisivel] = useState(false);
   const [alunoEmEdicao, setAlunoEmEdicao] = useState<Aluno | null>(null);
   const [errosFormulario, setErrosFormulario] = useState<Record<string, string>>({});
@@ -252,7 +252,7 @@ export function TelaAlunos() {
                 accessibilityRole="button"
                 accessibilityLabel="Cadastrar e matricular aluno"
               >
-                <MaterialIcons name="person-add" size={18} color={colors.white} />
+                <MaterialIcons name="person-add" size={18} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Cadastrar e matricular</Text>
               </TouchableOpacity>
             ) : null}
@@ -262,15 +262,21 @@ export function TelaAlunos() {
             <MaterialIcons
               name="search"
               size={20}
-              color={colors.gray[400]}
+              color={buscaFocada ? cores.foco : cores.textoSecundario}
               style={styles.iconeBusca}
             />
             <TextInput
               value={busca}
               onChangeText={setBusca}
+              onFocus={() => setBuscaFocada(true)}
+              onBlur={() => setBuscaFocada(false)}
               placeholder="Buscar por nome ou telefone..."
-              placeholderTextColor={colors.gray[500]}
-              style={[estilosComuns.input, styles.inputBusca]}
+              placeholderTextColor={cores.textoSecundario}
+              style={[
+                estilosComuns.input,
+                styles.inputBusca,
+                buscaFocada && styles.inputBuscaFocado,
+              ]}
               autoCapitalize="none"
               autoCorrect={false}
               accessibilityLabel="Campo de busca de alunos por nome ou telefone"
@@ -281,14 +287,14 @@ export function TelaAlunos() {
                 style={styles.botaoLimparBusca}
                 accessibilityLabel="Limpar busca"
               >
-                <MaterialIcons name="close" size={18} color={colors.gray[400]} />
+                <MaterialIcons name="close" size={18} color={cores.textoSecundario} />
               </TouchableOpacity>
             ) : null}
           </View>
 
           <View style={styles.cartaoErroTopo}>
             <View style={styles.linhaErroTopo}>
-              <MaterialIcons name="error-outline" size={24} color={colors.red[400]} />
+              <MaterialIcons name="error-outline" size={24} color={cores.erro} />
               <View style={styles.colunaTextoErro}>
                 <Text style={styles.tituloErroTopo}>
                   Não foi possível carregar os alunos
@@ -303,7 +309,7 @@ export function TelaAlunos() {
               accessibilityRole="button"
               accessibilityLabel="Tentar carregar alunos de novo"
             >
-              <MaterialIcons name="refresh" size={18} color={colors.white} />
+              <MaterialIcons name="refresh" size={18} color={cores.texto} />
               <Text style={styles.textoBotaoTentarDeNovo}>Tentar de novo</Text>
             </TouchableOpacity>
           </View>
@@ -331,7 +337,7 @@ export function TelaAlunos() {
                 accessibilityRole="button"
                 accessibilityLabel="Cadastrar e matricular aluno"
               >
-                <MaterialIcons name="person-add" size={18} color={colors.white} />
+                <MaterialIcons name="person-add" size={18} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Cadastrar e matricular</Text>
               </TouchableOpacity>
             ) : null}
@@ -341,15 +347,21 @@ export function TelaAlunos() {
             <MaterialIcons
               name="search"
               size={20}
-              color={colors.gray[400]}
+              color={buscaFocada ? cores.foco : cores.textoSecundario}
               style={styles.iconeBusca}
             />
             <TextInput
               value={busca}
               onChangeText={setBusca}
+              onFocus={() => setBuscaFocada(true)}
+              onBlur={() => setBuscaFocada(false)}
               placeholder="Buscar por nome ou telefone..."
-              placeholderTextColor={colors.gray[500]}
-              style={[estilosComuns.input, styles.inputBusca]}
+              placeholderTextColor={cores.textoSecundario}
+              style={[
+                estilosComuns.input,
+                styles.inputBusca,
+                buscaFocada && styles.inputBuscaFocado,
+              ]}
               autoCapitalize="none"
               autoCorrect={false}
               accessibilityLabel="Campo de busca de alunos por nome ou telefone"
@@ -360,7 +372,7 @@ export function TelaAlunos() {
                 style={styles.botaoLimparBusca}
                 accessibilityLabel="Limpar busca"
               >
-                <MaterialIcons name="close" size={18} color={colors.gray[400]} />
+                <MaterialIcons name="close" size={18} color={cores.textoSecundario} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -379,7 +391,7 @@ export function TelaAlunos() {
               <RefreshControl
                 refreshing={atualizando}
                 onRefresh={handlePullToRefresh}
-                tintColor={colors.blue[400]}
+                tintColor={cores.primaria}
               />
             }
             ListEmptyComponent={
@@ -499,6 +511,10 @@ const styles = StyleSheet.create({
   inputBusca: {
     paddingLeft: 42,
     paddingRight: 38,
+  },
+  inputBuscaFocado: {
+    borderColor: cores.foco,
+    borderWidth: foco.larguraBorda,
   },
   botaoLimparBusca: {
     position: 'absolute',

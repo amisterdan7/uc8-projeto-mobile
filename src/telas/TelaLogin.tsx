@@ -17,7 +17,6 @@ import { ErroDaApi } from '@/api/cliente';
 import { Campo } from '@/components';
 import { registrarErro } from '@/erros';
 import { cores, espacos, raios } from '@/tema/tema';
-import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaLogin() {
@@ -137,7 +136,7 @@ export function TelaLogin() {
               <MaterialIcons
                 name="error-outline"
                 size={18}
-                color={colors.red[400]}
+                color={cores.erro}
               />
               <Text style={styles.textoErro}>{mensagemErroGeral}</Text>
             </View>
@@ -153,7 +152,7 @@ export function TelaLogin() {
             disabled={carregando}
           >
             {carregando ? (
-              <ActivityIndicator color={colors.white} />
+              <ActivityIndicator color={cores.texto} />
             ) : (
               <Text style={estilosComuns.textoBotaoPrimario}>Acessar Sistema</Text>
             )}
@@ -184,13 +183,13 @@ const styles = StyleSheet.create({
     height: 64,
   },
   tituloApp: {
-    color: colors.white,
+    color: cores.texto,
     fontSize: 28,
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
   subtituloApp: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 14,
   },
   cartaoFormulario: {
@@ -213,7 +212,7 @@ const styles = StyleSheet.create({
     marginVertical: espacos.xs,
   },
   textoErro: {
-    color: colors.red[400],
+    color: cores.erro,
     fontSize: 13,
     flex: 1,
   },
@@ -224,7 +223,7 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   rodapeAjuda: {
-    color: colors.gray[600],
+    color: cores.textoSecundario,
     fontSize: 12,
     textAlign: 'center',
     marginTop: 28,
