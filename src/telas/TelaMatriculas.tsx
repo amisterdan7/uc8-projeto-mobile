@@ -23,7 +23,7 @@ import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
 import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
-import { larguraLarga } from '../tema/tema';
+import { cores, larguraLarga } from '../tema/tema';
 import { colunasPara } from '@/utils/responsividade';
 import {
   aplicarMascaraData,
@@ -401,7 +401,7 @@ export function TelaMatriculas() {
                                 : 'play-circle-outline'
                             }
                             size={16}
-                            color={isAtiva ? colors.red[400] : '#4ade80'}
+                            color={isAtiva ? cores.erro : cores.sucesso}
                           />
                           <Text style={estilosComuns.textoBotaoAcao}>
                             {isAtiva ? 'Inativar' : 'Reativar'}
@@ -683,15 +683,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.blue[500],
+    backgroundColor: cores.primaria,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   textoBotaoAdicionar: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 16,
   },
   linhaTopo: {
     flexDirection: 'row',
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rotuloMatriculaAtual: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   botaoExcluir: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: cores.erroSuave,
   },
   textoExcluir: {
     color: colors.red[400],
@@ -789,12 +789,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.14)',
+    backgroundColor: cores.primariaSuave,
     borderWidth: 1,
-    borderColor: colors.blue[500],
+    borderColor: cores.primaria,
   },
   textoAtalhoAlunoNovo: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 12,
     fontWeight: '600',
   },
@@ -804,12 +804,12 @@ const styles = StyleSheet.create({
     gap: 8,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: cores.primariaSuave,
     borderWidth: 1,
-    borderColor: colors.blue[500],
+    borderColor: cores.primariaBorda,
   },
   textoAvisoHistorico: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 13,
     flex: 1,
   },
@@ -839,15 +839,15 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   chipSelecionado: {
-    backgroundColor: colors.blue[500],
-    borderColor: colors.blue[400],
+    backgroundColor: cores.primaria,
+    borderColor: cores.primaria,
   },
   textoChip: {
     color: colors.gray[300],
     fontSize: 13,
   },
   textoChipSelecionado: {
-    color: colors.white,
+    color: cores.textoEscuro,
     fontWeight: 'bold',
   },
   gradePlanos: {
@@ -864,8 +864,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cardPlanoSelecionado: {
-    borderColor: colors.blue[400],
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: cores.primaria,
+    backgroundColor: cores.primariaSuave,
   },
   colunaNomePlanoModal: {
     gap: 2,
@@ -876,7 +876,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   precoPlano: {
-    color: '#4ade80',
+    color: cores.primaria,
     fontWeight: 'bold',
     fontSize: 14,
   },

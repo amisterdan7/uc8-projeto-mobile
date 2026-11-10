@@ -435,19 +435,19 @@ export function TelaDetalheAluno() {
 
 const styles = StyleSheet.create({
   botaoRenovar: {
-    borderColor: colors.green[300],
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderColor: cores.sucessoBorda,
+    backgroundColor: cores.sucessoSuave,
   },
   textoRenovar: {
-    color: colors.green[300],
+    color: cores.sucesso,
     fontWeight: 'bold',
   },
   botaoWhatsapp: {
-    borderColor: colors.green[300],
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+    borderColor: cores.sucessoBorda,
+    backgroundColor: cores.sucessoSuave,
   },
   textoWhatsapp: {
-    color: colors.green[300],
+    color: cores.sucesso,
   },
   botaoVoltar: {
     padding: 4,
@@ -471,15 +471,15 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   textoPlanoAtivo: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 14,
     fontWeight: '600',
   },
   botaoExcluir: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: cores.erroSuave,
   },
   textoExcluir: {
-    color: colors.red[400],
+    color: cores.erro,
   },
   textoVazio: {
     color: colors.gray[400],

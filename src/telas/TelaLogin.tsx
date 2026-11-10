@@ -15,6 +15,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
 import { Campo } from '@/components';
 import { registrarErro } from '@/erros';
+import { cores, espacos, raios } from '@/tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -188,23 +189,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   cartaoFormulario: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
+    backgroundColor: cores.cartao,
+    borderRadius: raios.lg,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     gap: 12,
   },
   caixaErro: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    gap: espacos.sm,
+    backgroundColor: cores.erroSuave,
     borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.3)',
-    borderRadius: 8,
+    borderColor: cores.erroBorda,
+    borderRadius: raios.md,
     padding: 10,
-    marginVertical: 4,
+    marginVertical: espacos.xs,
   },
   textoErro: {
     color: colors.red[400],

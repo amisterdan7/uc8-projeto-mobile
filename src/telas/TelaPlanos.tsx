@@ -287,7 +287,7 @@ export function TelaPlanos() {
                     <Text style={estilosComuns.tituloCartao}>{item.nome}</Text>
                     {item.destaque ? (
                       <View style={styles.tagDestaque}>
-                        <MaterialIcons name="star" size={13} color="#f59e0b" />
+                        <MaterialIcons name="star" size={13} color={cores.primaria} />
                         <Text style={styles.textoTagDestaque}>Destaque</Text>
                       </View>
                     ) : null}
@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   cartaoDestaque: {
-    borderColor: '#f59e0b',
+    borderColor: cores.primaria,
     borderWidth: 1.5,
   },
   linhaTopoPlano: {
@@ -535,20 +535,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    backgroundColor: cores.primariaSuave,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderColor: cores.primariaBorda,
   },
   textoTagDestaque: {
-    color: '#f59e0b',
+    color: cores.primaria,
     fontSize: 12,
     fontWeight: 'bold',
   },
   preco: {
-    color: '#4ade80',
+    color: cores.primaria,
     fontSize: 22,
     fontWeight: 'bold',
     marginTop: 4,
@@ -584,18 +584,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.blue[500],
+    backgroundColor: cores.primaria,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   textoBotaoAdicionar: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 16,
   },
   botaoExcluir: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: cores.erroSuave,
   },
   textoExcluir: {
     color: colors.red[400],

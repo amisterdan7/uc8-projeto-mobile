@@ -25,7 +25,7 @@ import { useSessao } from '@/auth';
 import { colunasPara, filtrarAlunos, formatarDataBR } from '@/utils';
 import { AlunoCard, AlunoForm, Carregando, EstadoVazio } from '@/components';
 import type { DadosSubmissaoAluno } from '@/components/AlunoForm';
-import { cores, larguraLarga } from '../tema/tema';
+import { cores, espacos, larguraLarga, raios } from '../tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -469,22 +469,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: colors.blue[500],
+    backgroundColor: cores.primaria,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: raios.md,
   },
   textoBotaoAdicionar: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 16,
   },
   blocoBusca: {
     position: 'relative',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: espacos.md,
     paddingTop: 12,
-    paddingBottom: 4,
+    paddingBottom: espacos.xs,
   },
   iconeBusca: {
     position: 'absolute',
@@ -499,15 +499,15 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 28,
     zIndex: 1,
-    padding: 4,
+    padding: espacos.xs,
   },
   cartaoErroTopo: {
-    margin: 16,
-    padding: 16,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: colors.red[500],
+    margin: espacos.md,
+    padding: espacos.md,
+    backgroundColor: cores.erroSuave,
+    borderColor: cores.erro,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: raios.lg,
     gap: 12,
   },
   linhaErroTopo: {
@@ -522,26 +522,26 @@ const styles = StyleSheet.create({
   tituloErroTopo: {
     fontSize: 15,
     fontWeight: 'bold',
-    color: colors.white,
+    color: cores.texto,
   },
   mensagemErroTopo: {
     fontSize: 13,
-    color: colors.gray[300],
+    color: cores.textoSecundario,
   },
   botaoTentarDeNovo: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: colors.blue[500],
+    backgroundColor: cores.primaria,
     paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 6,
+    paddingHorizontal: espacos.md,
+    borderRadius: raios.md,
     alignSelf: 'flex-start',
   },
   textoBotaoTentarDeNovo: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
-    fontSize: 13,
+    fontSize: 16,
   },
 });

@@ -117,7 +117,7 @@ export function TelaSobre() {
 
               {alertaHttpNaoSeguro ? (
                 <View style={styles.alertaInseguro}>
-                  <MaterialIcons name="warning" size={18} color="#f59e0b" />
+                  <MaterialIcons name="warning" size={18} color={cores.alerta} />
                   <Text style={styles.textoAlertaInseguro}>
                     Aviso: A URL configurada utiliza protocolo HTTP não seguro em ambiente fora de desenvolvimento. Para produção, utilize HTTPS.
                   </Text>
@@ -350,7 +350,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: espacos.xs,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    backgroundColor: cores.alertaSuave,
     borderRadius: raio,
     padding: espacos.sm,
     marginVertical: espacos.xs,

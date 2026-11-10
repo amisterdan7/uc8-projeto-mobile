@@ -643,8 +643,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   opcaoPerfilSelecionada: {
-    borderColor: colors.blue[500],
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderColor: cores.primaria,
+    backgroundColor: cores.primariaSuave,
   },
   textoOpcaoPerfil: {
     color: colors.gray[400],
@@ -652,7 +652,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   textoOpcaoSelecionada: {
-    color: colors.blue[400],
+    color: cores.primaria,
   },
   linhaBotoesModal: {
     flexDirection: 'row',
@@ -676,7 +676,7 @@ const styles = StyleSheet.create({
   },
   fundoModalTransparente: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: cores.overlay,
     justifyContent: 'center',
     paddingHorizontal: 20,
   },

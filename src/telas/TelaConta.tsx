@@ -27,6 +27,7 @@ import {
 } from '@/erros';
 import { formatarDataBR } from '@/utils/datas';
 import { extrairHost } from './TelaSobre';
+import { cores } from '@/tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -198,7 +199,7 @@ export function TelaConta() {
             <View style={styles.gradePermissoes}>
               {usuario?.perfil === 'admin' || permissoes.includes('*') ? (
                 <View style={styles.itemPermissao}>
-                  <MaterialIcons name="verified" size={16} color="#4ade80" />
+                  <MaterialIcons name="verified" size={16} color={cores.sucesso} />
                   <Text style={styles.textoPermissao}>Acesso Total (*)</Text>
                 </View>
               ) : (
@@ -545,7 +546,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   textoSucesso: {
-    color: '#4ade80',
+    color: cores.sucesso,
     fontSize: 13,
     marginTop: 4,
     fontWeight: '600',
@@ -690,7 +691,7 @@ const styles = StyleSheet.create({
   tipoLog: {
     fontSize: 11,
     fontWeight: 'bold',
-    color: '#fbbf24',
+    color: cores.alerta,
   },
   linhaLogDetalhe: {
     flexDirection: 'row',
@@ -714,9 +715,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: cores.erroSuave,
     borderWidth: 1,
-    borderColor: colors.red[400],
+    borderColor: cores.erro,
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 8,

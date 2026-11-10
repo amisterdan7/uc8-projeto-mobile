@@ -19,7 +19,7 @@ import type {
   RotasAutenticadasStackParamList,
   RotasNaoAutenticadasParamList,
 } from './tipos';
-import { colors } from '@/styles/colors';
+import { cores } from '@/tema/tema';
 
 const StackNaoAutenticado =
   createNativeStackNavigator<RotasNaoAutenticadasParamList>();
@@ -34,15 +34,15 @@ function NavegadorAutenticadoTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.gray[800],
+          backgroundColor: cores.cartao,
+          borderTopColor: cores.borda,
           borderTopWidth: 1,
           height: 60,
           paddingBottom: 8,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: colors.blue[400],
-        tabBarInactiveTintColor: colors.gray[400],
+        tabBarActiveTintColor: cores.primaria,
+        tabBarInactiveTintColor: cores.textoSecundario,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
