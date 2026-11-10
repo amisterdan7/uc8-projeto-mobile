@@ -77,9 +77,9 @@ export function AlunoCard({
         </View>
       </TouchableOpacity>
 
-      {(podeEditar || podeDesativar || (podeExcluir && isArquivado) || podeRenovar) ? (
+      {(podeEditar || podeDesativar || (podeExcluir && isArquivado) || (!isArquivado && podeRenovar)) ? (
         <View style={estilosComuns.linhaAcoes}>
-          {podeRenovar && onRenovar ? (
+          {!isArquivado && podeRenovar && onRenovar ? (
             <TouchableOpacity
               style={estilosComuns.botaoAcao}
               onPress={() => onRenovar(aluno)}

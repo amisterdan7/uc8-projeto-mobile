@@ -116,6 +116,58 @@ export function validarDataNascimentoBR(dataBR: string): { valida: boolean; mens
 }
 
 /**
+ * Valida se uma data no formato DD/MM/AAAA é uma data real de calendário (a partir de 1900),
+ * sem exigir que seja anterior a hoje (usada para data de início de matrícula).
+ */
+export function validarDataCivilBR(dataBR: string): { valida: boolean; mensagem?: string } {
+  if (!dataBR || typeof dataBR !== 'string') {
+    return { valida: false, mensagem: 'Formato inválido. Use DD/MM/AAAA.' };
+  }
+
+  const partes = dataBR.trim().split('/');
+  if (partes.length !== 3) {
+    return { valida: false, mensagem: 'Formato inválido. Use DD/MM/AAAA.' };
+  }
+
+  const dia = parseInt(partes[0], 10);
+  const mes = parseInt(partes[1], 10);
+  const ano = parseInt(partes[2], 10);
+
+  if (isNaN(dia) || isNaN(mes) || isNaN(ano)) {
+    return { valida: false, mensagem: 'Data contém caracteres inválidos.' };
+  }
+
+  if (ano < 1900 || ano > 2100) {
+    return { valida: false, mensagem: 'O ano deve estar entre 1900 e 2100.' };
+  }
+
+  if (mes < 1 || mes > 12) {
+    return { valida: false, mensagem: 'Mês deve estar entre 01 e 12.' };
+  }
+
+  const diasNoMes = [
+    31,
+    (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0 ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+
+  if (dia < 1 || dia > diasNoMes[mes - 1]) {
+    return { valida: false, mensagem: 'Dia inválido para o mês informado.' };
+  }
+
+  return { valida: true };
+}
+
+/**
  * Aplica máscara progressiva DD/MM/AAAA durante a digitação.
  */
 export function aplicarMascaraData(valor: string): string {

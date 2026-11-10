@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,18 +12,19 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Aluno } from '@/types/entidades';
 import { semCaso } from '@/types/estadoTela';
-import type { NavegacaoAppProp } from '@/navegacao/tipos';
+import type { NavegacaoAppProp, RotasAbasParamList } from '@/navegacao/tipos';
 import { useAcademia } from '../contexto';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
 import { ErroDaApi } from '@/api';
 import { useSessao } from '@/auth';
-import { colunasPara, filtrarAlunos } from '@/utils';
+import { colunasPara, filtrarAlunos, formatarDataBR } from '@/utils';
 import { AlunoCard, AlunoForm, Carregando, EstadoVazio } from '@/components';
+import type { DadosSubmissaoAluno } from '@/components/AlunoForm';
 import { cores, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
@@ -31,13 +32,16 @@ import { estilosComuns } from '@/styles/comum';
 export function TelaAlunos() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavegacaoAppProp>();
+  const route = useRoute<RouteProp<RotasAbasParamList, 'Alunos'>>();
   const { width } = useWindowDimensions();
   const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
 
   const {
     estadoAlunos,
+    estadoPlanos,
     recarregarAlunos,
+    recarregarPlanos,
     criarAluno,
     atualizarAluno,
     arquivarAluno,
@@ -46,11 +50,11 @@ export function TelaAlunos() {
   } = useAcademia();
 
   const { podeFazer } = useSessao();
-  const podeCriar = podeFazer('alunos:criar');
+  const podeCriarMatricula = podeFazer('matriculas:criar');
+  const podeCriar = podeFazer('alunos:criar') && podeCriarMatricula;
   const podeAtualizar = podeFazer('alunos:atualizar');
   const podeDesativar = podeFazer('alunos:desativar');
   const podeExcluir = podeFazer('alunos:excluir');
-  const podeCriarMatricula = podeFazer('matriculas:criar');
 
   const [busca, setBusca] = useState('');
   const [modalFormularioVisivel, setModalFormularioVisivel] = useState(false);
@@ -59,9 +63,21 @@ export function TelaAlunos() {
   const [salvando, setSalvando] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
 
+  const planosDisponiveis =
+    estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
+
+  useEffect(() => {
+    const params = route.params as { abrirCadastro?: boolean } | undefined;
+    if (params?.abrirCadastro && podeCriar) {
+      setAlunoEmEdicao(null);
+      setErrosFormulario({});
+      setModalFormularioVisivel(true);
+    }
+  }, [route.params, podeCriar]);
+
   async function handlePullToRefresh() {
     setAtualizando(true);
-    await recarregarAlunos();
+    await Promise.all([recarregarAlunos(), recarregarPlanos()]);
     setAtualizando(false);
   }
 
@@ -84,26 +100,47 @@ export function TelaAlunos() {
     });
   }
 
-  async function handleSalvarAluno(
-    nome: string,
-    dataNascimentoISO: string,
-    telefone: string
-  ) {
+  async function handleSalvarAluno(dados: DadosSubmissaoAluno) {
     setSalvando(true);
     setErrosFormulario({});
     try {
       if (alunoEmEdicao) {
-        await atualizarAluno(alunoEmEdicao.id, nome, dataNascimentoISO, telefone);
+        await atualizarAluno(
+          alunoEmEdicao.id,
+          dados.nome,
+          dados.dataNascimentoISO,
+          dados.telefone
+        );
         Alert.alert('Sucesso', 'Dados do aluno atualizados com sucesso.');
       } else {
-        await criarAluno(nome, dataNascimentoISO, telefone);
-        Alert.alert('Sucesso', 'Aluno cadastrado com sucesso.');
+        const resultado = await criarAluno(
+          dados.nome,
+          dados.dataNascimentoISO,
+          dados.telefone,
+          dados.idPlano,
+          dados.dataInicioISO
+        );
+        const vencimentoBR = resultado.matricula
+          ? formatarDataBR(resultado.matricula.dataFimEstimada)
+          : '';
+        Alert.alert(
+          'Sucesso',
+          vencimentoBR
+            ? `Aluno cadastrado e matriculado. Vence em ${vencimentoBR}.`
+            : 'Aluno cadastrado e matriculado.'
+        );
       }
       setModalFormularioVisivel(false);
       setAlunoEmEdicao(null);
     } catch (falha: unknown) {
       registrarErro('cadastro', falha);
-      if (falha instanceof ErroDaApi && falha.status === 409) {
+      if (falha instanceof ErroDaApi && falha.status === 404) {
+        Alert.alert(
+          'Plano não encontrado',
+          'O plano escolhido não existe mais. Atualize a lista.'
+        );
+        await recarregarPlanos();
+      } else if (falha instanceof ErroDaApi && falha.status === 409) {
         Alert.alert(
           'Não foi possível salvar',
           'Já existe um aluno com esse nome e data de nascimento.'
@@ -208,10 +245,10 @@ export function TelaAlunos() {
                 style={styles.botaoAdicionar}
                 onPress={handleAbrirCriacao}
                 accessibilityRole="button"
-                accessibilityLabel="Cadastrar novo aluno"
+                accessibilityLabel="Cadastrar e matricular aluno"
               >
                 <MaterialIcons name="person-add" size={18} color={colors.white} />
-                <Text style={styles.textoBotaoAdicionar}>Novo Aluno</Text>
+                <Text style={styles.textoBotaoAdicionar}>Cadastrar e matricular</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -287,10 +324,10 @@ export function TelaAlunos() {
                 style={styles.botaoAdicionar}
                 onPress={handleAbrirCriacao}
                 accessibilityRole="button"
-                accessibilityLabel="Cadastrar novo aluno"
+                accessibilityLabel="Cadastrar e matricular aluno"
               >
                 <MaterialIcons name="person-add" size={18} color={colors.white} />
-                <Text style={styles.textoBotaoAdicionar}>Novo Aluno</Text>
+                <Text style={styles.textoBotaoAdicionar}>Cadastrar e matricular</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -400,6 +437,7 @@ export function TelaAlunos() {
             >
               <AlunoForm
                 alunoInicial={alunoEmEdicao}
+                planosDisponiveis={planosDisponiveis}
                 salvando={salvando}
                 errosExternos={errosFormulario}
                 onSubmit={handleSalvarAluno}
