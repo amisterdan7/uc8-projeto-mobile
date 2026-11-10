@@ -30,31 +30,39 @@ const Tab = createBottomTabNavigator<AbasAppParamList>();
 
 function NavegadorAutenticadoTabs() {
   const insets = useSafeAreaInsets();
-  const espacoInferior = Math.max(insets.bottom, 8);
-  const alturaBarra = 58 + espacoInferior;
+  const espacoInferior = Math.max(insets.bottom, 10);
+  const alturaBarra = 68 + espacoInferior;
 
   return (
     <Tab.Navigator
       initialRouteName="Inicio"
       screenOptions={{
         headerShown: false,
+        tabBarLabelPosition: 'below-icon',
         tabBarStyle: {
           backgroundColor: cores.cartao,
           borderTopColor: cores.borda,
           borderTopWidth: 1,
+          minHeight: alturaBarra,
           height: alturaBarra,
           paddingBottom: espacoInferior,
           paddingTop: 6,
         },
         tabBarItemStyle: {
-          paddingVertical: 2,
+          paddingVertical: 4,
+          minWidth: 0,
+        },
+        tabBarIconStyle: {
+          height: 24,
+          marginBottom: 2,
         },
         tabBarActiveTintColor: cores.primaria,
         tabBarInactiveTintColor: cores.textoSecundario,
         tabBarLabelStyle: {
           fontSize: 11,
+          lineHeight: 15,
           fontWeight: '600',
-          marginTop: 2,
+          marginTop: 0,
         },
       }}
     >
