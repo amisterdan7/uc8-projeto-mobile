@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '@/styles/colors';
+import { cores, espacos, raios } from '@/tema/tema';
 
 export interface CampoProps extends TextInputProps {
   rotulo: string;
@@ -19,7 +19,7 @@ export interface CampoProps extends TextInputProps {
 }
 
 /**
- * Campo de texto com estados visuais de foco, desabilitado e erro,
+ * Campo de texto com estados visuais de foco (borda laranja), desabilitado e erro,
  * além de suporte completo a acessibilidade (M5-R4).
  */
 export function Campo({
@@ -62,7 +62,13 @@ export function Campo({
           <MaterialIcons
             name={iconeEsquerda}
             size={20}
-            color={temErro ? colors.red[400] : focado ? colors.blue[400] : colors.gray[400]}
+            color={
+              temErro
+                ? cores.erro
+                : focado
+                  ? cores.primaria
+                  : cores.textoSecundario
+            }
             style={styles.iconeEsquerda}
           />
         ) : null}
@@ -70,7 +76,7 @@ export function Campo({
         <TextInput
           editable={!desabilitado}
           secureTextEntry={permiteAlternarSenha ? senhaOculta : secureTextEntry}
-          placeholderTextColor={colors.gray[500]}
+          placeholderTextColor={cores.textoSecundario}
           accessibilityLabel={accessibilityLabel ?? rotulo}
           accessibilityHint={
             accessibilityHint ?? (temErro ? `Erro no campo: ${erro}` : undefined)
@@ -103,7 +109,7 @@ export function Campo({
             <MaterialIcons
               name={senhaOculta ? 'visibility' : 'visibility-off'}
               size={20}
-              color={colors.gray[400]}
+              color={cores.textoSecundario}
             />
           </TouchableOpacity>
         ) : null}
@@ -111,7 +117,7 @@ export function Campo({
 
       {temErro ? (
         <View style={styles.linhaErro}>
-          <MaterialIcons name="error" size={14} color={colors.red[400]} />
+          <MaterialIcons name="error" size={14} color={cores.erro} />
           <Text style={styles.textoErro}>{erro}</Text>
         </View>
       ) : null}
@@ -121,51 +127,51 @@ export function Campo({
 
 const styles = StyleSheet.create({
   container: {
-    gap: 4,
-    marginBottom: 4,
+    gap: espacos.xs,
+    marginBottom: espacos.xs,
   },
   rotulo: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
     fontWeight: '600',
   },
   asterisco: {
-    color: colors.red[400],
+    color: cores.erro,
   },
   caixaInput: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: cores.cartao,
     borderWidth: 1,
-    borderColor: colors.gray[800],
-    borderRadius: 8,
+    borderColor: cores.borda,
+    borderRadius: raios.md,
     minHeight: 46,
     paddingHorizontal: 12,
   },
   caixaFocada: {
-    borderColor: colors.blue[400],
+    borderColor: cores.primaria,
   },
   caixaErro: {
-    borderColor: colors.red[500],
+    borderColor: cores.erro,
   },
   caixaDesabilitada: {
     opacity: 0.5,
-    backgroundColor: colors.night,
+    backgroundColor: cores.fundo,
   },
   iconeEsquerda: {
-    marginRight: 8,
+    marginRight: espacos.sm,
   },
   input: {
     flex: 1,
-    color: colors.white,
+    color: cores.texto,
     fontSize: 15,
     paddingVertical: 10,
   },
   inputComIcone: {
-    paddingLeft: 4,
+    paddingLeft: espacos.xs,
   },
   inputComBotaoOlho: {
-    paddingRight: 4,
+    paddingRight: espacos.xs,
   },
   botaoOlho: {
     padding: 6,
@@ -173,11 +179,11 @@ const styles = StyleSheet.create({
   linhaErro: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: espacos.xs,
     marginTop: 2,
   },
   textoErro: {
-    color: colors.red[400],
+    color: cores.erro,
     fontSize: 12,
   },
 });

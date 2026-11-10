@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { cores, espacos, raio } from '../tema/tema';
+import { cores, espacos, raios } from '../tema/tema';
 
 export const estilosComuns = StyleSheet.create({
   container: {
@@ -31,9 +31,9 @@ export const estilosComuns = StyleSheet.create({
     fontSize: 13,
   },
   cartao: {
-    backgroundColor: cores.superficie,
+    backgroundColor: cores.cartao,
     padding: espacos.md,
-    borderRadius: raio + 4,
+    borderRadius: raios.lg,
     borderWidth: 1,
     borderColor: cores.borda,
     gap: espacos.xs + 2,
@@ -49,7 +49,7 @@ export const estilosComuns = StyleSheet.create({
     justifyContent: 'space-between',
   },
   textoMutavel: {
-    color: cores.texto,
+    color: cores.textoSecundario,
     fontSize: 14,
   },
   textoSecundario: {
@@ -59,6 +59,7 @@ export const estilosComuns = StyleSheet.create({
   linhaAcoes: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: espacos.sm,
     marginTop: espacos.sm,
     paddingTop: espacos.sm,
@@ -71,7 +72,7 @@ export const estilosComuns = StyleSheet.create({
     gap: espacos.xs,
     paddingVertical: espacos.xs + 2,
     paddingHorizontal: espacos.sm + 2,
-    borderRadius: raio - 2,
+    borderRadius: raios.sm,
     backgroundColor: cores.borda,
   },
   textoBotaoAcao: {
@@ -80,10 +81,10 @@ export const estilosComuns = StyleSheet.create({
     fontWeight: '600',
   },
   input: {
-    backgroundColor: cores.superficie,
+    backgroundColor: cores.cartao,
     borderWidth: 1,
     borderColor: cores.borda,
-    borderRadius: raio,
+    borderRadius: raios.md,
     color: cores.texto,
     paddingHorizontal: espacos.md - 2,
     paddingVertical: espacos.sm + 4,
@@ -92,13 +93,14 @@ export const estilosComuns = StyleSheet.create({
   botaoPrimario: {
     backgroundColor: cores.primaria,
     paddingVertical: espacos.md - 2,
-    borderRadius: raio,
+    borderRadius: raios.md,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   textoBotaoPrimario: {
-    color: cores.textoClaro,
+    color: cores.texto,
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 16,
   },
 });

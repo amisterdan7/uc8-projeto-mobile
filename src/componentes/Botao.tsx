@@ -1,5 +1,5 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
-import { cores, espacos, raio } from '../tema/tema';
+import { cores, espacos, raios } from '../tema/tema';
 
 interface BotaoProps {
   titulo: string;
@@ -34,7 +34,7 @@ export function Botao({
       ]}
     >
       {carregando ? (
-        <ActivityIndicator color={cores.textoClaro} />
+        <ActivityIndicator color={cores.texto} />
       ) : (
         <Text style={[estilos.texto, secundario && estilos.textoSecundario]}>
           {titulo}
@@ -49,12 +49,15 @@ const estilos = StyleSheet.create({
     backgroundColor: cores.primaria,
     paddingVertical: espacos.md - 2,
     paddingHorizontal: espacos.lg,
-    borderRadius: raio,
+    borderRadius: raios.md,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   secundario: {
-    backgroundColor: cores.borda,
+    backgroundColor: cores.cartao,
+    borderWidth: 1,
+    borderColor: cores.borda,
   },
   pressionado: {
     opacity: 0.8,
@@ -63,9 +66,9 @@ const estilos = StyleSheet.create({
     opacity: 0.5,
   },
   texto: {
-    color: cores.textoClaro,
+    color: cores.texto,
     fontWeight: 'bold',
-    fontSize: 15,
+    fontSize: 16,
   },
   textoSecundario: {
     color: cores.texto,

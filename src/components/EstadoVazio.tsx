@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { colors } from '@/styles/colors';
+import { cores, espacos } from '@/tema/tema';
 
 interface EstadoVazioProps {
   mensagem?: string;
@@ -14,7 +14,7 @@ export function EstadoVazio({
 }: EstadoVazioProps) {
   return (
     <View style={styles.container}>
-      <MaterialIcons name={icone} size={44} color={colors.gray[600]} />
+      <MaterialIcons name={icone} size={44} color={cores.textoSecundario} />
       <Text style={styles.texto}>{mensagem}</Text>
     </View>
   );
@@ -25,11 +25,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-    paddingHorizontal: 24,
+    paddingHorizontal: espacos.lg,
     gap: 12,
   },
   texto: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 15,
     textAlign: 'center',
   },

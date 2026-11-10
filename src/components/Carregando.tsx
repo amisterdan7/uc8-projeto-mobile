@@ -1,6 +1,6 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/styles/colors';
+import { cores, espacos } from '@/tema/tema';
 
 interface CarregandoProps {
   mensagem?: string;
@@ -9,7 +9,7 @@ interface CarregandoProps {
 export function Carregando({ mensagem = 'Carregando...' }: CarregandoProps) {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.blue[400]} />
+      <ActivityIndicator size="large" color={cores.primaria} />
       <Text style={styles.texto}>{mensagem}</Text>
     </View>
   );
@@ -21,11 +21,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 12,
-    backgroundColor: colors.night,
-    padding: 24,
+    backgroundColor: cores.fundo,
+    padding: espacos.lg,
   },
   texto: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 15,
   },
 });
