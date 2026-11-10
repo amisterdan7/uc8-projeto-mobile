@@ -37,15 +37,14 @@ O sistema controla **alunos**, **planos** e **matrículas** de uma academia. Que
 ## Uma matrícula vigente por aluno, cadastro com plano e renovação
 - **Aluno novo pela interface sempre nasce com plano (cadastro e matrícula numa transação):** o formulário "Cadastrar e matricular" envia `POST /alunos` com `id_plano` obrigatório e `data_inicio` opcional. A API cria o aluno e a matrícula juntos e devolve `data_fim_estimada`. A edição do aluno (`PUT /alunos/:id`) altera apenas os dados cadastrais; o plano muda em Matrículas, com Renovar.
 - **Renovar é uma NOVA matrícula e o histórico é preservado:** renovar nunca sobrescreve a matrícula anterior.
-- **A lista de matrículas agrupa por aluno:** exibe um cartão por aluno com a matrícula atual em destaque (a primeira devolvida pela API) e um botão `"Histórico (n)"` que abre as anteriores em modo somente leitura. As ações (`Inativar`, `Reativar`, `Excluir`) valem somente para a matrícula atual.
-- **Só alunos ativos com matrícula vencida, inativa ou sem plano recebem nova matrícula:** a tela de "Nova matrícula" (renovação) filtra apenas alunos elegíveis (`ativo = true` e `status_matricula` em `vencida`, `inativa` ou `sem_matricula`) e exige a permissão `matriculas:criar`.
+- **A lista de matrículas agrupa por aluno:** exibe um cartão por aluno com a matrícula atual em destaque (a primeira devolvida pela API) e um botão `"Histórico (n)"` que abre as anteriores em modo somente leitura. Não há botões de `"Inativar"`, `"Reativar"` ou `"Excluir"` na lista de matrículas.
+- **Só alunos ativos com matrícula vencida, inativa ou sem plano recebem nova matrícula:** a tela de "Nova matrícula" (renovação) filtra apenas alunos elegíveis (`ativo = true` e `status_matricula` em `vencida`, `inativa` ou `sem_matricula`) e exige a permissão `matriculas:criar`. Se não houver alunos elegíveis, o modal exibe apenas `"Nenhum aluno precisa de matrícula agora."` com botões `"Cadastrar aluno novo"` e `"Fechar"`.
 - A API recusa (409) uma segunda matrícula ativa não vencida para o mesmo aluno, e recusa (409) matricular aluno arquivado.
-- Reativar uma matrícula antiga (PATCH de status para `ativa`) também pode dar 409 se já houver outra vigente.
 
 ## Arquivar x excluir
 - **Arquivar** (`PATCH /alunos/:id/ativo` com `ativo=false`) é reversível ("restaurar"). Exige `alunos:desativar` (admin).
 - **Excluir** aluno é definitivo e a API só aceita se ele **não tem matrículas** (senão 409). A interface oferece excluir só para aluno arquivado e confirma antes; no 409, orienta a arquivar.
-- **Matrícula:** inativar e reativar exigem `matriculas:atualizar-status`; excluir exige `matriculas:excluir` e a interface só oferece em matrícula inativa.
+- **Matrícula (no detalhe do aluno, via `mostraAcoesMatricula`):** `"Encerrar matrícula"` exige `matriculas:atualizar-status` (admin) e só aparece quando a matrícula atual está `'ativa'`, confirmando em `ConfirmacaoModal` e enviando `PATCH /matriculas/:id/status` com `'inativa'`. `"Excluir matrícula"` exige `matriculas:excluir` (admin) e fica apenas em `TelaDetalheAluno` com `ConfirmacaoModal` alertando que o histórico será apagado. Pausar matrícula não é suportado pelo app (exigiria recurso novo na API para estender `data_fim_estimada`).
 - Há índice único por nome + data de nascimento: criar ou editar aluno repetido dá 409.
 
 ## Planos
