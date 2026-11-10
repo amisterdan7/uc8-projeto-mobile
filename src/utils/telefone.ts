@@ -48,3 +48,25 @@ export function formatarTelefone(telefone: string | null | undefined): string {
 
   return telefone;
 }
+
+/**
+ * Monta a URL de ligação ('tel:<digitos>'), ou retorna null quando houver menos de 10 dígitos.
+ */
+export function telefoneParaLigacao(telefone: string | null | undefined): string | null {
+  const digitos = limparTelefone(telefone);
+  if (digitos.length < 10) {
+    return null;
+  }
+  return `tel:${digitos}`;
+}
+
+/**
+ * Monta a URL de WhatsApp ('https://wa.me/55<digitos>') para 10 ou 11 dígitos, ou null nos demais casos.
+ */
+export function urlWhatsApp(telefone: string | null | undefined): string | null {
+  const digitos = limparTelefone(telefone);
+  if (digitos.length !== 10 && digitos.length !== 11) {
+    return null;
+  }
+  return `https://wa.me/55${digitos}`;
+}

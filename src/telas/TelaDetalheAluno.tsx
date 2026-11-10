@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -12,16 +13,21 @@ import {
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import type { Aluno, Matricula } from '@/types/entidades';
+import type { Matricula } from '@/types/entidades';
 import type { NavegacaoAppProp, RotasAutenticadasStackParamList } from '@/navegacao/tipos';
 import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
 import { extrairErrosCampos } from '../erros/erros';
 import { AlunoForm, Carregando, EstadoErro, Selo } from '@/components';
-import { cores, espacos } from '../tema/tema';
+import type { DadosSubmissaoAluno } from '@/components/AlunoForm';
+import { cores } from '../tema/tema';
 import { formatarDataBR } from '@/utils/datas';
-import { formatarTelefone } from '@/utils/telefone';
+import {
+  formatarTelefone,
+  telefoneParaLigacao,
+  urlWhatsApp,
+} from '@/utils/telefone';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
@@ -85,16 +91,37 @@ export function TelaDetalheAluno() {
       ? estadoMatriculas.dados.filter((m) => m.idAluno === alunoId)
       : [];
 
-  async function handleSalvarEdicao(
-    nome: string,
-    dataNascimentoISO: string,
-    telefone: string
-  ) {
+  const matriculaAtual: Matricula | undefined = matriculasDoAluno[0];
+  const linkLigacao = telefoneParaLigacao(aluno.telefone);
+  const linkWhatsapp = urlWhatsApp(aluno.telefone);
+
+  const podeRenovar =
+    aluno.ativo &&
+    podeCriarMatricula &&
+    (aluno.statusMatricula === 'vencida' ||
+      aluno.statusMatricula === 'inativa' ||
+      aluno.statusMatricula === 'sem_matricula');
+
+  async function handleAbrirUrl(url: string | null) {
+    if (!url) return;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('Erro', 'Não foi possível abrir o aplicativo externo.');
+    }
+  }
+
+  async function handleSalvarEdicao(dados: DadosSubmissaoAluno) {
     if (!aluno) return;
     setSalvando(true);
     setErrosEdicao({});
     try {
-      await atualizarAluno(aluno.id, nome, dataNascimentoISO, telefone);
+      await atualizarAluno(
+        aluno.id,
+        dados.nome,
+        dados.dataNascimentoISO,
+        dados.telefone
+      );
       setModalEdicaoVisivel(false);
       Alert.alert('Sucesso', 'Dados do aluno atualizados com sucesso.');
     } catch (falha: unknown) {
@@ -179,6 +206,9 @@ export function TelaDetalheAluno() {
     );
   }
 
+  const rotuloVencimento =
+    aluno.statusMatricula === 'vencida' ? 'Venceu em' : 'Vence em';
+
   return (
     <View style={estilosComuns.container}>
       <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
@@ -192,7 +222,13 @@ export function TelaDetalheAluno() {
         <Text style={[estilosComuns.tituloCabecalho, styles.tituloTruncado]}>
           {aluno.nome}
         </Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.seloCabecalho}>
+          {aluno.ativo ? (
+            <Selo status={aluno.statusMatricula ?? 'sem_matricula'} />
+          ) : (
+            <Selo status="arquivado" />
+          )}
+        </View>
       </View>
 
       <ScrollView
@@ -202,14 +238,7 @@ export function TelaDetalheAluno() {
         ]}
       >
         <View style={estilosComuns.cartao}>
-          <View style={styles.linhaTopo}>
-            <Text style={estilosComuns.tituloCartao}>Dados Cadastrais</Text>
-            {aluno.ativo ? (
-              <Selo status={aluno.statusMatricula ?? 'sem_matricula'} />
-            ) : (
-              <Selo status="arquivado" />
-            )}
-          </View>
+          <Text style={estilosComuns.tituloCartao}>Contato</Text>
 
           <View style={styles.linhaInfo}>
             <MaterialIcons name="cake" size={18} color={colors.gray[400]} />
@@ -225,44 +254,92 @@ export function TelaDetalheAluno() {
             </Text>
           </View>
 
-          {aluno.planoNome ? (
+          {(linkLigacao || linkWhatsapp) ? (
+            <View style={estilosComuns.linhaAcoes}>
+              {linkLigacao ? (
+                <TouchableOpacity
+                  style={estilosComuns.botaoAcao}
+                  onPress={() => handleAbrirUrl(linkLigacao)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ligar para o aluno"
+                >
+                  <MaterialIcons name="call" size={16} color={colors.blue[400]} />
+                  <Text style={estilosComuns.textoBotaoAcao}>Ligar</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {linkWhatsapp ? (
+                <TouchableOpacity
+                  style={[estilosComuns.botaoAcao, styles.botaoWhatsapp]}
+                  onPress={() => handleAbrirUrl(linkWhatsapp)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Conversar no WhatsApp"
+                >
+                  <MaterialIcons name="chat" size={16} color={colors.green[300]} />
+                  <Text style={[estilosComuns.textoBotaoAcao, styles.textoWhatsapp]}>
+                    WhatsApp
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+          ) : null}
+        </View>
+
+        <View style={estilosComuns.cartao}>
+          <View style={styles.linhaTopo}>
+            <Text style={estilosComuns.tituloCartao}>Plano atual</Text>
+            {aluno.ativo ? (
+              <Selo status={aluno.statusMatricula ?? 'sem_matricula'} />
+            ) : (
+              <Selo status="arquivado" />
+            )}
+          </View>
+
+          <View style={styles.linhaInfo}>
+            <MaterialIcons name="credit-card" size={18} color={colors.blue[400]} />
+            <Text style={styles.textoPlanoAtivo}>
+              {aluno.planoNome ?? matriculaAtual?.planoNome ?? 'Sem plano vinculado'}
+            </Text>
+          </View>
+
+          {matriculaAtual ? (
             <View style={styles.linhaInfo}>
-              <MaterialIcons name="credit-card" size={18} color={colors.blue[400]} />
-              <Text style={styles.textoPlanoAtivo}>
-                Plano Atual: {aluno.planoNome}
+              <MaterialIcons name="event" size={18} color={colors.gray[400]} />
+              <Text style={estilosComuns.textoMutavel}>
+                {rotuloVencimento} {formatarDataBR(matriculaAtual.dataFimEstimada)}
               </Text>
             </View>
           ) : null}
+        </View>
 
-          {podeCriarMatricula &&
-          (aluno.statusMatricula === 'vencida' ||
-            aluno.statusMatricula === 'inativa' ||
-            aluno.statusMatricula === 'sem_matricula') ? (
-            <TouchableOpacity
-              style={[estilosComuns.botaoAcao, styles.botaoRenovar]}
-              onPress={() => {
-                navigation.navigate('Abas', {
-                  screen: 'Matriculas',
-                  params: { alunoId: aluno.id },
-                });
-              }}
-            >
-              <MaterialIcons name="autorenew" size={16} color={colors.green[300]} />
-              <Text style={[estilosComuns.textoBotaoAcao, styles.textoRenovar]}>
-                Renovar Matrícula
-              </Text>
-            </TouchableOpacity>
-          ) : null}
+        {(podeRenovar || podeAtualizar || podeDesativar || (podeExcluir && !aluno.ativo)) ? (
+          <View style={estilosComuns.cartao}>
+            <Text style={estilosComuns.tituloCartao}>Ações</Text>
+            <View style={estilosComuns.linhaAcoes}>
+              {podeRenovar ? (
+                <TouchableOpacity
+                  style={[estilosComuns.botaoAcao, styles.botaoRenovar]}
+                  onPress={() => {
+                    navigation.navigate('Abas', {
+                      screen: 'Matriculas',
+                      params: { alunoId: aluno.id },
+                    });
+                  }}
+                >
+                  <MaterialIcons name="autorenew" size={16} color={colors.green[300]} />
+                  <Text style={[estilosComuns.textoBotaoAcao, styles.textoRenovar]}>
+                    Renovar
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
 
-          {(podeAtualizar || podeDesativar || (podeExcluir && !aluno.ativo)) ? (
-            <View style={[estilosComuns.linhaAcoes, { marginTop: 12 }]}>
               {podeAtualizar ? (
                 <TouchableOpacity
                   style={estilosComuns.botaoAcao}
                   onPress={() => setModalEdicaoVisivel(true)}
                 >
                   <MaterialIcons name="edit" size={16} color={colors.blue[400]} />
-                  <Text style={estilosComuns.textoBotaoAcao}>Editar dados</Text>
+                  <Text style={estilosComuns.textoBotaoAcao}>Editar</Text>
                 </TouchableOpacity>
               ) : null}
 
@@ -298,11 +375,11 @@ export function TelaDetalheAluno() {
                 </TouchableOpacity>
               ) : null}
             </View>
-          ) : null}
-        </View>
+          </View>
+        ) : null}
 
         <View style={estilosComuns.cartao}>
-          <Text style={estilosComuns.tituloCartao}>Histórico de Matrículas</Text>
+          <Text style={estilosComuns.tituloCartao}>Histórico de matrículas</Text>
           {matriculasDoAluno.length === 0 ? (
             <Text style={styles.textoVazio}>
               Nenhuma matrícula vinculada a este aluno.
@@ -317,7 +394,8 @@ export function TelaDetalheAluno() {
                   <Selo status={mat.status} />
                 </View>
                 <Text style={styles.textoDatasMatricula}>
-                  {formatarDataBR(mat.dataInicio)} até {formatarDataBR(mat.dataFimEstimada)}
+                  Início: {formatarDataBR(mat.dataInicio)} • Fim:{' '}
+                  {formatarDataBR(mat.dataFimEstimada)}
                 </Text>
               </View>
             ))
@@ -359,19 +437,27 @@ const styles = StyleSheet.create({
   botaoRenovar: {
     borderColor: colors.green[300],
     backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    marginTop: 8,
-    alignSelf: 'flex-start',
   },
   textoRenovar: {
     color: colors.green[300],
     fontWeight: 'bold',
+  },
+  botaoWhatsapp: {
+    borderColor: colors.green[300],
+    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+  },
+  textoWhatsapp: {
+    color: colors.green[300],
   },
   botaoVoltar: {
     padding: 4,
   },
   tituloTruncado: {
     flex: 1,
-    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  seloCabecalho: {
+    alignItems: 'flex-end',
   },
   linhaTopo: {
     flexDirection: 'row',

@@ -10,6 +10,8 @@ import {
   aplicarMascaraTelefone,
   formatarTelefone,
   limparTelefone,
+  telefoneParaLigacao,
+  urlWhatsApp,
 } from '../src/utils/telefone';
 import { formatarMoedaBRL } from '../src/utils/moeda';
 
@@ -76,6 +78,22 @@ describe('Utilitários de Telefone', () => {
     assert.equal(formatarTelefone(null), 'Não informado');
     assert.equal(formatarTelefone(''), 'Não informado');
     assert.equal(formatarTelefone('84988887777'), '(84) 98888-7777');
+  });
+
+  it('deve gerar link de ligação apenas se houver 10 ou mais dígitos', () => {
+    assert.equal(telefoneParaLigacao('(84) 99999-1234'), 'tel:84999991234');
+    assert.equal(telefoneParaLigacao('(84) 3222-1111'), 'tel:8432221111');
+    assert.equal(telefoneParaLigacao('9999-1234'), null);
+    assert.equal(telefoneParaLigacao(''), null);
+    assert.equal(telefoneParaLigacao(null), null);
+  });
+
+  it('deve gerar URL de WhatsApp apenas para 10 ou 11 dígitos', () => {
+    assert.equal(urlWhatsApp('(84) 99999-1234'), 'https://wa.me/5584999991234');
+    assert.equal(urlWhatsApp('8432221111'), 'https://wa.me/558432221111');
+    assert.equal(urlWhatsApp('99991234'), null);
+    assert.equal(urlWhatsApp('5584999991234'), null);
+    assert.equal(urlWhatsApp(null), null);
   });
 });
 
