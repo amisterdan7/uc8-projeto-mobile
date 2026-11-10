@@ -33,7 +33,9 @@
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit",
     "test:unit": "node --import tsx --test 'tests/*.test.ts'",
-    "test:contrato": "node --import tsx --test 'tests/contrato/*.test.ts'"
+    "test:contrato": "node --import tsx --test 'tests/contrato/*.test.ts'",
+    "skills:sincronizar": "node scripts/sincronizar-skills.mjs",
+    "skills:verificar": "node scripts/sincronizar-skills.mjs --verificar"
   },
   "private": true
 }

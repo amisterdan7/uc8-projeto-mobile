@@ -745,7 +745,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   itemHistorico: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.gray[900],
     borderRadius: 8,
     padding: 10,
     borderWidth: 1,

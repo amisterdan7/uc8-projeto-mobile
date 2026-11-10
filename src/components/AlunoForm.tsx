@@ -220,14 +220,14 @@ export function AlunoForm({
         {!modoEdicao ? (
           <>
             <View style={styles.secaoPlano}>
-              <Text style={estilosComuns.rotulo}>Plano *</Text>
+              <Text style={styles.rotulo}>Plano *</Text>
 
               {semPlanosCadastrados ? (
                 <View style={styles.avisoSemPlano}>
                   <MaterialIcons
                     name="warning-amber"
                     size={20}
-                    color={colors.yellow[400]}
+                    color="#fbbf24"
                   />
                   <Text style={styles.textoAvisoSemPlano}>
                     Nenhum plano disponível no momento. Cadastre ou atualize a lista de
@@ -278,7 +278,7 @@ export function AlunoForm({
                               <MaterialIcons
                                 name="star"
                                 size={12}
-                                color={colors.yellow[300]}
+                                color="#fbbf24"
                               />
                               <Text style={styles.textoSeloDestaque}>Destaque</Text>
                             </View>
@@ -298,7 +298,7 @@ export function AlunoForm({
               )}
 
               {mensagemErroPlano ? (
-                <Text style={estilosComuns.textoErro}>{mensagemErroPlano}</Text>
+                <Text style={styles.textoErro}>{mensagemErroPlano}</Text>
               ) : null}
             </View>
 
@@ -383,6 +383,15 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 4,
   },
+  rotulo: {
+    color: colors.gray[300],
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  textoErro: {
+    color: colors.red[400],
+    fontSize: 12,
+  },
   avisoSemPlano: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -391,18 +400,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(245, 158, 11, 0.12)',
     borderWidth: 1,
-    borderColor: colors.yellow[400],
+    borderColor: '#f59e0b',
   },
   textoAvisoSemPlano: {
     flex: 1,
-    color: colors.yellow[300],
+    color: '#fbbf24',
     fontSize: 13,
   },
   listaPlanos: {
     gap: 8,
   },
   cartaoPlano: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.gray[900],
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.gray[800],
@@ -443,7 +452,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.18)',
   },
   textoSeloDestaque: {
-    color: colors.yellow[300],
+    color: '#fbbf24',
     fontSize: 11,
     fontWeight: 'bold',
   },

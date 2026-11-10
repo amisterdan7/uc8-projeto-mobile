@@ -140,7 +140,7 @@ export function TelaInicio() {
               accessibilityRole="button"
               accessibilityLabel={`${contadores.semPlano} alunos sem plano`}
             >
-              <Text style={[styles.numeroContador, { color: colors.yellow[300] }]}>
+              <Text style={[styles.numeroContador, { color: '#fbbf24' }]}>
                 {contadores.semPlano}
               </Text>
               <Text style={styles.rotuloContador}>Sem plano</Text>
@@ -243,7 +243,7 @@ export function TelaInicio() {
                           <MaterialIcons
                             name="star"
                             size={12}
-                            color={colors.yellow[300]}
+                            color="#fbbf24"
                           />
                           <Text style={styles.textoSeloDestaque}>Destaque</Text>
                         </View>
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(245, 158, 11, 0.18)',
   },
   textoSeloDestaque: {
-    color: colors.yellow[300],
+    color: '#fbbf24',
     fontSize: 10,
     fontWeight: 'bold',
   },
