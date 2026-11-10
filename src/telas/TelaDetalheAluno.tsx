@@ -19,16 +19,22 @@ import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
 import { extrairErrosCampos } from '../erros/erros';
-import { AlunoForm, Carregando, EstadoErro, Selo } from '@/components';
+import {
+  AlunoForm,
+  Carregando,
+  ConfirmacaoModal,
+  EstadoErro,
+  Selo,
+} from '@/components';
 import type { DadosSubmissaoAluno } from '@/components/AlunoForm';
-import { cores } from '../tema/tema';
+import { cores, espacos, raios } from '../tema/tema';
 import { formatarDataBR } from '@/utils/datas';
+import { mostraAcoesMatricula } from '@/utils/matriculas';
 import {
   formatarTelefone,
   telefoneParaLigacao,
   urlWhatsApp,
 } from '@/utils/telefone';
-import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 type RotaDetalheProp = RouteProp<RotasAutenticadasStackParamList, 'DetalheAluno'>;
@@ -46,17 +52,39 @@ export function TelaDetalheAluno() {
     arquivarAluno,
     restaurarAluno,
     excluirAluno,
+    mudarStatusMatricula,
+    excluirMatricula,
   } = useAcademia();
 
-  const { podeFazer } = useSessao();
+  const { usuario, podeFazer } = useSessao();
   const podeAtualizar = podeFazer('alunos:atualizar');
   const podeDesativar = podeFazer('alunos:desativar');
   const podeExcluir = podeFazer('alunos:excluir');
   const podeCriarMatricula = podeFazer('matriculas:criar');
+  const podeAtualizarStatusMatricula = podeFazer('matriculas:atualizar-status');
+  const podeExcluirMatricula = podeFazer('matriculas:excluir');
 
   const [modalEdicaoVisivel, setModalEdicaoVisivel] = useState(false);
   const [errosEdicao, setErrosEdicao] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
+  const [processandoMatricula, setProcessandoMatricula] = useState(false);
+  const [mensagemErroMatricula, setMensagemErroMatricula] = useState('');
+  const [mensagemSucessoMatricula, setMensagemSucessoMatricula] = useState('');
+  const [modalConfirmacaoMatricula, setModalConfirmacaoMatricula] = useState<{
+    visivel: boolean;
+    titulo: string;
+    mensagem: string;
+    textoConfirmar: string;
+    variante: 'perigo' | 'primario';
+    onConfirmar: () => Promise<void>;
+  }>({
+    visivel: false,
+    titulo: '',
+    mensagem: '',
+    textoConfirmar: 'Confirmar',
+    variante: 'perigo',
+    onConfirmar: async () => {},
+  });
 
   if (estadoAlunos.tipo === 'carregando') {
     return (
@@ -95,12 +123,83 @@ export function TelaDetalheAluno() {
   const linkLigacao = telefoneParaLigacao(aluno.telefone);
   const linkWhatsapp = urlWhatsApp(aluno.telefone);
 
+  const perfilMatricula =
+    usuario?.perfil === 'admin' && podeAtualizarStatusMatricula
+      ? 'admin'
+      : (usuario?.perfil ?? 'recepcao');
+  const acoesMatricula = matriculaAtual
+    ? mostraAcoesMatricula(perfilMatricula, matriculaAtual.status)
+    : { encerrar: false, excluir: false };
+  const podeEncerrarMatriculaAtual = acoesMatricula.encerrar;
+  const podeExcluirMatriculaAtual =
+    acoesMatricula.excluir && podeExcluirMatricula;
+
   const podeRenovar =
     aluno.ativo &&
     podeCriarMatricula &&
     (aluno.statusMatricula === 'vencida' ||
       aluno.statusMatricula === 'inativa' ||
       aluno.statusMatricula === 'sem_matricula');
+
+  function handleAbrirEncerrarMatricula(mat: Matricula) {
+    setMensagemErroMatricula('');
+    setMensagemSucessoMatricula('');
+    setModalConfirmacaoMatricula({
+      visivel: true,
+      titulo: 'Encerrar matrícula',
+      mensagem:
+        'O aluno ficará sem plano vigente e poderá fazer uma nova matrícula. Confirmar?',
+      textoConfirmar: 'Confirmar',
+      variante: 'perigo',
+      onConfirmar: async () => {
+        try {
+          setProcessandoMatricula(true);
+          await mudarStatusMatricula(mat.id, 'inativa');
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          setMensagemSucessoMatricula('Matrícula encerrada com sucesso.');
+        } catch (falha: unknown) {
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          const msg =
+            falha instanceof Error
+              ? falha.message
+              : 'Falha ao encerrar matrícula.';
+          setMensagemErroMatricula(msg);
+        } finally {
+          setProcessandoMatricula(false);
+        }
+      },
+    });
+  }
+
+  function handleAbrirExcluirMatricula(mat: Matricula) {
+    setMensagemErroMatricula('');
+    setMensagemSucessoMatricula('');
+    setModalConfirmacaoMatricula({
+      visivel: true,
+      titulo: 'Excluir matrícula',
+      mensagem:
+        'Use somente para matrícula lançada por engano. O histórico será apagado.',
+      textoConfirmar: 'Confirmar',
+      variante: 'perigo',
+      onConfirmar: async () => {
+        try {
+          setProcessandoMatricula(true);
+          await excluirMatricula(mat.id);
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          setMensagemSucessoMatricula('Matrícula excluída com sucesso.');
+        } catch (falha: unknown) {
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          const msg =
+            falha instanceof Error
+              ? falha.message
+              : 'Falha ao excluir matrícula.';
+          setMensagemErroMatricula(msg);
+        } finally {
+          setProcessandoMatricula(false);
+        }
+      },
+    });
+  }
 
   async function handleAbrirUrl(url: string | null) {
     if (!url) return;
@@ -217,7 +316,7 @@ export function TelaDetalheAluno() {
           style={styles.botaoVoltar}
           accessibilityLabel="Voltar para a lista"
         >
-          <MaterialIcons name="arrow-back" size={24} color={colors.white} />
+          <MaterialIcons name="arrow-back" size={24} color={cores.texto} />
         </TouchableOpacity>
         <Text style={[estilosComuns.tituloCabecalho, styles.tituloTruncado]}>
           {aluno.nome}
@@ -231,6 +330,34 @@ export function TelaDetalheAluno() {
         </View>
       </View>
 
+      {mensagemErroMatricula ? (
+        <View style={styles.bannerErro}>
+          <MaterialIcons name="error-outline" size={18} color={cores.erro} />
+          <Text style={styles.textoBannerErro}>{mensagemErroMatricula}</Text>
+          <TouchableOpacity
+            onPress={() => setMensagemErroMatricula('')}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar mensagem de erro"
+          >
+            <MaterialIcons name="close" size={16} color={cores.textoSecundario} />
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {mensagemSucessoMatricula ? (
+        <View style={styles.bannerSucesso}>
+          <MaterialIcons name="check-circle" size={18} color={cores.sucesso} />
+          <Text style={styles.textoBannerSucesso}>{mensagemSucessoMatricula}</Text>
+          <TouchableOpacity
+            onPress={() => setMensagemSucessoMatricula('')}
+            accessibilityRole="button"
+            accessibilityLabel="Fechar mensagem de confirmação"
+          >
+            <MaterialIcons name="close" size={16} color={cores.textoSecundario} />
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <ScrollView
         contentContainerStyle={[
           estilosComuns.conteudo,
@@ -241,14 +368,14 @@ export function TelaDetalheAluno() {
           <Text style={estilosComuns.tituloCartao}>Contato</Text>
 
           <View style={styles.linhaInfo}>
-            <MaterialIcons name="cake" size={18} color={colors.gray[400]} />
+            <MaterialIcons name="cake" size={18} color={cores.textoSecundario} />
             <Text style={estilosComuns.textoMutavel}>
               Nascimento: {formatarDataBR(aluno.dataNascimento)}
             </Text>
           </View>
 
           <View style={styles.linhaInfo}>
-            <MaterialIcons name="phone" size={18} color={colors.gray[400]} />
+            <MaterialIcons name="phone" size={18} color={cores.textoSecundario} />
             <Text style={estilosComuns.textoMutavel}>
               Telefone: {formatarTelefone(aluno.telefone)}
             </Text>
@@ -263,7 +390,7 @@ export function TelaDetalheAluno() {
                   accessibilityRole="button"
                   accessibilityLabel="Ligar para o aluno"
                 >
-                  <MaterialIcons name="call" size={16} color={colors.blue[400]} />
+                  <MaterialIcons name="call" size={16} color={cores.primaria} />
                   <Text style={estilosComuns.textoBotaoAcao}>Ligar</Text>
                 </TouchableOpacity>
               ) : null}
@@ -275,7 +402,7 @@ export function TelaDetalheAluno() {
                   accessibilityRole="button"
                   accessibilityLabel="Conversar no WhatsApp"
                 >
-                  <MaterialIcons name="chat" size={16} color={colors.green[300]} />
+                  <MaterialIcons name="chat" size={16} color={cores.sucesso} />
                   <Text style={[estilosComuns.textoBotaoAcao, styles.textoWhatsapp]}>
                     WhatsApp
                   </Text>
@@ -296,7 +423,7 @@ export function TelaDetalheAluno() {
           </View>
 
           <View style={styles.linhaInfo}>
-            <MaterialIcons name="credit-card" size={18} color={colors.blue[400]} />
+            <MaterialIcons name="credit-card" size={18} color={cores.primaria} />
             <Text style={styles.textoPlanoAtivo}>
               {aluno.planoNome ?? matriculaAtual?.planoNome ?? 'Sem plano vinculado'}
             </Text>
@@ -304,10 +431,51 @@ export function TelaDetalheAluno() {
 
           {matriculaAtual ? (
             <View style={styles.linhaInfo}>
-              <MaterialIcons name="event" size={18} color={colors.gray[400]} />
+              <MaterialIcons name="event" size={18} color={cores.textoSecundario} />
               <Text style={estilosComuns.textoMutavel}>
                 {rotuloVencimento} {formatarDataBR(matriculaAtual.dataFimEstimada)}
               </Text>
+            </View>
+          ) : null}
+
+          {matriculaAtual &&
+          (podeEncerrarMatriculaAtual || podeExcluirMatriculaAtual) ? (
+            <View style={estilosComuns.linhaAcoes}>
+              {podeEncerrarMatriculaAtual ? (
+                <TouchableOpacity
+                  style={estilosComuns.botaoAcao}
+                  onPress={() => handleAbrirEncerrarMatricula(matriculaAtual)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Encerrar matrícula"
+                >
+                  <MaterialIcons
+                    name="cancel"
+                    size={16}
+                    color={cores.erro}
+                  />
+                  <Text style={estilosComuns.textoBotaoAcao}>
+                    Encerrar matrícula
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {podeExcluirMatriculaAtual ? (
+                <TouchableOpacity
+                  style={[estilosComuns.botaoAcao, styles.botaoExcluir]}
+                  onPress={() => handleAbrirExcluirMatricula(matriculaAtual)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Excluir matrícula"
+                >
+                  <MaterialIcons
+                    name="delete-outline"
+                    size={16}
+                    color={cores.erro}
+                  />
+                  <Text style={[estilosComuns.textoBotaoAcao, styles.textoExcluir]}>
+                    Excluir matrícula
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -326,7 +494,7 @@ export function TelaDetalheAluno() {
                     });
                   }}
                 >
-                  <MaterialIcons name="autorenew" size={16} color={colors.green[300]} />
+                  <MaterialIcons name="autorenew" size={16} color={cores.sucesso} />
                   <Text style={[estilosComuns.textoBotaoAcao, styles.textoRenovar]}>
                     Renovar
                   </Text>
@@ -338,7 +506,7 @@ export function TelaDetalheAluno() {
                   style={estilosComuns.botaoAcao}
                   onPress={() => setModalEdicaoVisivel(true)}
                 >
-                  <MaterialIcons name="edit" size={16} color={colors.blue[400]} />
+                  <MaterialIcons name="edit" size={16} color={cores.primaria} />
                   <Text style={estilosComuns.textoBotaoAcao}>Editar</Text>
                 </TouchableOpacity>
               ) : null}
@@ -351,7 +519,7 @@ export function TelaDetalheAluno() {
                   <MaterialIcons
                     name={aluno.ativo ? 'archive' : 'unarchive'}
                     size={16}
-                    color={aluno.ativo ? colors.red[400] : colors.blue[400]}
+                    color={aluno.ativo ? cores.erro : cores.primaria}
                   />
                   <Text style={estilosComuns.textoBotaoAcao}>
                     {aluno.ativo ? 'Arquivar' : 'Restaurar'}
@@ -367,7 +535,7 @@ export function TelaDetalheAluno() {
                   <MaterialIcons
                     name="delete-forever"
                     size={16}
-                    color={colors.red[400]}
+                    color={cores.erro}
                   />
                   <Text style={[estilosComuns.textoBotaoAcao, styles.textoExcluir]}>
                     Excluir
@@ -403,6 +571,19 @@ export function TelaDetalheAluno() {
         </View>
       </ScrollView>
 
+      <ConfirmacaoModal
+        visivel={modalConfirmacaoMatricula.visivel}
+        titulo={modalConfirmacaoMatricula.titulo}
+        mensagem={modalConfirmacaoMatricula.mensagem}
+        textoConfirmar={modalConfirmacaoMatricula.textoConfirmar}
+        variante={modalConfirmacaoMatricula.variante}
+        carregando={processandoMatricula}
+        onConfirmar={modalConfirmacaoMatricula.onConfirmar}
+        onCancelar={() =>
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }))
+        }
+      />
+
       <Modal
         visible={modalEdicaoVisivel}
         animationType="slide"
@@ -434,6 +615,42 @@ export function TelaDetalheAluno() {
 }
 
 const styles = StyleSheet.create({
+  bannerErro: {
+    marginHorizontal: espacos.md,
+    marginTop: espacos.sm,
+    padding: espacos.sm + 4,
+    borderRadius: raios.md,
+    backgroundColor: cores.erroSuave,
+    borderWidth: 1,
+    borderColor: cores.erroBorda,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacos.sm,
+  },
+  textoBannerErro: {
+    flex: 1,
+    color: cores.erro,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bannerSucesso: {
+    marginHorizontal: espacos.md,
+    marginTop: espacos.sm,
+    padding: espacos.sm + 4,
+    borderRadius: raios.md,
+    backgroundColor: cores.sucessoSuave,
+    borderWidth: 1,
+    borderColor: cores.sucessoBorda,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacos.sm,
+  },
+  textoBannerSucesso: {
+    flex: 1,
+    color: cores.sucesso,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   botaoRenovar: {
     borderColor: cores.sucessoBorda,
     backgroundColor: cores.sucessoSuave,
@@ -482,26 +699,26 @@ const styles = StyleSheet.create({
     color: cores.erro,
   },
   textoVazio: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 13,
     marginTop: 4,
   },
   itemMatricula: {
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.fundo,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: raios.md,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     marginTop: 8,
     gap: 4,
   },
   nomePlanoMatricula: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
     fontSize: 14,
   },
   textoDatasMatricula: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 12,
   },
 });
