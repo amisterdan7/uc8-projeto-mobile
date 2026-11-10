@@ -12,30 +12,36 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useRoute, type RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { Matricula } from '@/types/entidades';
-import type { AbasAppParamList } from '@/navegacao/tipos';
+import type { AbasAppParamList, NavegacaoAppProp } from '@/navegacao/tipos';
 import { semCaso } from '@/types/estadoTela';
 import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
 import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
-import { cores, larguraLarga } from '../tema/tema';
+import { larguraLarga } from '../tema/tema';
 import { colunasPara } from '@/utils/responsividade';
 import {
   aplicarMascaraData,
   dataBRparaISO,
   formatarDataBR,
+  validarDataCivilBR,
 } from '@/utils/datas';
 import { formatarMoedaBRL } from '@/utils/moeda';
+import {
+  agruparMatriculasPorAluno,
+  alunosElegiveisParaMatricula,
+} from '@/utils/matriculas';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaMatriculas() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavegacaoAppProp>();
   const route = useRoute<RouteProp<AbasAppParamList, 'Matriculas'>>();
   const { width } = useWindowDimensions();
   const duasColunas = width >= larguraLarga;
@@ -46,6 +52,7 @@ export function TelaMatriculas() {
     estadoAlunos,
     estadoPlanos,
     recarregarMatriculas,
+    recarregarAlunos,
     criarMatricula,
     mudarStatusMatricula,
     excluirMatricula,
@@ -53,6 +60,7 @@ export function TelaMatriculas() {
 
   const { podeFazer } = useSessao();
   const podeCriar = podeFazer('matriculas:criar');
+  const podeCriarAluno = podeFazer('alunos:criar') && podeCriar;
   const podeAtualizarStatus = podeFazer('matriculas:atualizar-status');
   const podeExcluir = podeFazer('matriculas:excluir');
 
@@ -64,22 +72,47 @@ export function TelaMatriculas() {
   const [erroFormulario, setErroFormulario] = useState('');
   const [errosCampos, setErrosCampos] = useState<Record<string, string>>({});
   const [atualizando, setAtualizando] = useState(false);
+  const [historicosAbertos, setHistoricosAbertos] = useState<Record<number, boolean>>({});
+
+  const alunosElegiveis =
+    estadoAlunos.tipo === 'pronto'
+      ? alunosElegiveisParaMatricula(estadoAlunos.dados)
+      : [];
+  const planosDisponiveis =
+    estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
 
   useEffect(() => {
-    if (route.params?.alunoId && podeCriar) {
-      setAlunoSelecionadoId(route.params.alunoId);
-      const planos = estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
-      if (planos.length > 0 && !planoSelecionadoId) {
-        setPlanoSelecionadoId(planos[0].id);
+    const params = route.params as
+      | { alunoId?: number; abrirCriacao?: boolean }
+      | undefined;
+
+    if (!podeCriar) return;
+
+    if (params?.alunoId) {
+      setErroFormulario('');
+      setErrosCampos({});
+      setDataInicioBR('');
+      setAlunoSelecionadoId(params.alunoId);
+      if (planosDisponiveis.length > 0 && !planoSelecionadoId) {
+        setPlanoSelecionadoId(planosDisponiveis[0].id);
       }
       setModalCriacaoVisivel(true);
+    } else if (params?.abrirCriacao) {
+      handleAbrirCriacao();
     }
-  }, [route.params?.alunoId, podeCriar, estadoPlanos]);
+  }, [route.params, podeCriar, estadoPlanos.tipo]);
 
   async function handlePullToRefresh() {
     setAtualizando(true);
-    await recarregarMatriculas();
+    await Promise.all([recarregarMatriculas(), recarregarAlunos()]);
     setAtualizando(false);
+  }
+
+  function alternarHistorico(idAluno: number) {
+    setHistoricosAbertos((anterior) => ({
+      ...anterior,
+      [idAluno]: !anterior[idAluno],
+    }));
   }
 
   function handleAbrirCriacao() {
@@ -87,32 +120,40 @@ export function TelaMatriculas() {
     setErrosCampos({});
     setDataInicioBR('');
 
-    const alunosAtivos =
-      estadoAlunos.tipo === 'pronto'
-        ? estadoAlunos.dados.filter((a) => a.ativo)
-        : [];
-    const planos = estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
-
-    setAlunoSelecionadoId(alunosAtivos.length > 0 ? alunosAtivos[0].id : null);
-    setPlanoSelecionadoId(planos.length > 0 ? planos[0].id : null);
+    setAlunoSelecionadoId(
+      alunosElegiveis.length > 0 ? alunosElegiveis[0].id : null
+    );
+    setPlanoSelecionadoId(
+      planosDisponiveis.length > 0 ? planosDisponiveis[0].id : null
+    );
     setModalCriacaoVisivel(true);
+  }
+
+  function handleIrParaCadastroAluno() {
+    setModalCriacaoVisivel(false);
+    navigation.navigate('Abas', {
+      screen: 'Alunos',
+      params: { abrirCadastro: true },
+    });
   }
 
   async function handleSubmeterCriacao() {
     if (!alunoSelecionadoId || !planoSelecionadoId) {
-      setErroFormulario('Selecione um aluno e um plano.');
+      setErroFormulario('Selecione um aluno elegível e um plano.');
       return;
     }
 
     let dataISO: string | undefined = undefined;
     if (dataInicioBR.trim()) {
-      if (dataInicioBR.length !== 10) {
+      const validacao = validarDataCivilBR(dataInicioBR.trim());
+      if (!validacao.valida) {
         setErroFormulario(
-          'Data de início deve estar no formato DD/MM/AAAA ou ser deixada vazia (hoje).'
+          validacao.mensagem ??
+            'Data de início deve estar no formato DD/MM/AAAA ou ficar em branco.'
         );
         return;
       }
-      dataISO = dataBRparaISO(dataInicioBR);
+      dataISO = dataBRparaISO(dataInicioBR.trim());
     }
 
     setSalvandoMatricula(true);
@@ -129,8 +170,8 @@ export function TelaMatriculas() {
       setModalCriacaoVisivel(false);
       const dataFimFormatada = formatarDataBR(nova.dataFimEstimada);
       Alert.alert(
-        'Matrícula Criada com Sucesso!',
-        `A matrícula foi registrada. Término estimado calculado pela API: ${dataFimFormatada}.`
+        'Sucesso',
+        `Matrícula criada. Vence em ${dataFimFormatada}.`
       );
     } catch (falha: unknown) {
       registrarErro('cadastro matricula', falha);
@@ -164,7 +205,7 @@ export function TelaMatriculas() {
 
     Alert.alert(
       `Confirmar ${acao}`,
-      `Deseja realmente ${acao} a matrícula de "${item.alunoNome ?? 'Aluno'}"?`,
+      `Deseja realmente ${acao} a matrícula atual de "${item.alunoNome ?? 'Aluno'}"?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -236,7 +277,7 @@ export function TelaMatriculas() {
                 accessibilityLabel="Criar nova matrícula"
               >
                 <MaterialIcons name="add-task" size={18} color={colors.white} />
-                <Text style={styles.textoBotaoAdicionar}>Nova Matrícula</Text>
+                <Text style={styles.textoBotaoAdicionar}>Nova matrícula</Text>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -250,12 +291,7 @@ export function TelaMatriculas() {
 
     case 'pronto': {
       const listaMatriculas = estadoMatriculas.dados;
-      const alunosAtivos =
-        estadoAlunos.tipo === 'pronto'
-          ? estadoAlunos.dados.filter((a) => a.ativo)
-          : [];
-      const planosDisponiveis =
-        estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
+      const gruposPorAluno = agruparMatriculasPorAluno(listaMatriculas);
 
       return (
         <View style={estilosComuns.container}>
@@ -263,7 +299,7 @@ export function TelaMatriculas() {
             <View>
               <Text style={estilosComuns.tituloCabecalho}>Matrículas</Text>
               <Text style={estilosComuns.subtituloCabecalho}>
-                {listaMatriculas.length} matrícula(s) registrada(s)
+                {gruposPorAluno.length} aluno(s) com matrícula
               </Text>
             </View>
 
@@ -275,16 +311,16 @@ export function TelaMatriculas() {
                 accessibilityLabel="Criar nova matrícula"
               >
                 <MaterialIcons name="add-task" size={18} color={colors.white} />
-                <Text style={styles.textoBotaoAdicionar}>Nova Matrícula</Text>
+                <Text style={styles.textoBotaoAdicionar}>Nova matrícula</Text>
               </TouchableOpacity>
             ) : null}
           </View>
 
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}
-            data={listaMatriculas}
+            data={gruposPorAluno}
             numColumns={duasColunas ? 2 : 1}
-            keyExtractor={(item) => String(item.id)}
+            keyExtractor={(grupo) => String(grupo.idAluno)}
             contentContainerStyle={[
               estilosComuns.conteudo,
               { paddingBottom: insets.bottom + 20 },
@@ -303,9 +339,11 @@ export function TelaMatriculas() {
                 icone="assignment"
               />
             }
-            renderItem={({ item }) => {
-              const isAtiva = item.status === 'ativa';
-              const isInativa = item.status === 'inativa';
+            renderItem={({ item: grupo }) => {
+              const { atual, historico } = grupo;
+              const isAtiva = atual.status === 'ativa';
+              const isInativa = atual.status === 'inativa';
+              const historicoAberto = Boolean(historicosAbertos[grupo.idAluno]);
 
               return (
                 <View
@@ -317,28 +355,34 @@ export function TelaMatriculas() {
                   <View style={styles.linhaTopo}>
                     <View style={styles.colunaAluno}>
                       <Text style={estilosComuns.tituloCartao}>
-                        {item.alunoNome ?? `Aluno #${item.idAluno}`}
+                        {grupo.alunoNome}
                       </Text>
-                      <Text style={styles.textoPlano}>
-                        Plano: {item.planoNome ?? `Plano #${item.idPlano}`}
+                      <Text style={styles.rotuloMatriculaAtual}>
+                        Matrícula atual •{' '}
+                        {atual.planoNome ?? `Plano #${atual.idPlano}`}
                       </Text>
                     </View>
 
-                    <Selo status={item.status} />
+                    <Selo status={atual.status} />
                   </View>
 
                   <View style={styles.blocoDatas}>
                     <View style={styles.itemData}>
                       <MaterialIcons name="event" size={15} color={colors.gray[400]} />
                       <Text style={estilosComuns.textoMutavel}>
-                        Início: {formatarDataBR(item.dataInicio)}
+                        Início: {formatarDataBR(atual.dataInicio)}
                       </Text>
                     </View>
 
                     <View style={styles.itemData}>
-                      <MaterialIcons name="event-available" size={15} color={colors.gray[400]} />
+                      <MaterialIcons
+                        name="event-available"
+                        size={15}
+                        color={colors.gray[400]}
+                      />
                       <Text style={estilosComuns.textoMutavel}>
-                        Término estimado: {formatarDataBR(item.dataFimEstimada)}
+                        {atual.status === 'vencida' ? 'Venceu em: ' : 'Vence em: '}
+                        {formatarDataBR(atual.dataFimEstimada)}
                       </Text>
                     </View>
                   </View>
@@ -348,10 +392,14 @@ export function TelaMatriculas() {
                       {podeAtualizarStatus ? (
                         <TouchableOpacity
                           style={estilosComuns.botaoAcao}
-                          onPress={() => handleAlternarStatus(item)}
+                          onPress={() => handleAlternarStatus(atual)}
                         >
                           <MaterialIcons
-                            name={isAtiva ? 'pause-circle-outline' : 'play-circle-outline'}
+                            name={
+                              isAtiva
+                                ? 'pause-circle-outline'
+                                : 'play-circle-outline'
+                            }
                             size={16}
                             color={isAtiva ? colors.red[400] : '#4ade80'}
                           />
@@ -364,17 +412,62 @@ export function TelaMatriculas() {
                       {podeExcluir && isInativa ? (
                         <TouchableOpacity
                           style={[estilosComuns.botaoAcao, styles.botaoExcluir]}
-                          onPress={() => handleExcluirMatricula(item)}
+                          onPress={() => handleExcluirMatricula(atual)}
                         >
                           <MaterialIcons
                             name="delete-outline"
                             size={16}
                             color={colors.red[400]}
                           />
-                          <Text style={[estilosComuns.textoBotaoAcao, styles.textoExcluir]}>
+                          <Text
+                            style={[
+                              estilosComuns.textoBotaoAcao,
+                              styles.textoExcluir,
+                            ]}
+                          >
                             Excluir
                           </Text>
                         </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {historico.length > 0 ? (
+                    <View style={styles.secaoHistorico}>
+                      <TouchableOpacity
+                        style={styles.botaoToggleHistorico}
+                        onPress={() => alternarHistorico(grupo.idAluno)}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Histórico (${historico.length})`}
+                      >
+                        <MaterialIcons
+                          name={historicoAberto ? 'expand-less' : 'expand-more'}
+                          size={18}
+                          color={colors.blue[300]}
+                        />
+                        <Text style={styles.textoToggleHistorico}>
+                          Histórico ({historico.length})
+                        </Text>
+                      </TouchableOpacity>
+
+                      {historicoAberto ? (
+                        <View style={styles.listaHistorico}>
+                          {historico.map((matAntiga) => (
+                            <View key={matAntiga.id} style={styles.itemHistorico}>
+                              <View style={styles.linhaTopoHistorico}>
+                                <Text style={styles.nomePlanoHistorico}>
+                                  {matAntiga.planoNome ??
+                                    `Plano #${matAntiga.idPlano}`}
+                                </Text>
+                                <Selo status={matAntiga.status} />
+                              </View>
+                              <Text style={styles.datasHistorico}>
+                                {formatarDataBR(matAntiga.dataInicio)} até{' '}
+                                {formatarDataBR(matAntiga.dataFimEstimada)}
+                              </Text>
+                            </View>
+                          ))}
+                        </View>
                       ) : null}
                     </View>
                   ) : null}
@@ -402,15 +495,48 @@ export function TelaMatriculas() {
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.cartaoModal}>
-                  <Text style={estilosComuns.tituloCabecalho}>Nova Matrícula</Text>
+                  <View style={styles.topoModal}>
+                    <Text style={estilosComuns.tituloCabecalho}>
+                      Nova matrícula
+                    </Text>
+
+                    {podeCriarAluno ? (
+                      <TouchableOpacity
+                        style={styles.atalhoAlunoNovo}
+                        onPress={handleIrParaCadastroAluno}
+                        accessibilityRole="button"
+                        accessibilityLabel="Aluno novo? Cadastrar"
+                      >
+                        <MaterialIcons
+                          name="person-add-alt"
+                          size={16}
+                          color={colors.blue[300]}
+                        />
+                        <Text style={styles.textoAtalhoAlunoNovo}>
+                          Aluno novo? Cadastrar
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+
+                  <View style={styles.avisoHistorico}>
+                    <MaterialIcons
+                      name="history"
+                      size={18}
+                      color={colors.blue[300]}
+                    />
+                    <Text style={styles.textoAvisoHistorico}>
+                      A matrícula anterior fica no histórico.
+                    </Text>
+                  </View>
 
                   <View style={styles.grupoCampo}>
                     <Text style={styles.rotulo}>
-                      Selecione o Aluno (Apenas Ativos) *
+                      Aluno elegível (vencida, inativa ou sem matrícula) *
                     </Text>
-                    {alunosAtivos.length === 0 ? (
+                    {alunosElegiveis.length === 0 ? (
                       <Text style={styles.avisoNenhum}>
-                        Nenhum aluno ativo encontrado para matricular.
+                        Nenhum aluno precisa de matrícula agora.
                       </Text>
                     ) : (
                       <ScrollView
@@ -418,7 +544,7 @@ export function TelaMatriculas() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.carrosselOpcoes}
                       >
-                        {alunosAtivos.map((a) => {
+                        {alunosElegiveis.map((a) => {
                           const selecionado = alunoSelecionadoId === a.id;
                           return (
                             <TouchableOpacity
@@ -445,7 +571,7 @@ export function TelaMatriculas() {
                   </View>
 
                   <View style={styles.grupoCampo}>
-                    <Text style={styles.rotulo}>Selecione o Plano *</Text>
+                    <Text style={styles.rotulo}>Plano *</Text>
                     <View style={styles.gradePlanos}>
                       {planosDisponiveis.map((p) => {
                         const selecionado = planoSelecionadoId === p.id;
@@ -458,14 +584,16 @@ export function TelaMatriculas() {
                             ]}
                             onPress={() => setPlanoSelecionadoId(p.id)}
                           >
-                            <Text style={styles.nomePlano}>{p.nome}</Text>
+                            <View style={styles.colunaNomePlanoModal}>
+                              <Text style={styles.nomePlano}>{p.nome}</Text>
+                              <Text style={styles.duracaoPlano}>
+                                {p.duracaoMeses === 1
+                                  ? '1 mês'
+                                  : `${p.duracaoMeses} meses`}
+                              </Text>
+                            </View>
                             <Text style={styles.precoPlano}>
                               {formatarMoedaBRL(p.preco)}
-                            </Text>
-                            <Text style={styles.duracaoPlano}>
-                              {p.duracaoMeses === 1
-                                ? '1 mês'
-                                : `${p.duracaoMeses} meses`}
                             </Text>
                           </TouchableOpacity>
                         );
@@ -474,16 +602,19 @@ export function TelaMatriculas() {
                   </View>
 
                   <Campo
-                    rotulo="Data de Início (opcional, padrão: hoje no servidor)"
+                    rotulo="Data de início (opcional, padrão: hoje)"
                     value={dataInicioBR}
                     onChangeText={(t) => {
                       setDataInicioBR(aplicarMascaraData(t));
                       if (erroFormulario) setErroFormulario('');
                       if (errosCampos['data_inicio']) {
-                        setErrosCampos((antigos) => ({ ...antigos, data_inicio: '' }));
+                        setErrosCampos((antigos) => ({
+                          ...antigos,
+                          data_inicio: '',
+                        }));
                       }
                     }}
-                    placeholder="DD/MM/AAAA (vazio = data atual)"
+                    placeholder="DD/MM/AAAA (em branco usa hoje)"
                     keyboardType="number-pad"
                     maxLength={10}
                     editable={!salvandoMatricula}
@@ -508,16 +639,22 @@ export function TelaMatriculas() {
                       style={[
                         styles.botaoForm,
                         estilosComuns.botaoPrimario,
-                        alunosAtivos.length === 0 && styles.botaoDesabilitado,
+                        (alunosElegiveis.length === 0 ||
+                          planosDisponiveis.length === 0) &&
+                          styles.botaoDesabilitado,
                       ]}
                       onPress={handleSubmeterCriacao}
-                      disabled={salvandoMatricula || alunosAtivos.length === 0}
+                      disabled={
+                        salvandoMatricula ||
+                        alunosElegiveis.length === 0 ||
+                        planosDisponiveis.length === 0
+                      }
                     >
                       {salvandoMatricula ? (
                         <ActivityIndicator color={colors.white} />
                       ) : (
                         <Text style={estilosComuns.textoBotaoPrimario}>
-                          Efetivar Matrícula
+                          Confirmar matrícula
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -566,10 +703,10 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  textoPlano: {
+  rotuloMatriculaAtual: {
     color: colors.blue[300],
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 13,
+    fontWeight: '600',
   },
   blocoDatas: {
     gap: 4,
@@ -586,6 +723,50 @@ const styles = StyleSheet.create({
   textoExcluir: {
     color: colors.red[400],
   },
+  secaoHistorico: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray[800],
+    gap: 8,
+  },
+  botaoToggleHistorico: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+  },
+  textoToggleHistorico: {
+    color: colors.blue[300],
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  listaHistorico: {
+    gap: 8,
+  },
+  itemHistorico: {
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: colors.gray[800],
+    gap: 4,
+  },
+  linhaTopoHistorico: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+  },
+  nomePlanoHistorico: {
+    color: colors.gray[300],
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  datasHistorico: {
+    color: colors.gray[400],
+    fontSize: 12,
+  },
   cartaoModal: {
     backgroundColor: colors.card,
     borderRadius: 16,
@@ -593,6 +774,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gray[800],
     gap: 14,
+  },
+  topoModal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  atalhoAlunoNovo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.14)',
+    borderWidth: 1,
+    borderColor: colors.blue[500],
+  },
+  textoAtalhoAlunoNovo: {
+    color: colors.blue[300],
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  avisoHistorico: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    borderWidth: 1,
+    borderColor: colors.blue[500],
+  },
+  textoAvisoHistorico: {
+    color: colors.blue[300],
+    fontSize: 13,
+    flex: 1,
   },
   grupoCampo: {
     gap: 8,
@@ -647,6 +866,9 @@ const styles = StyleSheet.create({
   cardPlanoSelecionado: {
     borderColor: colors.blue[400],
     backgroundColor: 'rgba(59, 130, 246, 0.1)',
+  },
+  colunaNomePlanoModal: {
+    gap: 2,
   },
   nomePlano: {
     color: colors.white,

@@ -14,6 +14,11 @@ import {
   urlWhatsApp,
 } from '../src/utils/telefone';
 import { formatarMoedaBRL } from '../src/utils/moeda';
+import {
+  agruparMatriculasPorAluno,
+  alunosElegiveisParaMatricula,
+} from '../src/utils/matriculas';
+import type { Aluno, Matricula } from '../src/types/entidades';
 
 describe('Utilitários de Data', () => {
   it("deve formatar data ISO '2026-10-08' para '08/10/2026' sem usar Date", () => {
@@ -107,5 +112,150 @@ describe('Utilitários de Moeda', () => {
   it('deve retornar R$ 0,00 para valor nulo ou indefinido', () => {
     const formatado = formatarMoedaBRL(null);
     assert.match(formatado, /R\$\s?0,00/);
+  });
+});
+
+describe('Agrupamento de Matrículas e Elegibilidade (M4)', () => {
+  it('deve agrupar matrículas por aluno (1, 2 e 3 matrículas) preservando a ordem', () => {
+    const lista: Matricula[] = [
+      {
+        id: 10,
+        idAluno: 1,
+        idPlano: 2,
+        dataInicio: '2026-04-01',
+        dataFimEstimada: '2026-07-01',
+        status: 'ativa',
+        alunoNome: 'Ana',
+        planoNome: 'Trimestral',
+      },
+      {
+        id: 20,
+        idAluno: 2,
+        idPlano: 1,
+        dataInicio: '2026-03-01',
+        dataFimEstimada: '2026-04-01',
+        status: 'vencida',
+        alunoNome: 'Bruno',
+        planoNome: 'Mensal',
+      },
+      {
+        id: 9,
+        idAluno: 1,
+        idPlano: 1,
+        dataInicio: '2026-03-01',
+        dataFimEstimada: '2026-04-01',
+        status: 'vencida',
+        alunoNome: 'Ana',
+        planoNome: 'Mensal',
+      },
+      {
+        id: 30,
+        idAluno: 3,
+        idPlano: 3,
+        dataInicio: '2026-04-10',
+        dataFimEstimada: '2026-10-10',
+        status: 'ativa',
+        alunoNome: 'Carla',
+        planoNome: 'Semestral',
+      },
+      {
+        id: 19,
+        idAluno: 2,
+        idPlano: 1,
+        dataInicio: '2026-02-01',
+        dataFimEstimada: '2026-03-01',
+        status: 'inativa',
+        alunoNome: 'Bruno',
+        planoNome: 'Mensal',
+      },
+      {
+        id: 8,
+        idAluno: 1,
+        idPlano: 1,
+        dataInicio: '2026-01-01',
+        dataFimEstimada: '2026-02-01',
+        status: 'inativa',
+        alunoNome: 'Ana',
+        planoNome: 'Mensal',
+      },
+    ];
+
+    const grupos = agruparMatriculasPorAluno(lista);
+    assert.equal(grupos.length, 3);
+
+    // Ordem dos alunos preservada: Ana (1), Bruno (2), Carla (3)
+    assert.deepEqual(
+      grupos.map((g) => g.idAluno),
+      [1, 2, 3]
+    );
+
+    // Ana: 3 matrículas (1 atual + 2 no histórico na mesma ordem)
+    assert.equal(grupos[0].atual.id, 10);
+    assert.deepEqual(
+      grupos[0].historico.map((m) => m.id),
+      [9, 8]
+    );
+
+    // Bruno: 2 matrículas (1 atual + 1 no histórico)
+    assert.equal(grupos[1].atual.id, 20);
+    assert.deepEqual(
+      grupos[1].historico.map((m) => m.id),
+      [19]
+    );
+
+    // Carla: 1 matrícula (1 atual + 0 no histórico)
+    assert.equal(grupos[2].atual.id, 30);
+    assert.equal(grupos[2].historico.length, 0);
+  });
+
+  it('deve filtrar apenas alunos ativos com matrícula vencida, inativa ou sem_matricula', () => {
+    const alunos: Aluno[] = [
+      {
+        id: 1,
+        nome: 'Ativo Com Matricula Ativa',
+        dataNascimento: '1990-01-01',
+        telefone: null,
+        ativo: true,
+        statusMatricula: 'ativa',
+      },
+      {
+        id: 2,
+        nome: 'Ativo Vencido',
+        dataNascimento: '1991-01-01',
+        telefone: null,
+        ativo: true,
+        statusMatricula: 'vencida',
+      },
+      {
+        id: 3,
+        nome: 'Ativo Inativo',
+        dataNascimento: '1992-01-01',
+        telefone: null,
+        ativo: true,
+        statusMatricula: 'inativa',
+      },
+      {
+        id: 4,
+        nome: 'Ativo Sem Matricula',
+        dataNascimento: '1993-01-01',
+        telefone: null,
+        ativo: true,
+        statusMatricula: 'sem_matricula',
+      },
+      {
+        id: 5,
+        nome: 'Arquivado Vencido',
+        dataNascimento: '1994-01-01',
+        telefone: null,
+        ativo: false,
+        statusMatricula: 'vencida',
+      },
+    ];
+
+    const elegiveis = alunosElegiveisParaMatricula(alunos);
+    assert.deepEqual(
+      elegiveis.map((a) => a.id),
+      [2, 3, 4]
+    );
   });
 });
