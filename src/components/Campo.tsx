@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { cores, espacos, raios } from '@/tema/tema';
+import { cores, espacos, foco, raios } from '@/tema/tema';
 
 export interface CampoProps extends TextInputProps {
   rotulo: string;
@@ -149,7 +149,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   caixaFocada: {
-    borderColor: cores.primaria,
+    borderColor: cores.foco,
+    borderWidth: foco.larguraBorda,
   },
   caixaErro: {
     borderColor: cores.erro,

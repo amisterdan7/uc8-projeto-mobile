@@ -12,6 +12,7 @@ export const cores = {
   textoEscuro: '#121214',
   textoSecundario: '#a1a1aa',
   primaria: '#ff5b24',
+  foco: '#ff5b24',
   sucesso: '#10b981',
   alerta: '#f59e0b',
   erro: '#ef4444',
@@ -55,6 +56,11 @@ export const espacos = {
 
 export const raio = raios.md;
 export const larguraLarga = 600;
+
+export const foco = {
+  cor: cores.foco,
+  larguraBorda: 2,
+};
 
 export const pesos = {
   300: '300' as const,

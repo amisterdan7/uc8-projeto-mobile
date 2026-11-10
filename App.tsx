@@ -1,8 +1,8 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { modo } from './src/config/modo';
 import { SessaoProvider } from '@/auth';
@@ -10,15 +10,54 @@ import { AcademiaProvedor } from '@/contexto';
 import { NavegadorPrincipal } from '@/navegacao';
 import { PlanosProvedor } from './src/contexto/PlanosContexto';
 import { NavegadorCurso } from './src/navegacao/NavegadorCurso';
-import { cores, espacos } from '@/tema/tema';
-import { colors } from '@/styles/colors';
+import { cores, espacos, foco } from '@/tema/tema';
+
+const temaNavegacao: Theme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: cores.primaria,
+    background: cores.fundo,
+    card: cores.cartao,
+    text: cores.texto,
+    border: cores.borda,
+    notification: cores.primaria,
+  },
+};
 
 export default function App() {
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
+      return;
+    }
+    const idEstilo = 'misterfit-foco-laranja';
+    if (document.getElementById(idEstilo)) {
+      return;
+    }
+    const estilo = document.createElement('style');
+    estilo.id = idEstilo;
+    estilo.textContent = `
+      *:focus-visible,
+      input:focus,
+      textarea:focus,
+      select:focus,
+      [role="tab"]:focus,
+      [role="tab"]:focus-visible,
+      [role="button"]:focus-visible,
+      a:focus-visible,
+      button:focus-visible {
+        outline: ${foco.larguraBorda}px solid ${foco.cor} !important;
+        outline-offset: -2px !important;
+      }
+    `;
+    document.head.appendChild(estilo);
+  }, []);
+
   if (modo === 'curso') {
     return (
       <SafeAreaProvider>
         <PlanosProvedor>
-          <NavigationContainer>
+          <NavigationContainer theme={temaNavegacao}>
             <StatusBar style="light" />
             <NavegadorCurso />
           </NavigationContainer>
@@ -50,7 +89,7 @@ export default function App() {
     <SafeAreaProvider>
       <SessaoProvider>
         <AcademiaProvedor>
-          <NavigationContainer>
+          <NavigationContainer theme={temaNavegacao}>
             <StatusBar style="light" />
             <NavegadorPrincipal />
           </NavigationContainer>

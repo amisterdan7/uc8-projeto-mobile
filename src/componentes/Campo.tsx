@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type KeyboardTypeOptions } from 'react-native';
-import { cores, espacos, raio } from '../tema/tema';
+import { cores, espacos, foco as temaFoco, raio } from '../tema/tema';
 
 interface CampoProps {
   rotulo: string;
@@ -74,7 +74,8 @@ const estilos = StyleSheet.create({
     fontSize: 15,
   },
   entradaFocada: {
-    borderColor: cores.primaria,
+    borderColor: cores.foco,
+    borderWidth: temaFoco.larguraBorda,
   },
   entradaComErro: {
     borderColor: cores.erro,
