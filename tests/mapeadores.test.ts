@@ -5,6 +5,7 @@ import {
   mapearAlunoParaEnvio,
   mapearMatricula,
   mapearPlano,
+  mapearRespostaCriacaoAluno,
   mapearUsuario,
   ERRO_RESPOSTA_INESPERADA,
 } from '../src/api/mapeadores';
@@ -136,6 +137,39 @@ describe('Mapeadores de Dados e Tolerancia do Contrato (C1)', () => {
 
       const nuloTel = mapearAlunoParaEnvio('Lucas', '1999-01-01', null);
       assert.equal(nuloTel.telefone, null);
+      assert.equal('id_plano' in nuloTel, false);
+      assert.equal('data_inicio' in nuloTel, false);
+
+      const comPlanoEInicio = mapearAlunoParaEnvio(
+        'Lucas',
+        '1999-01-01',
+        '(84) 99999-1234',
+        10,
+        '2026-04-17'
+      );
+      assert.equal(comPlanoEInicio.id_plano, 10);
+      assert.equal(comPlanoEInicio.data_inicio, '2026-04-17');
+    });
+
+    it('deve mapear resposta de criacao de aluno com e sem matricula', () => {
+      const semMatricula = mapearRespostaCriacaoAluno(fixturesAluno.criadoSemMatricula);
+      assert.equal(semMatricula.aluno.id, 105);
+      assert.equal(semMatricula.aluno.nome, 'Aluno Sem Plano Inicial');
+      assert.equal(semMatricula.aluno.ativo, true);
+      assert.equal(semMatricula.aluno.statusMatricula, 'sem_matricula');
+      assert.equal(semMatricula.matricula, undefined);
+
+      const comMatricula = mapearRespostaCriacaoAluno(fixturesAluno.criadoComMatricula);
+      assert.equal(comMatricula.aluno.id, 106);
+      assert.equal(comMatricula.aluno.nome, 'Aluno Com Plano Inicial');
+      assert.equal(comMatricula.aluno.statusMatricula, 'ativa');
+      assert.ok(comMatricula.matricula);
+      assert.equal(comMatricula.matricula.id, 601);
+      assert.equal(comMatricula.matricula.idAluno, 106);
+      assert.equal(comMatricula.matricula.idPlano, 10);
+      assert.equal(comMatricula.matricula.dataInicio, '2026-04-17');
+      assert.equal(comMatricula.matricula.dataFimEstimada, '2026-10-17');
+      assert.equal(comMatricula.matricula.status, 'ativa');
     });
   });
 

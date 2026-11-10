@@ -50,3 +50,8 @@ export interface Matricula {
   alunoNome?: string;
   planoNome?: string;
 }
+
+export interface ResultadoCriacaoAluno {
+  aluno: Aluno;
+  matricula?: Matricula;
+}

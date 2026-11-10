@@ -1,4 +1,10 @@
-import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
+import type {
+  Aluno,
+  Matricula,
+  Plano,
+  ResultadoCriacaoAluno,
+  Usuario,
+} from '@/types/entidades';
 import {
   alterarAtivoUsuario,
   alterarStatusAtivoAluno,
@@ -51,8 +57,14 @@ export class FonteApi implements FonteDados {
     return listarAlunos();
   }
 
-  criarAluno(nome: string, dataNascimentoISO: string, telefone?: string | null): Promise<Aluno> {
-    return criarAluno(nome, dataNascimentoISO, telefone);
+  criarAluno(
+    nome: string,
+    dataNascimentoISO: string,
+    telefone?: string | null,
+    idPlano?: number,
+    dataInicioISO?: string
+  ): Promise<ResultadoCriacaoAluno> {
+    return criarAluno(nome, dataNascimentoISO, telefone, idPlano, dataInicioISO);
   }
 
   atualizarAluno(

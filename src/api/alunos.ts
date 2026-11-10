@@ -1,7 +1,11 @@
 import { requisitarApi } from './cliente';
-import { mapearAluno, mapearAlunoParaEnvio } from './mapeadores';
-import type { AlunoDTO } from './tipos';
-import type { Aluno } from '@/types/entidades';
+import {
+  mapearAluno,
+  mapearAlunoParaEnvio,
+  mapearRespostaCriacaoAluno,
+} from './mapeadores';
+import type { AlunoDTO, RespostaCriacaoAlunoDTO } from './tipos';
+import type { Aluno, ResultadoCriacaoAluno } from '@/types/entidades';
 
 /**
  * Lista todos os alunos cadastrados. Requer permissão alunos:listar.
@@ -16,21 +20,30 @@ export async function listarAlunos(): Promise<Aluno[]> {
 }
 
 /**
- * Cria um novo aluno. Requer permissão alunos:criar.
+ * Cria um novo aluno e, opcionalmente, sua primeira matrícula quando `idPlano` é informado.
+ * Requer permissão alunos:criar (e matriculas:criar quando `idPlano` é enviado).
  */
 export async function criarAluno(
   nome: string,
   dataNascimentoISO: string,
-  telefone?: string | null
-): Promise<Aluno> {
-  const corpo = mapearAlunoParaEnvio(nome, dataNascimentoISO, telefone);
-  const dto = await requisitarApi<AlunoDTO>('/alunos', {
+  telefone?: string | null,
+  idPlano?: number,
+  dataInicioISO?: string
+): Promise<ResultadoCriacaoAluno> {
+  const corpo = mapearAlunoParaEnvio(
+    nome,
+    dataNascimentoISO,
+    telefone,
+    idPlano,
+    dataInicioISO
+  );
+  const dto = await requisitarApi<RespostaCriacaoAlunoDTO>('/alunos', {
     method: 'POST',
     autenticado: true,
     body: corpo,
   });
 
-  return mapearAluno(dto);
+  return mapearRespostaCriacaoAluno(dto);
 }
 
 /**

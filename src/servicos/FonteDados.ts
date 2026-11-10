@@ -1,4 +1,10 @@
-import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
+import type {
+  Aluno,
+  Matricula,
+  Plano,
+  ResultadoCriacaoAluno,
+  Usuario,
+} from '@/types/entidades';
 import type {
   AtualizarPlanoDTO,
   CriarPlanoDTO,
@@ -17,7 +23,13 @@ export interface FonteDados {
   excluirPlano(id: number): Promise<void>;
 
   listarAlunos(): Promise<Aluno[]>;
-  criarAluno(nome: string, dataNascimentoISO: string, telefone?: string | null): Promise<Aluno>;
+  criarAluno(
+    nome: string,
+    dataNascimentoISO: string,
+    telefone?: string | null,
+    idPlano?: number,
+    dataInicioISO?: string
+  ): Promise<ResultadoCriacaoAluno>;
   atualizarAluno(
     id: number,
     nome: string,

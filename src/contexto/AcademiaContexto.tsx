@@ -6,7 +6,13 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
+import type {
+  Aluno,
+  Matricula,
+  Plano,
+  ResultadoCriacaoAluno,
+  Usuario,
+} from '@/types/entidades';
 import type { EstadoTela } from '@/types/estadoTela';
 import { estadoCarregando, estadoErro, estadoPronto } from '@/types/estadoTela';
 import type { FonteDados } from '@/servicos/FonteDados';
@@ -33,8 +39,10 @@ export interface ValorDaAcademia {
   criarAluno: (
     nome: string,
     dataNascimentoISO: string,
-    telefone?: string | null
-  ) => Promise<Aluno>;
+    telefone?: string | null,
+    idPlano?: number,
+    dataInicioISO?: string
+  ) => Promise<ResultadoCriacaoAluno>;
   atualizarAluno: (
     id: number,
     nome: string,
@@ -164,17 +172,29 @@ export function AcademiaProvedor({
   }, [usuario, recarregarPlanos, recarregarAlunos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
 
   const criarAluno = useCallback(
-    async (nome: string, dataNascimentoISO: string, telefone?: string | null) => {
+    async (
+      nome: string,
+      dataNascimentoISO: string,
+      telefone?: string | null,
+      idPlano?: number,
+      dataInicioISO?: string
+    ) => {
       try {
-        const aluno = await fonteDados.criarAluno(nome, dataNascimentoISO, telefone);
-        await recarregarAlunos();
-        return aluno;
+        const resultado = await fonteDados.criarAluno(
+          nome,
+          dataNascimentoISO,
+          telefone,
+          idPlano,
+          dataInicioISO
+        );
+        await Promise.all([recarregarAlunos(), recarregarMatriculas()]);
+        return resultado;
       } catch (e: unknown) {
         registrarErro('AcademiaContexto.criarAluno', e);
         throw e;
       }
     },
-    [fonteDados, recarregarAlunos]
+    [fonteDados, recarregarAlunos, recarregarMatriculas]
   );
 
   const atualizarAluno = useCallback(

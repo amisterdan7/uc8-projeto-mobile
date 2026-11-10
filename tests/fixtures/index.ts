@@ -99,6 +99,26 @@ export const fixturesAluno = {
     data_nascimento: '1990-01-01',
     telefone: 84999998888,
   },
+  criadoSemMatricula: {
+    id: 105,
+    nome: 'Aluno Sem Plano Inicial',
+    data_nascimento: '2000-05-12',
+    telefone: '84988887777',
+  },
+  criadoComMatricula: {
+    id: 106,
+    nome: 'Aluno Com Plano Inicial',
+    data_nascimento: '1998-11-23',
+    telefone: '84977776666',
+    matricula: {
+      id: 601,
+      id_aluno: 106,
+      id_plano: 10,
+      data_inicio: '2026-04-17',
+      data_fim_estimada: '2026-10-17',
+      status: 'ativa' as const,
+    },
+  },
 };
 
 export const fixturesMatricula = {

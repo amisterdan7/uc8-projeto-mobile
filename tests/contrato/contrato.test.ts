@@ -179,7 +179,7 @@ describe(
 
         try {
           const primeiro = await criarAluno(nomeDuplicado, dataNasc);
-          idAluno = primeiro.id;
+          idAluno = primeiro.aluno.id;
 
           try {
             await criarAluno(nomeDuplicado, dataNasc);

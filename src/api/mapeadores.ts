@@ -1,4 +1,4 @@
-import type { Aluno, Matricula, Plano, Usuario } from '@/types/entidades';
+import type { Aluno, Matricula, Plano, ResultadoCriacaoAluno, Usuario } from '@/types/entidades';
 import type {
   CriarAlunoDTO,
 } from './tipos';
@@ -96,7 +96,7 @@ export function mapearAluno(dto: unknown): Aluno {
     throw new Error(ERRO_RESPOSTA_INESPERADA);
   }
 
-  const { id, nome, data_nascimento, telefone, ativo, plano_nome, status_matricula } = dto;
+  const { id, nome, data_nascimento, telefone, ativo, plano_nome, status_matricula, matricula } = dto;
 
   if (
     typeof id !== 'number' ||
@@ -114,10 +114,17 @@ export function mapearAluno(dto: unknown): Aluno {
     throw new Error(ERRO_RESPOSTA_INESPERADA);
   }
 
+  const statusMatriculaEmbutida =
+    ehObjetoValido(matricula) && typeof matricula.status === 'string'
+      ? matricula.status
+      : undefined;
+
   const statusValidos = ['ativa', 'inativa', 'vencida', 'sem_matricula'];
+  const statusCandidato =
+    typeof status_matricula === 'string' ? status_matricula : statusMatriculaEmbutida;
   const statusResolvido =
-    typeof status_matricula === 'string' && statusValidos.includes(status_matricula)
-      ? (status_matricula as Aluno['statusMatricula'])
+    typeof statusCandidato === 'string' && statusValidos.includes(statusCandidato)
+      ? (statusCandidato as Aluno['statusMatricula'])
       : 'sem_matricula';
 
   return {
@@ -125,27 +132,62 @@ export function mapearAluno(dto: unknown): Aluno {
     nome,
     dataNascimento: data_nascimento,
     telefone: typeof telefone === 'string' ? telefone : null,
-    ativo: Boolean(ativo),
+    ativo: ativo !== undefined ? Boolean(ativo) : true,
     planoNome: typeof plano_nome === 'string' ? plano_nome : null,
     statusMatricula: statusResolvido,
   };
 }
 
 /**
+ * Converte a resposta de POST /alunos (que pode trazer a chave `matricula` opcional)
+ * em `{ aluno, matricula? }`.
+ */
+export function mapearRespostaCriacaoAluno(dto: unknown): ResultadoCriacaoAluno {
+  if (!ehObjetoValido(dto)) {
+    throw new Error(ERRO_RESPOSTA_INESPERADA);
+  }
+
+  const aluno = mapearAluno(dto);
+  const { matricula } = dto;
+
+  if (matricula === undefined || matricula === null) {
+    return { aluno };
+  }
+
+  return {
+    aluno,
+    matricula: mapearMatricula(matricula),
+  };
+}
+
+/**
  * Prepara o payload para criacao ou atualizacao de aluno na API.
  * Se o telefone for vazio ou so espacos, envia null.
+ * Quando idPlano e fornecido, inclui id_plano e opcionalmente data_inicio.
  */
 export function mapearAlunoParaEnvio(
   nome: string,
   dataNascimentoISO: string,
-  telefone?: string | null
+  telefone?: string | null,
+  idPlano?: number,
+  dataInicioISO?: string
 ): CriarAlunoDTO {
   const telLimpo = telefone ? limparTelefone(telefone) : '';
-  return {
+  const payload: CriarAlunoDTO = {
     nome: nome.trim(),
     data_nascimento: dataNascimentoISO.trim(),
     telefone: telLimpo.length > 0 ? telLimpo : null,
   };
+
+  if (typeof idPlano === 'number') {
+    payload.id_plano = idPlano;
+  }
+
+  if (typeof dataInicioISO === 'string' && dataInicioISO.trim().length > 0) {
+    payload.data_inicio = dataInicioISO.trim();
+  }
+
+  return payload;
 }
 
 /**

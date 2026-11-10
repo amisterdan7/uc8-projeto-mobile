@@ -96,6 +96,19 @@ export interface CriarAlunoDTO {
   nome: string;
   data_nascimento: string;
   telefone?: string | null;
+  id_plano?: number;
+  data_inicio?: string;
+}
+
+export interface RespostaCriacaoAlunoDTO {
+  id: number;
+  nome: string;
+  data_nascimento: string;
+  telefone: string | null;
+  ativo?: boolean;
+  plano_nome?: string | null;
+  status_matricula?: 'ativa' | 'inativa' | 'vencida' | 'sem_matricula';
+  matricula?: MatriculaDTO;
 }
 
 export interface AtualizarAlunoDTO {
