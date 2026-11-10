@@ -5,7 +5,7 @@ import type { Aluno } from '@/types/entidades';
 import { formatarDataBR } from '@/utils/datas';
 import { formatarTelefone } from '@/utils/telefone';
 import { Selo } from './Selo';
-import { colors } from '@/styles/colors';
+import { cores, espacos } from '@/tema/tema';
 import { estilosComuns } from '@/styles/comum';
 
 interface AlunoCardProps {
@@ -34,6 +34,15 @@ export function AlunoCard({
   onRenovar,
 }: AlunoCardProps) {
   const isArquivado = !aluno.ativo;
+  const statusAluno = aluno.statusMatricula ?? 'sem_matricula';
+  const rotuloStatusAluno =
+    statusAluno === 'ativa'
+      ? 'Ativo'
+      : statusAluno === 'vencida'
+        ? 'Vencido'
+        : statusAluno === 'inativa'
+          ? 'Inativo'
+          : undefined;
 
   return (
     <View style={[estilosComuns.cartao, isArquivado && styles.cartaoArquivado]}>
@@ -57,20 +66,20 @@ export function AlunoCard({
             {isArquivado ? (
               <Selo status="arquivado" />
             ) : (
-              <Selo status={aluno.statusMatricula ?? 'sem_matricula'} />
+              <Selo status={statusAluno} rotuloPersonalizado={rotuloStatusAluno} />
             )}
           </View>
         </View>
 
         <View style={styles.linhaDetalhe}>
-          <MaterialIcons name="cake" size={16} color={colors.gray[400]} />
+          <MaterialIcons name="cake" size={16} color={cores.textoSecundario} />
           <Text style={estilosComuns.textoMutavel}>
             Nascimento: {formatarDataBR(aluno.dataNascimento)}
           </Text>
         </View>
 
         <View style={styles.linhaDetalhe}>
-          <MaterialIcons name="phone" size={16} color={colors.gray[400]} />
+          <MaterialIcons name="phone" size={16} color={cores.textoSecundario} />
           <Text style={estilosComuns.textoMutavel}>
             {formatarTelefone(aluno.telefone)}
           </Text>
@@ -84,7 +93,7 @@ export function AlunoCard({
               style={estilosComuns.botaoAcao}
               onPress={() => onRenovar(aluno)}
             >
-              <MaterialIcons name="autorenew" size={15} color={colors.green[300]} />
+              <MaterialIcons name="autorenew" size={15} color={cores.sucesso} />
               <Text style={estilosComuns.textoBotaoAcao}>Renovar</Text>
             </TouchableOpacity>
           ) : null}
@@ -94,7 +103,7 @@ export function AlunoCard({
               style={estilosComuns.botaoAcao}
               onPress={() => onEditar(aluno)}
             >
-              <MaterialIcons name="edit" size={15} color={colors.blue[400]} />
+              <MaterialIcons name="edit" size={15} color={cores.primaria} />
               <Text style={estilosComuns.textoBotaoAcao}>Editar</Text>
             </TouchableOpacity>
           ) : null}
@@ -107,7 +116,7 @@ export function AlunoCard({
               <MaterialIcons
                 name={aluno.ativo ? 'archive' : 'unarchive'}
                 size={15}
-                color={aluno.ativo ? colors.red[400] : colors.blue[400]}
+                color={aluno.ativo ? cores.erro : cores.primaria}
               />
               <Text style={estilosComuns.textoBotaoAcao}>
                 {aluno.ativo ? 'Arquivar' : 'Restaurar'}
@@ -120,7 +129,7 @@ export function AlunoCard({
               style={[estilosComuns.botaoAcao, styles.botaoExcluir]}
               onPress={() => onExcluir(aluno)}
             >
-              <MaterialIcons name="delete-forever" size={15} color={colors.red[400]} />
+              <MaterialIcons name="delete-forever" size={15} color={cores.erro} />
               <Text style={[estilosComuns.textoBotaoAcao, styles.textoExcluir]}>
                 Excluir
               </Text>
@@ -134,23 +143,23 @@ export function AlunoCard({
 
 const styles = StyleSheet.create({
   cartaoArquivado: {
-    opacity: 0.65,
-    borderColor: colors.gray[800],
+    opacity: 0.45,
+    borderColor: cores.borda,
   },
   linhaSuperior: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: espacos.sm,
   },
   colunaIdentificacao: {
     flex: 1,
     gap: 2,
   },
   textoPlano: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   linhaSelos: {
     alignItems: 'flex-end',
@@ -162,9 +171,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   botaoExcluir: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    backgroundColor: cores.erroSuave,
   },
   textoExcluir: {
-    color: colors.red[400],
+    color: cores.erro,
   },
 });

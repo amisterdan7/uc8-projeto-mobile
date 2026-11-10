@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { StatusAlunoMatricula, StatusMatricula } from '@/types/entidades';
-import { colors } from '@/styles/colors';
+import { cores, raios } from '@/tema/tema';
 
 export type TipoSelo =
   | StatusMatricula
@@ -45,66 +45,66 @@ function obterConfiguracaoSelo(status: TipoSelo): {
   switch (status) {
     case 'ativa':
       return {
-        rotulo: 'Ativo',
-        fundo: 'rgba(74, 222, 128, 0.15)',
-        borda: 'rgba(74, 222, 128, 0.4)',
-        texto: '#4ade80', // Verde
-      };
-    case 'vencida':
-      return {
-        rotulo: 'Vencido',
-        fundo: 'rgba(248, 113, 113, 0.15)',
-        borda: 'rgba(248, 113, 113, 0.4)',
-        texto: colors.red[400], // Vermelho
-      };
-    case 'inativa':
-      return {
-        rotulo: 'Inativo',
-        fundo: 'rgba(161, 161, 170, 0.15)',
-        borda: 'rgba(161, 161, 170, 0.4)',
-        texto: colors.gray[400], // Cinza
-      };
-    case 'sem_matricula':
-      return {
-        rotulo: 'Sem plano',
-        fundo: 'rgba(113, 113, 122, 0.15)',
-        borda: 'rgba(113, 113, 122, 0.4)',
-        texto: colors.gray[400], // Cinza
-      };
-    case 'arquivado':
-      return {
-        rotulo: 'Arquivado',
-        fundo: 'rgba(245, 158, 11, 0.15)',
-        borda: 'rgba(245, 158, 11, 0.4)',
-        texto: '#f59e0b', // Âmbar
+        rotulo: 'Ativa',
+        fundo: cores.sucessoSuave,
+        borda: cores.sucessoBorda,
+        texto: cores.sucesso,
       };
     case 'ativo_aluno':
       return {
         rotulo: 'Ativo',
-        fundo: 'rgba(74, 222, 128, 0.15)',
-        borda: 'rgba(74, 222, 128, 0.4)',
-        texto: '#4ade80',
+        fundo: cores.sucessoSuave,
+        borda: cores.sucessoBorda,
+        texto: cores.sucesso,
+      };
+    case 'vencida':
+      return {
+        rotulo: 'Vencida',
+        fundo: cores.erroSuave,
+        borda: cores.erroBorda,
+        texto: cores.erro,
+      };
+    case 'inativa':
+      return {
+        rotulo: 'Inativa',
+        fundo: cores.neutroSuave,
+        borda: cores.neutroBorda,
+        texto: cores.textoSecundario,
+      };
+    case 'sem_matricula':
+      return {
+        rotulo: 'Sem plano',
+        fundo: cores.neutroSuave,
+        borda: cores.neutroBorda,
+        texto: cores.textoSecundario,
+      };
+    case 'arquivado':
+      return {
+        rotulo: 'Arquivado',
+        fundo: cores.neutroSuave,
+        borda: cores.neutroBorda,
+        texto: cores.textoSecundario,
       };
     case 'admin':
       return {
         rotulo: 'Administrador',
-        fundo: 'rgba(147, 51, 234, 0.15)',
-        borda: 'rgba(147, 51, 234, 0.4)',
-        texto: '#c084fc',
+        fundo: cores.primariaSuave,
+        borda: cores.primariaBorda,
+        texto: cores.primaria,
       };
     case 'recepcao':
       return {
         rotulo: 'Recepção',
-        fundo: 'rgba(59, 130, 246, 0.15)',
-        borda: 'rgba(59, 130, 246, 0.4)',
-        texto: colors.blue[400],
+        fundo: cores.infoSuave,
+        borda: cores.infoBorda,
+        texto: cores.info,
       };
     default:
       return {
         rotulo: String(status),
-        fundo: 'rgba(161, 161, 170, 0.15)',
-        borda: 'rgba(161, 161, 170, 0.4)',
-        texto: colors.gray[300],
+        fundo: cores.neutroSuave,
+        borda: cores.neutroBorda,
+        texto: cores.textoSecundario,
       };
   }
 }
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   selo: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: raios.sm,
     borderWidth: 1,
     alignSelf: 'flex-start',
   },

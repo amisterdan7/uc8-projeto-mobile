@@ -19,7 +19,7 @@ import {
 import { formatarMoedaBRL } from '@/utils/moeda';
 import { aplicarMascaraTelefone, limparTelefone } from '@/utils/telefone';
 import { Campo } from './Campo';
-import { colors } from '@/styles/colors';
+import { cores, espacos, raios } from '@/tema/tema';
 import { estilosComuns } from '@/styles/comum';
 
 export interface DadosSubmissaoAluno {
@@ -173,7 +173,7 @@ export function AlunoForm({
 
         {modoEdicao ? (
           <View style={styles.avisoInfo}>
-            <MaterialIcons name="info-outline" size={18} color={colors.blue[300]} />
+            <MaterialIcons name="info-outline" size={18} color={cores.primaria} />
             <Text style={styles.textoAvisoInfo}>
               O plano muda em Matrículas, com a opção Renovar.
             </Text>
@@ -227,7 +227,7 @@ export function AlunoForm({
                   <MaterialIcons
                     name="warning-amber"
                     size={20}
-                    color="#fbbf24"
+                    color={cores.alerta}
                   />
                   <Text style={styles.textoAvisoSemPlano}>
                     Nenhum plano disponível no momento. Cadastre ou atualize a lista de
@@ -267,7 +267,9 @@ export function AlunoForm({
                               }
                               size={20}
                               color={
-                                selecionado ? colors.blue[400] : colors.gray[400]
+                                selecionado
+                                  ? cores.primaria
+                                  : cores.textoSecundario
                               }
                             />
                             <Text style={styles.nomePlano}>{plano.nome}</Text>
@@ -278,7 +280,7 @@ export function AlunoForm({
                               <MaterialIcons
                                 name="star"
                                 size={12}
-                                color="#fbbf24"
+                                color={cores.primaria}
                               />
                               <Text style={styles.textoSeloDestaque}>Destaque</Text>
                             </View>
@@ -338,7 +340,7 @@ export function AlunoForm({
             disabled={botaoDesabilitado}
           >
             {salvando ? (
-              <ActivityIndicator color={colors.white} />
+              <ActivityIndicator color={cores.texto} />
             ) : (
               <Text style={estilosComuns.textoBotaoPrimario}>
                 {modoEdicao ? 'Salvar alterações' : 'Cadastrar e matricular'}
@@ -353,106 +355,108 @@ export function AlunoForm({
 
 const styles = StyleSheet.create({
   scrollConteudo: {
-    paddingBottom: 24,
+    paddingBottom: espacos.lg,
   },
   container: {
-    backgroundColor: colors.card,
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: cores.cartao,
+    padding: espacos.md,
+    borderRadius: raios.lg,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     gap: 10,
-    marginBottom: 16,
+    marginBottom: espacos.md,
   },
   avisoInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: espacos.sm,
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderRadius: raios.md,
+    backgroundColor: cores.primariaSuave,
     borderWidth: 1,
-    borderColor: colors.blue[500],
+    borderColor: cores.primariaBorda,
   },
   textoAvisoInfo: {
     flex: 1,
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 13,
   },
   secaoPlano: {
-    gap: 8,
-    marginTop: 4,
+    gap: espacos.sm,
+    marginTop: espacos.xs,
   },
   rotulo: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
     fontWeight: '600',
   },
   textoErro: {
-    color: colors.red[400],
+    color: cores.erro,
     fontSize: 12,
   },
   avisoSemPlano: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: espacos.sm,
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderRadius: raios.md,
+    backgroundColor: cores.alertaSuave,
     borderWidth: 1,
-    borderColor: '#f59e0b',
+    borderColor: cores.alertaBorda,
   },
   textoAvisoSemPlano: {
     flex: 1,
-    color: '#fbbf24',
+    color: cores.alerta,
     fontSize: 13,
   },
   listaPlanos: {
-    gap: 8,
+    gap: espacos.sm,
   },
   cartaoPlano: {
-    backgroundColor: colors.gray[900],
-    borderRadius: 10,
+    backgroundColor: cores.fundo,
+    borderRadius: raios.lg,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     padding: 12,
     gap: 6,
   },
   cartaoPlanoDestaque: {
-    borderColor: 'rgba(245, 158, 11, 0.45)',
+    borderColor: cores.primaria,
   },
   cartaoPlanoSelecionado: {
-    borderColor: colors.blue[500],
-    backgroundColor: 'rgba(59, 130, 246, 0.12)',
+    borderColor: cores.primaria,
+    backgroundColor: cores.primariaSuave,
   },
   topoCartaoPlano: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 8,
+    gap: espacos.sm,
   },
   tituloCartaoPlanoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: espacos.sm,
     flex: 1,
   },
   nomePlano: {
-    color: colors.white,
+    color: cores.texto,
     fontSize: 15,
     fontWeight: 'bold',
   },
   seloDestaque: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: espacos.xs,
+    paddingHorizontal: espacos.sm,
     paddingVertical: 3,
-    borderRadius: 999,
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    borderRadius: raios.sm,
+    backgroundColor: cores.primariaSuave,
+    borderWidth: 1,
+    borderColor: cores.primariaBorda,
   },
   textoSeloDestaque: {
-    color: '#fbbf24',
+    color: cores.primaria,
     fontSize: 11,
     fontWeight: 'bold',
   },
@@ -463,31 +467,32 @@ const styles = StyleSheet.create({
     paddingLeft: 28,
   },
   precoPlano: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 14,
     fontWeight: 'bold',
   },
   duracaoPlano: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 13,
   },
   linhaBotoes: {
     flexDirection: 'row',
     gap: 10,
-    marginTop: 8,
+    marginTop: espacos.sm,
   },
   botao: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: raios.md,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 44,
   },
   botaoCancelar: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: cores.borda,
   },
   textoBotaoCancelar: {
-    color: colors.gray[300],
+    color: cores.texto,
     fontWeight: '600',
   },
   botaoSalvar: {
