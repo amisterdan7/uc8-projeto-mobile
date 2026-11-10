@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAcademia } from '@/contexto';
@@ -27,6 +28,7 @@ import { estilosComuns } from '@/styles/comum';
 
 export function TelaUsuarios() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const duasColunas = width >= larguraLarga;
   const numColunas = colunasPara(width);
@@ -218,11 +220,23 @@ export function TelaUsuarios() {
       return (
         <View style={estilosComuns.container}>
           <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
-            <View>
-              <Text style={estilosComuns.tituloCabecalho}>Equipe e Usuários</Text>
-              <Text style={estilosComuns.subtituloCabecalho}>
-                Falha ao carregar
-              </Text>
+            <View style={styles.esquerdaCabecalho}>
+              {navigation.canGoBack() ? (
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.botaoVoltar}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voltar para Conta"
+                >
+                  <MaterialIcons name="arrow-back" size={24} color={colors.white} />
+                </TouchableOpacity>
+              ) : null}
+              <View>
+                <Text style={estilosComuns.tituloCabecalho}>Equipe e Usuários</Text>
+                <Text style={estilosComuns.subtituloCabecalho}>
+                  Falha ao carregar
+                </Text>
+              </View>
             </View>
             {podeCriar ? (
               <TouchableOpacity
@@ -247,7 +261,19 @@ export function TelaUsuarios() {
       return (
         <View style={estilosComuns.container}>
           <View style={[estilosComuns.cabecalho, { paddingTop: insets.top + 16 }]}>
-            <Text style={estilosComuns.tituloCabecalho}>Equipe e Usuários</Text>
+            <View style={styles.esquerdaCabecalho}>
+              {navigation.canGoBack() ? (
+                <TouchableOpacity
+                  onPress={() => navigation.goBack()}
+                  style={styles.botaoVoltar}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voltar para Conta"
+                >
+                  <MaterialIcons name="arrow-back" size={24} color={colors.white} />
+                </TouchableOpacity>
+              ) : null}
+              <Text style={estilosComuns.tituloCabecalho}>Equipe e Usuários</Text>
+            </View>
             {podeCriar ? (
               <TouchableOpacity
                 style={styles.botaoAdicionar}
@@ -546,6 +572,15 @@ export function TelaUsuarios() {
 }
 
 const styles = StyleSheet.create({
+  esquerdaCabecalho: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  botaoVoltar: {
+    padding: 4,
+  },
   linhaColunas: {
     gap: 12,
   },

@@ -8,10 +8,10 @@ import {
   TelaAlunos,
   TelaConta,
   TelaDetalheAluno,
+  TelaInicio,
   TelaLogin,
   TelaMatriculas,
   TelaPlanos,
-  TelaSobre,
   TelaUsuarios,
 } from '@/telas';
 import type {
@@ -28,11 +28,9 @@ const StackAutenticado =
 const Tab = createBottomTabNavigator<AbasAppParamList>();
 
 function NavegadorAutenticadoTabs() {
-  const { podeFazer } = useSessao();
-  const podeListarUsuarios = podeFazer('usuarios:listar');
-
   return (
     <Tab.Navigator
+      initialRouteName="Inicio"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
@@ -51,6 +49,16 @@ function NavegadorAutenticadoTabs() {
         },
       }}
     >
+      <Tab.Screen
+        name="Inicio"
+        component={TelaInicio}
+        options={{
+          tabBarLabel: 'Início',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="home" size={size} color={color} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Alunos"
         component={TelaAlunos}
@@ -81,28 +89,6 @@ function NavegadorAutenticadoTabs() {
           ),
         }}
       />
-      {podeListarUsuarios ? (
-        <Tab.Screen
-          name="Usuarios"
-          component={TelaUsuarios}
-          options={{
-            tabBarLabel: 'Usuários',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="security" size={size} color={color} />
-            ),
-          }}
-        />
-      ) : null}
-      <Tab.Screen
-        name="Sobre"
-        component={TelaSobre}
-        options={{
-          tabBarLabel: 'Sobre',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="info-outline" size={size} color={color} />
-          ),
-        }}
-      />
       <Tab.Screen
         name="Conta"
         component={TelaConta}
@@ -118,6 +104,9 @@ function NavegadorAutenticadoTabs() {
 }
 
 function NavegadorAutenticadoStack() {
+  const { podeFazer } = useSessao();
+  const podeListarUsuarios = podeFazer('usuarios:listar');
+
   return (
     <StackAutenticado.Navigator screenOptions={{ headerShown: false }}>
       <StackAutenticado.Screen name="Abas" component={NavegadorAutenticadoTabs} />
@@ -125,6 +114,12 @@ function NavegadorAutenticadoStack() {
         name="DetalheAluno"
         component={TelaDetalheAluno}
       />
+      {podeListarUsuarios ? (
+        <StackAutenticado.Screen
+          name="Usuarios"
+          component={TelaUsuarios}
+        />
+      ) : null}
     </StackAutenticado.Navigator>
   );
 }

@@ -10,17 +10,19 @@ export type RotasNaoAutenticadasParamList = {
 };
 
 export type AbasAppParamList = {
-  Alunos: undefined;
+  Inicio: undefined;
+  Alunos: { abrirCadastro?: boolean } | undefined;
   Planos: undefined;
-  Matriculas: { alunoId?: number } | undefined;
-  Usuarios: undefined;
-  Sobre: undefined;
+  Matriculas: { alunoId?: number; abrirCriacao?: boolean } | undefined;
   Conta: undefined;
 };
+
+export type RotasAbasParamList = AbasAppParamList;
 
 export type RotasAutenticadasStackParamList = {
   Abas: NavigatorScreenParams<AbasAppParamList> | undefined;
   DetalheAluno: { alunoId: number };
+  Usuarios: undefined;
 };
 
 export type NavegacaoLoginProp = NativeStackNavigationProp<
