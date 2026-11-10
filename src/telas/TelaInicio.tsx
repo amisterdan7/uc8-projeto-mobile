@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import type { NavegacaoAppProp } from '@/navegacao/tipos';
 import type { Aluno } from '@/types/entidades';
 import { CONTEUDO_ACADEMIA } from '@/conteudo/academia';
 import { formatarMoedaBRL } from '@/utils/moeda';
+import { colunasPara } from '@/utils/responsividade';
 import { registrarErro } from '@/erros';
 import { cores, espacos, raios } from '@/tema/tema';
 import { estilosComuns } from '@/styles/comum';
@@ -58,6 +60,8 @@ export function contarAlunosPorStatus(alunos: Aluno[]): ContagemStatusAlunos {
 
 export function TelaInicio() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const numColunas = colunasPara(width);
   const navigation = useNavigation<NavegacaoAppProp>();
   const { estadoAlunos, estadoPlanos, recarregarTudo } = useAcademia();
   const { podeFazer } = useSessao();
@@ -211,19 +215,41 @@ export function TelaInicio() {
             </TouchableOpacity>
           </View>
 
-          {listaPlanos.length === 0 ? (
+          {estadoPlanos.tipo === 'carregando' ? (
             <View style={estilosComuns.cartao}>
               <Text style={estilosComuns.textoMutavel}>
-                {estadoPlanos.tipo === 'carregando'
-                  ? 'Carregando planos da academia...'
-                  : 'Nenhum plano disponível no momento.'}
+                Carregando planos da academia...
+              </Text>
+            </View>
+          ) : estadoPlanos.tipo === 'erro' ? (
+            <View style={estilosComuns.cartao}>
+              <Text style={estilosComuns.textoMutavel}>
+                {estadoPlanos.mensagem}
+              </Text>
+              <TouchableOpacity
+                style={[styles.botaoAtalho, estilosComuns.botaoPrimario]}
+                onPress={handleRefresh}
+                accessibilityRole="button"
+                accessibilityLabel="Tentar de novo"
+              >
+                <Text style={estilosComuns.textoBotaoPrimario}>
+                  Tentar de novo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : listaPlanos.length === 0 ? (
+            <View style={estilosComuns.cartao}>
+              <Text style={estilosComuns.textoMutavel}>
+                Nenhum plano disponível no momento.
               </Text>
             </View>
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.faixaPlanos}
+            <View
+              style={
+                numColunas === 1
+                  ? styles.gradePlanosColuna
+                  : styles.gradePlanosLinha
+              }
             >
               {listaPlanos.map((plano) => {
                 const duracaoTexto =
@@ -236,6 +262,7 @@ export function TelaInicio() {
                     key={plano.id}
                     style={[
                       styles.cartaoPlanoFaixa,
+                      numColunas > 1 && styles.cartaoPlanoGrade,
                       plano.destaque && styles.cartaoPlanoDestaque,
                     ]}
                     onPress={() =>
@@ -265,7 +292,7 @@ export function TelaInicio() {
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+            </View>
           )}
         </View>
       </ScrollView>
@@ -372,18 +399,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
   },
-  faixaPlanos: {
+  gradePlanosColuna: {
+    flexDirection: 'column',
     gap: 12,
-    paddingVertical: 2,
+  },
+  gradePlanosLinha: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
   },
   cartaoPlanoFaixa: {
-    width: 210,
+    width: '100%',
     backgroundColor: cores.cartao,
     borderRadius: raios.lg,
     padding: 14,
     borderWidth: 1,
     borderColor: cores.borda,
     gap: 6,
+  },
+  cartaoPlanoGrade: {
+    flex: 1,
+    minWidth: 200,
   },
   cartaoPlanoDestaque: {
     borderColor: cores.primaria,
