@@ -5,6 +5,7 @@ import {
   ErroDeValidacao,
   ErroDoBanco,
   classificarErro,
+  deveRegistrarNoHistorico,
   extrairErrosCampos,
   limparEventosErro,
   mapearDetalhesErro,
@@ -146,6 +147,36 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
       // O primeiro deve ser o item 6 (1 a 5 descartados)
       assert.equal(eventos[0].origem, 'Origem_6');
       assert.equal(eventos[49].origem, 'Origem_55');
+    });
+
+    it('função pura deveRegistrarNoHistorico deve rejeitar 401 de login e aceitar outros erros (A3)', () => {
+      const erro401 = new ErroDaApi('Credenciais inválidas', 'NAO_AUTENTICADO', 401);
+      const erro500 = new ErroDaApi('Erro interno', 'ERRO_INTERNO', 500);
+      const erroRede = new Error('Sem conexão');
+
+      // 401 no login não deve ser gravado no histórico
+      assert.equal(deveRegistrarNoHistorico('TelaLogin.entrar', erro401), false);
+      assert.equal(deveRegistrarNoHistorico('login', erro401), false);
+
+      // Outros erros durante o login devem continuar sendo registrados
+      assert.equal(deveRegistrarNoHistorico('TelaLogin.entrar', erro500), true);
+      assert.equal(deveRegistrarNoHistorico('TelaLogin.entrar', erroRede), true);
+
+      // Erro 401 em outras origens (sessão expirada em rotas protegidas) deve continuar sendo registrado
+      assert.equal(deveRegistrarNoHistorico('AcademiaContexto.listarAlunos', erro401), true);
+    });
+
+    it('registrarErro nao deve incluir erro 401 de login no buffer de eventos da Conta (A3)', () => {
+      limparEventosErro();
+      const erro401 = new ErroDaApi('Usuário ou senha incorretos.', 'NAO_AUTENTICADO', 401);
+
+      registrarErro('TelaLogin.entrar', erro401);
+      assert.equal(obterEventosErro().length, 0);
+
+      const erro500 = new ErroDaApi('Falha de banco', 'ERRO_BANCO', 500);
+      registrarErro('TelaLogin.entrar', erro500);
+      assert.equal(obterEventosErro().length, 1);
+      assert.equal(obterEventosErro()[0].origem, 'TelaLogin.entrar');
     });
   });
 

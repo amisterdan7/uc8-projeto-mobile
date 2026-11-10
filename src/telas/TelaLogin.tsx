@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
+import { ErroDaApi } from '@/api/cliente';
 import { Campo } from '@/components';
 import { registrarErro } from '@/erros';
 import { cores, espacos, raios } from '@/tema/tema';
@@ -60,7 +61,11 @@ export function TelaLogin() {
       await entrar(usuarioLimpo, senha);
     } catch (erro: unknown) {
       const classificado = registrarErro('TelaLogin.entrar', erro);
-      setMensagemErroGeral(classificado.mensagem);
+      if (erro instanceof ErroDaApi && erro.status === 401) {
+        setMensagemErroGeral('Usuário ou senha incorretos.');
+      } else {
+        setMensagemErroGeral(classificado.mensagem);
+      }
     } finally {
       setCarregando(false);
     }

@@ -145,6 +145,22 @@ export function classificarErro(erro: unknown): ErroClassificado {
 }
 
 /**
+ * Determina se um evento de erro deve ser registrado no histórico em memória (exibido na tela Conta).
+ * Erro 401 na tentativa de login é falha de digitação ou credencial inválida: deve ser exibido
+ * apenas na própria tela de login e NÃO poluir o histórico de eventos de erro do sistema (A3).
+ */
+export function deveRegistrarNoHistorico(origem: string, erro: unknown): boolean {
+  if (
+    (origem === 'TelaLogin.entrar' || origem === 'login') &&
+    erro instanceof ErroDaApi &&
+    erro.status === 401
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
  * Registra o erro no console no formato [origem] tipo: detalhe e guarda no buffer em memória.
  */
 export function registrarErro(origem: string, erro: unknown): ErroClassificado {
@@ -158,17 +174,19 @@ export function registrarErro(origem: string, erro: unknown): ErroClassificado {
     statusOuCodigo = erro.codigo || erro.status;
   }
 
-  bufferErros.push({
-    dataHora: new Date().toISOString(),
-    origem: sanitizar(origem),
-    tipo: classificado.tipo,
-    detalhe: classificado.detalhe,
-    mensagem: classificado.mensagem,
-    statusOuCodigo,
-  });
+  if (deveRegistrarNoHistorico(origem, erro)) {
+    bufferErros.push({
+      dataHora: new Date().toISOString(),
+      origem: sanitizar(origem),
+      tipo: classificado.tipo,
+      detalhe: classificado.detalhe,
+      mensagem: classificado.mensagem,
+      statusOuCodigo,
+    });
 
-  if (bufferErros.length > LIMITE_BUFFER) {
-    bufferErros.shift();
+    if (bufferErros.length > LIMITE_BUFFER) {
+      bufferErros.shift();
+    }
   }
 
   return classificado;

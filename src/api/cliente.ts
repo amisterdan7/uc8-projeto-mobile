@@ -120,7 +120,7 @@ export async function requisitarApi<T>(
 
   // Tratamento de respostas de erro
   if (!resposta.ok) {
-    if (resposta.status === 401) {
+    if (resposta.status === 401 && autenticado) {
       if (callbackSessaoExpirada) {
         callbackSessaoExpirada();
       }
