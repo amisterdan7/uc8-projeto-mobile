@@ -10,6 +10,7 @@ import { AcademiaProvedor } from '@/contexto';
 import { NavegadorPrincipal } from '@/navegacao';
 import { PlanosProvedor } from './src/contexto/PlanosContexto';
 import { NavegadorCurso } from './src/navegacao/NavegadorCurso';
+import { cores, espacos } from '@/tema/tema';
 import { colors } from '@/styles/colors';
 
 export default function App() {
@@ -32,7 +33,7 @@ export default function App() {
       <SafeAreaProvider>
         <StatusBar style="light" />
         <View style={estilosErroConfig.container}>
-          <MaterialIcons name="settings" size={56} color={colors.blue[400]} />
+          <MaterialIcons name="settings" size={56} color={cores.primaria} />
           <Text style={estilosErroConfig.titulo}>Configuração Pendente</Text>
           <Text style={estilosErroConfig.mensagem}>
             A variável de ambiente EXPO_PUBLIC_API_URL não foi configurada.
@@ -62,28 +63,28 @@ export default function App() {
 const estilosErroConfig = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#09090B',
+    backgroundColor: cores.fundo,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    gap: 12,
+    paddingHorizontal: espacos.lg,
+    gap: espacos.sm + 4,
   },
   titulo: {
-    color: '#F4F4F5',
+    color: cores.texto,
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
   },
   mensagem: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 14,
     textAlign: 'center',
   },
   detalhe: {
-    color: '#A1A1AA',
+    color: cores.textoSecundario,
     fontSize: 13,
     textAlign: 'center',
     lineHeight: 18,
-    marginTop: 4,
+    marginTop: espacos.xs,
   },
 });

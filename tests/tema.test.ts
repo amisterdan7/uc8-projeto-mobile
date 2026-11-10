@@ -1,8 +1,9 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { cores, espacos, larguraLarga, raio, raios } from '../src/tema/tema';
+import { cores, espacos, larguraLarga, pesos, raio, raios } from '../src/tema/tema';
+import { colors } from '../src/styles/colors';
 
-describe('Tokens do Tema MisterFit (V1, V6)', () => {
+describe('Tokens do Tema MisterFit (V1, V6, A1)', () => {
   it('deve exportar as cores oficiais do desktop da Academia MisterFit', () => {
     assert.equal(cores.fundo, '#121214');
     assert.equal(cores.cartao, '#1e1e22');
@@ -37,5 +38,25 @@ describe('Tokens do Tema MisterFit (V1, V6)', () => {
       lg: 24,
     });
     assert.equal(larguraLarga, 600);
+  });
+
+  it('deve exportar a tabela de pesos de fonte Inter com chaves numericas 300 a 800 (A1)', () => {
+    assert.equal(pesos[300], '300');
+    assert.equal(pesos[400], '400');
+    assert.equal(pesos[500], '500');
+    assert.equal(pesos[600], '600');
+    assert.equal(pesos[700], '700');
+    assert.equal(pesos[800], '800');
+    assert.equal(pesos.normal, '400');
+    assert.equal(pesos.negrito, '700');
+  });
+
+  it('deve garantir existencia segura de escalas de cores numericas em colors (A1)', () => {
+    assert.equal(colors.yellow[300], cores.alerta);
+    assert.equal(colors.yellow[400], cores.alerta);
+    assert.equal(colors.gray[400], cores.textoSecundario);
+    assert.equal(colors.blue[400], cores.primaria);
+    assert.equal(colors.red[400], cores.erro);
+    assert.equal(colors.green[300], cores.sucesso);
   });
 });

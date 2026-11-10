@@ -55,3 +55,18 @@ export const espacos = {
 
 export const raio = raios.md;
 export const larguraLarga = 600;
+
+export const pesos = {
+  300: '300' as const,
+  400: '400' as const,
+  500: '500' as const,
+  600: '600' as const,
+  700: '700' as const,
+  800: '800' as const,
+  normal: '400' as const,
+  medio: '600' as const,
+  semiNegrito: '600' as const,
+  negrito: '700' as const,
+  extraNegrito: '800' as const,
+};
+
