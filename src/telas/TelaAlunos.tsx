@@ -77,8 +77,13 @@ export function TelaAlunos() {
 
   async function handlePullToRefresh() {
     setAtualizando(true);
-    await Promise.all([recarregarAlunos(), recarregarPlanos()]);
-    setAtualizando(false);
+    try {
+      await Promise.all([recarregarAlunos(), recarregarPlanos()]);
+    } catch (e: unknown) {
+      registrarErro('TelaAlunos.pullToRefresh', e);
+    } finally {
+      setAtualizando(false);
+    }
   }
 
   function handleAbrirCriacao() {

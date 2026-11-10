@@ -142,15 +142,19 @@ export function AcademiaProvedor({
   }, [fonteDados]);
 
   const recarregarTudo = useCallback(async () => {
-    const tarefas: Promise<void>[] = [
-      recarregarAlunos(),
-      recarregarPlanos(),
-      recarregarMatriculas(),
-    ];
-    if (podeFazer('usuarios:listar')) {
-      tarefas.push(recarregarUsuarios());
+    try {
+      const tarefas: Promise<void>[] = [
+        recarregarAlunos(),
+        recarregarPlanos(),
+        recarregarMatriculas(),
+      ];
+      if (podeFazer('usuarios:listar')) {
+        tarefas.push(recarregarUsuarios());
+      }
+      await Promise.all(tarefas);
+    } catch (e: unknown) {
+      registrarErro('AcademiaContexto.recarregarTudo', e);
     }
-    await Promise.all(tarefas);
   }, [recarregarAlunos, recarregarPlanos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
 
   // Carrega cada entidade uma vez no login e zera todo o estado no logout
@@ -163,11 +167,19 @@ export function AcademiaProvedor({
       return;
     }
 
-    recarregarPlanos();
-    recarregarAlunos();
-    recarregarMatriculas();
+    recarregarPlanos().catch((e: unknown) => {
+      registrarErro('AcademiaContexto.cargaInicial.planos', e);
+    });
+    recarregarAlunos().catch((e: unknown) => {
+      registrarErro('AcademiaContexto.cargaInicial.alunos', e);
+    });
+    recarregarMatriculas().catch((e: unknown) => {
+      registrarErro('AcademiaContexto.cargaInicial.matriculas', e);
+    });
     if (podeFazer('usuarios:listar')) {
-      recarregarUsuarios();
+      recarregarUsuarios().catch((e: unknown) => {
+        registrarErro('AcademiaContexto.cargaInicial.usuarios', e);
+      });
     }
   }, [usuario, recarregarPlanos, recarregarAlunos, recarregarMatriculas, recarregarUsuarios, podeFazer]);
 

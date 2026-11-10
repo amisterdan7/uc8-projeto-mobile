@@ -104,8 +104,13 @@ export function TelaMatriculas() {
 
   async function handlePullToRefresh() {
     setAtualizando(true);
-    await Promise.all([recarregarMatriculas(), recarregarAlunos()]);
-    setAtualizando(false);
+    try {
+      await Promise.all([recarregarMatriculas(), recarregarAlunos()]);
+    } catch (e: unknown) {
+      registrarErro('TelaMatriculas.pullToRefresh', e);
+    } finally {
+      setAtualizando(false);
+    }
   }
 
   function alternarHistorico(idAluno: number) {

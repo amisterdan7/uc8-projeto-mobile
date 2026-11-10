@@ -16,6 +16,7 @@ import type { NavegacaoAppProp } from '@/navegacao/tipos';
 import type { Aluno } from '@/types/entidades';
 import { CONTEUDO_ACADEMIA } from '@/conteudo/academia';
 import { formatarMoedaBRL } from '@/utils/moeda';
+import { registrarErro } from '@/erros';
 import { cores } from '@/tema/tema';
 import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
@@ -69,8 +70,13 @@ export function TelaInicio() {
 
   async function handleRefresh() {
     setAtualizando(true);
-    await recarregarTudo();
-    setAtualizando(false);
+    try {
+      await recarregarTudo();
+    } catch (e: unknown) {
+      registrarErro('TelaInicio.refresh', e);
+    } finally {
+      setAtualizando(false);
+    }
   }
 
   return (

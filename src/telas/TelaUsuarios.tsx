@@ -20,7 +20,7 @@ import { semCaso } from '@/types/estadoTela';
 import { colunasPara } from '@/utils/responsividade';
 import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
 import { ErroDaApi } from '@/api/cliente';
-import { extrairErrosCampos } from '@/erros';
+import { extrairErrosCampos, registrarErro } from '@/erros';
 import type { PerfilUsuario, Usuario } from '@/types/entidades';
 import { cores, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
@@ -66,8 +66,13 @@ export function TelaUsuarios() {
 
   async function handlePullToRefresh() {
     setAtualizando(true);
-    await recarregarUsuarios();
-    setAtualizando(false);
+    try {
+      await recarregarUsuarios();
+    } catch (e: unknown) {
+      registrarErro('TelaUsuarios.pullToRefresh', e);
+    } finally {
+      setAtualizando(false);
+    }
   }
 
   function handleAbrirCriacao() {

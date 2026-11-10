@@ -22,7 +22,7 @@ import { colunasPara } from '@/utils/responsividade';
 import { formatarMoedaBRL } from '@/utils/moeda';
 import { Campo, Carregando, EstadoErro, EstadoVazio } from '@/components';
 import { ErroDaApi } from '@/api/cliente';
-import { extrairErrosCampos } from '@/erros';
+import { extrairErrosCampos, registrarErro } from '@/erros';
 import type { Plano, RecursoPlano } from '@/types/entidades';
 import { cores, espacos, larguraLarga } from '../tema/tema';
 import { colors } from '@/styles/colors';
@@ -57,8 +57,13 @@ export function TelaPlanos() {
 
   async function handlePullToRefresh() {
     setAtualizando(true);
-    await recarregarPlanos();
-    setAtualizando(false);
+    try {
+      await recarregarPlanos();
+    } catch (e: unknown) {
+      registrarErro('TelaPlanos.pullToRefresh', e);
+    } finally {
+      setAtualizando(false);
+    }
   }
 
   function handleAbrirCriacao() {

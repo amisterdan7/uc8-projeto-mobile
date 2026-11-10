@@ -16,6 +16,7 @@ import {
   registrarCallbackSessaoExpirada,
   registrarCallbackSemPermissao,
 } from '@/api';
+import { registrarErro } from '@/erros';
 import {
   obterTokenArmazenado,
   removerTokenArmazenado,
@@ -42,13 +43,21 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
 
   const sair = useCallback(async () => {
     definirTokenApi(null);
-    await removerTokenArmazenado();
+    try {
+      await removerTokenArmazenado();
+    } catch (e: unknown) {
+      registrarErro('SessaoContext.sair', e);
+    }
     setUsuario(null);
     setPermissoes([]);
   }, []);
 
   const tratarSessaoExpirada = useCallback(async () => {
-    await sair();
+    try {
+      await sair();
+    } catch (e: unknown) {
+      registrarErro('SessaoContext.tratarSessaoExpirada', e);
+    }
     Alert.alert(
       'Sessão expirada',
       'Sua sessão expirou ou suas credenciais não são mais válidas. Por favor, entre novamente.'
@@ -60,8 +69,13 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
       const respostaEu = await obterDadosUsuarioLogado();
       setUsuario(mapearUsuario(respostaEu.usuario));
       setPermissoes(respostaEu.permissoes ?? []);
-    } catch {
-      await sair();
+    } catch (e: unknown) {
+      registrarErro('SessaoContext.recarregarPermissoes', e);
+      try {
+        await sair();
+      } catch (errSair: unknown) {
+        registrarErro('SessaoContext.recarregarPermissoes.sair', errSair);
+      }
       Alert.alert(
         'Sessão encerrada',
         'Sua sessão não pôde ser revalidada no servidor. Faça login novamente.'
@@ -70,9 +84,15 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   }, [sair]);
 
   useEffect(() => {
-    registrarCallbackSessaoExpirada(tratarSessaoExpirada);
+    registrarCallbackSessaoExpirada(() => {
+      tratarSessaoExpirada().catch((e: unknown) => {
+        registrarErro('SessaoContext.callbackSessaoExpirada', e);
+      });
+    });
     registrarCallbackSemPermissao(() => {
-      recarregarPermissoes();
+      recarregarPermissoes().catch((e: unknown) => {
+        registrarErro('SessaoContext.callbackSemPermissao', e);
+      });
     });
   }, [tratarSessaoExpirada, recarregarPermissoes]);
 
@@ -85,7 +105,9 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
           const decorrido = Date.now() - ultimoFocoRef.current;
           const cincoMinutos = 5 * 60 * 1000;
           if (decorrido > cincoMinutos && usuario) {
-            recarregarPermissoes();
+            recarregarPermissoes().catch((e: unknown) => {
+              registrarErro('SessaoContext.appStateChange', e);
+            });
           }
           ultimoFocoRef.current = Date.now();
         }
@@ -116,10 +138,15 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
           setUsuario(mapearUsuario(respostaEu.usuario));
           setPermissoes(respostaEu.permissoes ?? []);
         }
-      } catch {
+      } catch (e: unknown) {
         // Token inválido, expirado ou erro de rede inicial
+        registrarErro('SessaoContext.restaurarSessao', e);
         definirTokenApi(null);
-        await removerTokenArmazenado();
+        try {
+          await removerTokenArmazenado();
+        } catch (errRemover: unknown) {
+          registrarErro('SessaoContext.removerTokenArmazenado', errRemover);
+        }
         if (ativo) {
           setUsuario(null);
           setPermissoes([]);
@@ -131,7 +158,9 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    restaurarSessao();
+    restaurarSessao().catch((e: unknown) => {
+      registrarErro('SessaoContext.restaurarSessaoInvocacao', e);
+    });
 
     return () => {
       ativo = false;
