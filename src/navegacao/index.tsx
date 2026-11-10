@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSessao } from '@/auth';
 import { Carregando } from '@/components';
 import {
@@ -28,6 +29,10 @@ const StackAutenticado =
 const Tab = createBottomTabNavigator<AbasAppParamList>();
 
 function NavegadorAutenticadoTabs() {
+  const insets = useSafeAreaInsets();
+  const espacoInferior = Math.max(insets.bottom, 8);
+  const alturaBarra = 58 + espacoInferior;
+
   return (
     <Tab.Navigator
       initialRouteName="Inicio"
@@ -37,15 +42,19 @@ function NavegadorAutenticadoTabs() {
           backgroundColor: cores.cartao,
           borderTopColor: cores.borda,
           borderTopWidth: 1,
-          height: 60,
-          paddingBottom: 8,
+          height: alturaBarra,
+          paddingBottom: espacoInferior,
           paddingTop: 6,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarActiveTintColor: cores.primaria,
         tabBarInactiveTintColor: cores.textoSecundario,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          marginTop: 2,
         },
       }}
     >
