@@ -17,6 +17,7 @@ import { formatarMoedaBRL } from '../src/utils/moeda';
 import {
   agruparMatriculasPorAluno,
   alunosElegiveisParaMatricula,
+  mostraAcoesMatricula,
   obterAcoesDisponiveisMatricula,
 } from '../src/utils/matriculas';
 import type { Aluno, Matricula } from '../src/types/entidades';
@@ -291,6 +292,52 @@ describe('Agrupamento de Matrículas e Elegibilidade (M4)', () => {
       podeInativar: false,
       podeReativar: false,
       podeExcluir: false,
+    });
+  });
+
+  it('função pura mostraAcoesMatricula respeita perfil e status no detalhe (D5)', () => {
+    // Administrador vê Encerrar e Excluir com matrícula ativa
+    assert.deepEqual(mostraAcoesMatricula('admin', 'ativa'), {
+      encerrar: true,
+      excluir: true,
+    });
+    assert.deepEqual(mostraAcoesMatricula('administrador', 'ativa'), {
+      encerrar: true,
+      excluir: true,
+    });
+
+    // Matrícula inativa ou vencida não mostra Encerrar, mas administrador vê Excluir no detalhe
+    assert.deepEqual(mostraAcoesMatricula('admin', 'inativa'), {
+      encerrar: false,
+      excluir: true,
+    });
+    assert.deepEqual(mostraAcoesMatricula('admin', 'vencida'), {
+      encerrar: false,
+      excluir: true,
+    });
+
+    // Recepção não vê Encerrar nem Excluir em nenhum status
+    assert.deepEqual(mostraAcoesMatricula('recepcao', 'ativa'), {
+      encerrar: false,
+      excluir: false,
+    });
+    assert.deepEqual(mostraAcoesMatricula('recepcao', 'inativa'), {
+      encerrar: false,
+      excluir: false,
+    });
+    assert.deepEqual(mostraAcoesMatricula('recepcao', 'vencida'), {
+      encerrar: false,
+      excluir: false,
+    });
+
+    // Sem matrícula: nenhuma ação
+    assert.deepEqual(mostraAcoesMatricula('admin', 'sem_matricula'), {
+      encerrar: false,
+      excluir: false,
+    });
+    assert.deepEqual(mostraAcoesMatricula('admin', null), {
+      encerrar: false,
+      excluir: false,
     });
   });
 });

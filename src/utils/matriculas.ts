@@ -61,7 +61,7 @@ export interface AcoesDisponiveisMatricula {
 
 /**
  * Função pura que determina quais botões e ações estão disponíveis para uma matrícula,
- * conforme o status atual e as permissões do usuário logado (A7).
+ * conforme o status atual e as permissões do usuário logado.
  */
 export function obterAcoesDisponiveisMatricula(
   status: string,
@@ -75,6 +75,32 @@ export function obterAcoesDisponiveisMatricula(
     podeInativar: podeAtualizarStatus && isAtiva,
     podeReativar: podeAtualizarStatus && !isAtiva,
     podeExcluir: podeExcluir && isInativa,
+  };
+}
+
+export interface AcoesDetalheMatricula {
+  encerrar: boolean;
+  excluir: boolean;
+}
+
+/**
+ * Função pura que define quais ações de matrícula são exibidas no detalhe do aluno (D5):
+ * - Administrador vê Encerrar só com matrícula atual ativa;
+ * - Administrador vê Excluir no detalhe;
+ * - Recepção não vê Encerrar nem Excluir;
+ * - Matrícula inativa ou vencida não mostra Encerrar.
+ */
+export function mostraAcoesMatricula(
+  perfil: string | null | undefined,
+  status: string | null | undefined
+): AcoesDetalheMatricula {
+  const ehAdmin = perfil === 'admin' || perfil === 'administrador';
+  const temMatricula =
+    status === 'ativa' || status === 'inativa' || status === 'vencida';
+
+  return {
+    encerrar: ehAdmin && status === 'ativa',
+    excluir: ehAdmin && temMatricula,
   };
 }
 
