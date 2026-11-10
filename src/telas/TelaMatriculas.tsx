@@ -14,7 +14,6 @@ import {
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import type { Matricula } from '@/types/entidades';
 import type { AbasAppParamList, NavegacaoAppProp } from '@/navegacao/tipos';
 import { semCaso } from '@/types/estadoTela';
 import { useAcademia } from '@/contexto';
@@ -23,7 +22,6 @@ import { ErroDaApi } from '@/api';
 import {
   Campo,
   Carregando,
-  ConfirmacaoModal,
   EstadoErro,
   EstadoVazio,
   Selo,
@@ -41,7 +39,6 @@ import { formatarMoedaBRL } from '@/utils/moeda';
 import {
   agruparMatriculasPorAluno,
   alunosElegiveisParaMatricula,
-  obterAcoesDisponiveisMatricula,
 } from '@/utils/matriculas';
 import { estilosComuns } from '@/styles/comum';
 
@@ -60,15 +57,11 @@ export function TelaMatriculas() {
     recarregarMatriculas,
     recarregarAlunos,
     criarMatricula,
-    mudarStatusMatricula,
-    excluirMatricula,
   } = useAcademia();
 
   const { podeFazer } = useSessao();
   const podeCriar = podeFazer('matriculas:criar');
   const podeCriarAluno = podeFazer('alunos:criar') && podeCriar;
-  const podeAtualizarStatus = podeFazer('matriculas:atualizar-status');
-  const podeExcluir = podeFazer('matriculas:excluir');
 
   const [modalCriacaoVisivel, setModalCriacaoVisivel] = useState(false);
   const [alunoSelecionadoId, setAlunoSelecionadoId] = useState<number | null>(null);
@@ -79,28 +72,7 @@ export function TelaMatriculas() {
   const [errosCampos, setErrosCampos] = useState<Record<string, string>>({});
   const [atualizando, setAtualizando] = useState(false);
   const [historicosAbertos, setHistoricosAbertos] = useState<Record<number, boolean>>({});
-
-  // Mensagens inline na tela (evita deixar 409 so no console e utiliza ConfirmacaoModal)
   const [mensagemSucessoAcao, setMensagemSucessoAcao] = useState('');
-  const [mensagemErroAcao, setMensagemErroAcao] = useState('');
-
-  // Estado do ConfirmacaoModal
-  const [processandoConfirmacao, setProcessandoConfirmacao] = useState(false);
-  const [modalConfirmacao, setModalConfirmacao] = useState<{
-    visivel: boolean;
-    titulo: string;
-    mensagem: string;
-    textoConfirmar: string;
-    variante: 'perigo' | 'primario';
-    onConfirmar: () => Promise<void>;
-  }>({
-    visivel: false,
-    titulo: '',
-    mensagem: '',
-    textoConfirmar: 'Confirmar',
-    variante: 'primario',
-    onConfirmar: async () => {},
-  });
 
   const alunosElegiveis =
     estadoAlunos.tipo === 'pronto'
@@ -184,7 +156,6 @@ export function TelaMatriculas() {
     setSalvandoMatricula(true);
     setErroFormulario('');
     setErrosCampos({});
-    setMensagemErroAcao('');
     setMensagemSucessoAcao('');
 
     try {
@@ -223,76 +194,6 @@ export function TelaMatriculas() {
     } finally {
       setSalvandoMatricula(false);
     }
-  }
-
-  function handleAlternarStatus(item: Matricula) {
-    setMensagemErroAcao('');
-    setMensagemSucessoAcao('');
-    const novoStatus = item.status === 'ativa' ? 'inativa' : 'ativa';
-    const acao = novoStatus === 'ativa' ? 'reativar' : 'inativar';
-
-    setModalConfirmacao({
-      visivel: true,
-      titulo: `Confirmar ${acao}`,
-      mensagem: `Deseja realmente ${acao} a matrícula atual de "${item.alunoNome ?? 'Aluno'}"?`,
-      textoConfirmar: novoStatus === 'ativa' ? 'Reativar' : 'Inativar',
-      variante: novoStatus === 'ativa' ? 'primario' : 'perigo',
-      onConfirmar: async () => {
-        try {
-          setProcessandoConfirmacao(true);
-          await mudarStatusMatricula(item.id, novoStatus);
-          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
-          setMensagemSucessoAcao(
-            `Matrícula ${novoStatus === 'ativa' ? 'reativada' : 'inativada'} com sucesso.`
-          );
-        } catch (falha: unknown) {
-          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
-          if (falha instanceof ErroDaApi && falha.status === 409) {
-            setMensagemErroAcao(
-              falha.message || 'Este aluno já possui uma matrícula ativa.'
-            );
-          } else {
-            const msg =
-              falha instanceof Error
-                ? falha.message
-                : `Falha ao ${acao} matrícula.`;
-            setMensagemErroAcao(msg);
-          }
-        } finally {
-          setProcessandoConfirmacao(false);
-        }
-      },
-    });
-  }
-
-  function handleExcluirMatricula(item: Matricula) {
-    setMensagemErroAcao('');
-    setMensagemSucessoAcao('');
-
-    setModalConfirmacao({
-      visivel: true,
-      titulo: 'Excluir Matrícula',
-      mensagem: `Deseja excluir definitivamente esta matrícula inativa de "${item.alunoNome ?? 'Aluno'}"?`,
-      textoConfirmar: 'Excluir',
-      variante: 'perigo',
-      onConfirmar: async () => {
-        try {
-          setProcessandoConfirmacao(true);
-          await excluirMatricula(item.id);
-          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
-          setMensagemSucessoAcao('Matrícula excluída com sucesso.');
-        } catch (falha: unknown) {
-          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
-          const msg =
-            falha instanceof Error
-              ? falha.message
-              : 'Falha ao excluir matrícula.';
-          setMensagemErroAcao(msg);
-        } finally {
-          setProcessandoConfirmacao(false);
-        }
-      },
-    });
   }
 
   // Renderização através de união discriminada e switch exaustivo (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
@@ -358,20 +259,6 @@ export function TelaMatriculas() {
             ) : null}
           </View>
 
-          {mensagemErroAcao ? (
-            <View style={styles.bannerErroAcao}>
-              <MaterialIcons name="error-outline" size={18} color={cores.erro} />
-              <Text style={styles.textoBannerErroAcao}>{mensagemErroAcao}</Text>
-              <TouchableOpacity
-                onPress={() => setMensagemErroAcao('')}
-                accessibilityRole="button"
-                accessibilityLabel="Fechar mensagem de erro"
-              >
-                <MaterialIcons name="close" size={16} color={cores.textoSecundario} />
-              </TouchableOpacity>
-            </View>
-          ) : null}
-
           {mensagemSucessoAcao ? (
             <View style={styles.bannerSucessoAcao}>
               <MaterialIcons name="check-circle" size={18} color={cores.sucesso} />
@@ -412,13 +299,6 @@ export function TelaMatriculas() {
             renderItem={({ item: grupo }) => {
               const { atual, historico } = grupo;
               const historicoAberto = Boolean(historicosAbertos[grupo.idAluno]);
-              const acoes = obterAcoesDisponiveisMatricula(
-                atual.status,
-                podeAtualizarStatus,
-                podeExcluir
-              );
-              const temAcoes =
-                acoes.podeInativar || acoes.podeReativar || acoes.podeExcluir;
 
               return (
                 <View
@@ -461,65 +341,6 @@ export function TelaMatriculas() {
                       </Text>
                     </View>
                   </View>
-
-                  {temAcoes ? (
-                    <View style={estilosComuns.linhaAcoes}>
-                      {acoes.podeInativar ? (
-                        <TouchableOpacity
-                          style={estilosComuns.botaoAcao}
-                          onPress={() => handleAlternarStatus(atual)}
-                          accessibilityRole="button"
-                          accessibilityLabel="Inativar matrícula"
-                        >
-                          <MaterialIcons
-                            name="pause-circle-outline"
-                            size={16}
-                            color={cores.erro}
-                          />
-                          <Text style={estilosComuns.textoBotaoAcao}>Inativar</Text>
-                        </TouchableOpacity>
-                      ) : null}
-
-                      {acoes.podeReativar ? (
-                        <TouchableOpacity
-                          style={estilosComuns.botaoAcao}
-                          onPress={() => handleAlternarStatus(atual)}
-                          accessibilityRole="button"
-                          accessibilityLabel="Reativar matrícula"
-                        >
-                          <MaterialIcons
-                            name="play-circle-outline"
-                            size={16}
-                            color={cores.sucesso}
-                          />
-                          <Text style={estilosComuns.textoBotaoAcao}>Reativar</Text>
-                        </TouchableOpacity>
-                      ) : null}
-
-                      {acoes.podeExcluir ? (
-                        <TouchableOpacity
-                          style={[estilosComuns.botaoAcao, styles.botaoExcluir]}
-                          onPress={() => handleExcluirMatricula(atual)}
-                          accessibilityRole="button"
-                          accessibilityLabel="Excluir matrícula inativa"
-                        >
-                          <MaterialIcons
-                            name="delete-outline"
-                            size={16}
-                            color={cores.erro}
-                          />
-                          <Text
-                            style={[
-                              estilosComuns.textoBotaoAcao,
-                              styles.textoExcluir,
-                            ]}
-                          >
-                            Excluir
-                          </Text>
-                        </TouchableOpacity>
-                      ) : null}
-                    </View>
-                  ) : null}
 
                   {historico.length > 0 ? (
                     <View style={styles.secaoHistorico}>
@@ -565,20 +386,6 @@ export function TelaMatriculas() {
             }}
           />
 
-          {/* Modal de confirmação reutilizável (A7) */}
-          <ConfirmacaoModal
-            visivel={modalConfirmacao.visivel}
-            titulo={modalConfirmacao.titulo}
-            mensagem={modalConfirmacao.mensagem}
-            textoConfirmar={modalConfirmacao.textoConfirmar}
-            variante={modalConfirmacao.variante}
-            carregando={processandoConfirmacao}
-            onConfirmar={modalConfirmacao.onConfirmar}
-            onCancelar={() =>
-              setModalConfirmacao((prev) => ({ ...prev, visivel: false }))
-            }
-          />
-
           {/* Modal de Nova Matrícula */}
           <Modal
             visible={modalCriacaoVisivel}
@@ -599,185 +406,218 @@ export function TelaMatriculas() {
                 keyboardShouldPersistTaps="handled"
               >
                 <View style={styles.cartaoModal}>
-                  <View style={styles.topoModal}>
-                    <Text style={estilosComuns.tituloCartao}>Nova Matrícula</Text>
-                    {podeCriarAluno ? (
-                      <TouchableOpacity
-                        style={styles.atalhoAlunoNovo}
-                        onPress={() => {
-                          setModalCriacaoVisivel(false);
-                          navigation.navigate('Abas', {
-                            screen: 'Alunos',
-                            params: { abrirCadastro: true },
-                          });
-                        }}
-                      >
-                        <MaterialIcons
-                          name="person-add"
-                          size={15}
-                          color={cores.primaria}
-                        />
-                        <Text style={styles.textoAtalhoAlunoNovo}>
-                          Cadastrar aluno novo
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </View>
+                  {alunosElegiveis.length === 0 ? (
+                    <>
+                      <Text style={estilosComuns.tituloCartao}>Nova Matrícula</Text>
 
-                  <View style={styles.avisoHistorico}>
-                    <MaterialIcons
-                      name="history"
-                      size={18}
-                      color={cores.primaria}
-                    />
-                    <Text style={styles.textoAvisoHistorico}>
-                      A matrícula anterior fica guardada no histórico do aluno.
-                    </Text>
-                  </View>
-
-                  <View style={styles.grupoCampo}>
-                    <Text style={styles.rotulo}>Aluno elegível *</Text>
-                    {alunosElegiveis.length === 0 ? (
                       <Text style={styles.avisoNenhum}>
                         Nenhum aluno precisa de matrícula agora.
                       </Text>
-                    ) : (
-                      <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={styles.carrosselOpcoes}
-                      >
-                        {alunosElegiveis.map((a) => {
-                          const selecionado = a.id === alunoSelecionadoId;
-                          return (
-                            <TouchableOpacity
-                              key={a.id}
-                              style={[
-                                styles.chipOpcao,
-                                selecionado && styles.chipSelecionado,
-                              ]}
-                              onPress={() => {
-                                setAlunoSelecionadoId(a.id);
-                                if (erroFormulario) setErroFormulario('');
-                              }}
-                              disabled={salvandoMatricula}
-                            >
-                              <Text
-                                style={[
-                                  styles.textoChip,
-                                  selecionado && styles.textoChipSelecionado,
-                                ]}
-                              >
-                                {a.nome}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    )}
-                  </View>
 
-                  <View style={styles.grupoCampo}>
-                    <Text style={styles.rotulo}>Plano *</Text>
-                    {planosDisponiveis.length === 0 ? (
-                      <Text style={styles.avisoNenhum}>
-                        Nenhum plano disponível cadastrado.
-                      </Text>
-                    ) : (
-                      <View style={styles.gradePlanos}>
-                        {planosDisponiveis.map((p) => {
-                          const selecionado = p.id === planoSelecionadoId;
-                          const duracaoTexto =
-                            p.duracaoMeses === 1
-                              ? '1 mês'
-                              : `${p.duracaoMeses} meses`;
-                          return (
-                            <TouchableOpacity
-                              key={p.id}
-                              style={[
-                                styles.cardOpcaoPlano,
-                                selecionado && styles.cardPlanoSelecionado,
-                              ]}
-                              onPress={() => {
-                                setPlanoSelecionadoId(p.id);
-                                if (erroFormulario) setErroFormulario('');
-                              }}
-                              disabled={salvandoMatricula}
-                            >
-                              <View style={styles.colunaNomePlanoModal}>
-                                <Text style={styles.nomePlano}>{p.nome}</Text>
-                                <Text style={styles.duracaoPlano}>
-                                  {duracaoTexto}
-                                </Text>
-                              </View>
-                              <Text style={styles.precoPlano}>
-                                {formatarMoedaBRL(p.preco)}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
+                      <View style={styles.linhaBotoesForm}>
+                        <TouchableOpacity
+                          style={[styles.botaoForm, styles.botaoCancelar]}
+                          onPress={() => setModalCriacaoVisivel(false)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Fechar"
+                        >
+                          <Text style={styles.textoBotaoCancelar}>Fechar</Text>
+                        </TouchableOpacity>
+
+                        {podeCriarAluno ? (
+                          <TouchableOpacity
+                            style={[styles.botaoForm, estilosComuns.botaoPrimario]}
+                            onPress={() => {
+                              setModalCriacaoVisivel(false);
+                              navigation.navigate('Abas', {
+                                screen: 'Alunos',
+                                params: { abrirCadastro: true },
+                              });
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel="Cadastrar aluno novo"
+                          >
+                            <Text style={estilosComuns.textoBotaoPrimario}>
+                              Cadastrar aluno novo
+                            </Text>
+                          </TouchableOpacity>
+                        ) : null}
                       </View>
-                    )}
-                  </View>
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.topoModal}>
+                        <Text style={estilosComuns.tituloCartao}>Nova Matrícula</Text>
+                        {podeCriarAluno ? (
+                          <TouchableOpacity
+                            style={styles.atalhoAlunoNovo}
+                            onPress={() => {
+                              setModalCriacaoVisivel(false);
+                              navigation.navigate('Abas', {
+                                screen: 'Alunos',
+                                params: { abrirCadastro: true },
+                              });
+                            }}
+                          >
+                            <MaterialIcons
+                              name="person-add"
+                              size={15}
+                              color={cores.primaria}
+                            />
+                            <Text style={styles.textoAtalhoAlunoNovo}>
+                              Cadastrar aluno novo
+                            </Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
 
-                  <Campo
-                    rotulo="Data de início (opcional, padrão: hoje)"
-                    value={dataInicioBR}
-                    onChangeText={(t) => {
-                      setDataInicioBR(aplicarMascaraData(t));
-                      if (erroFormulario) setErroFormulario('');
-                      if (errosCampos['data_inicio']) {
-                        setErrosCampos((antigos) => ({
-                          ...antigos,
-                          data_inicio: '',
-                        }));
-                      }
-                    }}
-                    placeholder="DD/MM/AAAA (em branco usa hoje)"
-                    keyboardType="number-pad"
-                    maxLength={10}
-                    editable={!salvandoMatricula}
-                    erro={errosCampos['data_inicio']}
-                    iconeEsquerda="event"
-                  />
-
-                  {erroFormulario ? (
-                    <Text style={styles.textoErro}>{erroFormulario}</Text>
-                  ) : null}
-
-                  <View style={styles.linhaBotoesForm}>
-                    <TouchableOpacity
-                      style={[styles.botaoForm, styles.botaoCancelar]}
-                      onPress={() => setModalCriacaoVisivel(false)}
-                      disabled={salvandoMatricula}
-                    >
-                      <Text style={styles.textoBotaoCancelar}>Cancelar</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.botaoForm,
-                        estilosComuns.botaoPrimario,
-                        (alunosElegiveis.length === 0 ||
-                          planosDisponiveis.length === 0) &&
-                          styles.botaoDesabilitado,
-                      ]}
-                      onPress={handleSubmeterCriacao}
-                      disabled={
-                        salvandoMatricula ||
-                        alunosElegiveis.length === 0 ||
-                        planosDisponiveis.length === 0
-                      }
-                    >
-                      {salvandoMatricula ? (
-                        <ActivityIndicator color={cores.texto} />
-                      ) : (
-                        <Text style={estilosComuns.textoBotaoPrimario}>
-                          Confirmar matrícula
+                      <View style={styles.avisoHistorico}>
+                        <MaterialIcons
+                          name="history"
+                          size={18}
+                          color={cores.primaria}
+                        />
+                        <Text style={styles.textoAvisoHistorico}>
+                          A matrícula anterior fica guardada no histórico do aluno.
                         </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
+                      </View>
+
+                      <View style={styles.grupoCampo}>
+                        <Text style={styles.rotulo}>Aluno elegível *</Text>
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.carrosselOpcoes}
+                        >
+                          {alunosElegiveis.map((a) => {
+                            const selecionado = a.id === alunoSelecionadoId;
+                            return (
+                              <TouchableOpacity
+                                key={a.id}
+                                style={[
+                                  styles.chipOpcao,
+                                  selecionado && styles.chipSelecionado,
+                                ]}
+                                onPress={() => {
+                                  setAlunoSelecionadoId(a.id);
+                                  if (erroFormulario) setErroFormulario('');
+                                }}
+                                disabled={salvandoMatricula}
+                              >
+                                <Text
+                                  style={[
+                                    styles.textoChip,
+                                    selecionado && styles.textoChipSelecionado,
+                                  ]}
+                                >
+                                  {a.nome}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+
+                      <View style={styles.grupoCampo}>
+                        <Text style={styles.rotulo}>Plano *</Text>
+                        {planosDisponiveis.length === 0 ? (
+                          <Text style={styles.avisoNenhum}>
+                            Nenhum plano disponível cadastrado.
+                          </Text>
+                        ) : (
+                          <View style={styles.gradePlanos}>
+                            {planosDisponiveis.map((p) => {
+                              const selecionado = p.id === planoSelecionadoId;
+                              const duracaoTexto =
+                                p.duracaoMeses === 1
+                                  ? '1 mês'
+                                  : `${p.duracaoMeses} meses`;
+                              return (
+                                <TouchableOpacity
+                                  key={p.id}
+                                  style={[
+                                    styles.cardOpcaoPlano,
+                                    selecionado && styles.cardPlanoSelecionado,
+                                  ]}
+                                  onPress={() => {
+                                    setPlanoSelecionadoId(p.id);
+                                    if (erroFormulario) setErroFormulario('');
+                                  }}
+                                  disabled={salvandoMatricula}
+                                >
+                                  <View style={styles.colunaNomePlanoModal}>
+                                    <Text style={styles.nomePlano}>{p.nome}</Text>
+                                    <Text style={styles.duracaoPlano}>
+                                      {duracaoTexto}
+                                    </Text>
+                                  </View>
+                                  <Text style={styles.precoPlano}>
+                                    {formatarMoedaBRL(p.preco)}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        )}
+                      </View>
+
+                      <Campo
+                        rotulo="Data de início (opcional, padrão: hoje)"
+                        value={dataInicioBR}
+                        onChangeText={(t) => {
+                          setDataInicioBR(aplicarMascaraData(t));
+                          if (erroFormulario) setErroFormulario('');
+                          if (errosCampos['data_inicio']) {
+                            setErrosCampos((antigos) => ({
+                              ...antigos,
+                              data_inicio: '',
+                            }));
+                          }
+                        }}
+                        placeholder="DD/MM/AAAA (em branco usa hoje)"
+                        keyboardType="number-pad"
+                        maxLength={10}
+                        editable={!salvandoMatricula}
+                        erro={errosCampos['data_inicio']}
+                        iconeEsquerda="event"
+                      />
+
+                      {erroFormulario ? (
+                        <Text style={styles.textoErro}>{erroFormulario}</Text>
+                      ) : null}
+
+                      <View style={styles.linhaBotoesForm}>
+                        <TouchableOpacity
+                          style={[styles.botaoForm, styles.botaoCancelar]}
+                          onPress={() => setModalCriacaoVisivel(false)}
+                          disabled={salvandoMatricula}
+                        >
+                          <Text style={styles.textoBotaoCancelar}>Cancelar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[
+                            styles.botaoForm,
+                            estilosComuns.botaoPrimario,
+                            planosDisponiveis.length === 0 &&
+                              styles.botaoDesabilitado,
+                          ]}
+                          onPress={handleSubmeterCriacao}
+                          disabled={
+                            salvandoMatricula || planosDisponiveis.length === 0
+                          }
+                        >
+                          {salvandoMatricula ? (
+                            <ActivityIndicator color={cores.texto} />
+                          ) : (
+                            <Text style={estilosComuns.textoBotaoPrimario}>
+                              Confirmar matrícula
+                            </Text>
+                          )}
+                        </TouchableOpacity>
+                      </View>
+                    </>
+                  )}
                 </View>
               </ScrollView>
             </View>
@@ -834,30 +674,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-  },
-  botaoExcluir: {
-    backgroundColor: cores.erroSuave,
-  },
-  textoExcluir: {
-    color: cores.erro,
-  },
-  bannerErroAcao: {
-    marginHorizontal: espacos.md,
-    marginTop: espacos.sm,
-    padding: espacos.sm + 4,
-    borderRadius: raios.md,
-    backgroundColor: cores.erroSuave,
-    borderWidth: 1,
-    borderColor: cores.erroBorda,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: espacos.sm,
-  },
-  textoBannerErroAcao: {
-    flex: 1,
-    color: cores.erro,
-    fontSize: 13,
-    fontWeight: '600',
   },
   bannerSucessoAcao: {
     marginHorizontal: espacos.md,
