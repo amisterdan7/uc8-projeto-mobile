@@ -23,7 +23,7 @@ export interface ConfirmacaoModalProps {
 
 /**
  * Modal padronizado de confirmação para ações críticas (ex.: inativação/reativação e exclusão).
- * Substitui chamadas nativas de Alert.alert garantindo paridade total entre Web e dispositivos móveis.
+ * Substitui caixas de diálogo nativas garantindo paridade total entre Web e dispositivos móveis.
  */
 export function ConfirmacaoModal({
   visivel,

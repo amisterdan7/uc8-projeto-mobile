@@ -218,3 +218,25 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
   - O modo equipe passou a ter 5 abas fixas em `src/navegacao/index.tsx`: `Inicio` (rota inicial), `Alunos`, `Planos`, `Matriculas` e `Conta`. As abas `Sobre` e `Usuarios` deixaram de ocupar a barra inferior; `Usuarios` passou para o `StackAutenticado` aberto a partir da seção `Equipe` em `TelaConta` (apenas quando `podeFazer('usuarios:listar')`).
   - Criada `src/telas/TelaInicio.tsx` consumindo textos institucionais editáveis de `src/conteudo/academia.ts`, contadores de alunos por status (`contarAlunosPorStatus`: ativos, vencidos e sem plano sem comparar datas no cliente), atalhos rápidos (`Cadastrar aluno` e `Nova matrícula`) e faixa horizontal `"Nossos planos"` alimentada pela API.
   - `src/telas/TelaConta.tsx` passou a reunir as seções `Minha conta`, `Equipe` (somente admin), `Sobre o app` (versão, origem `"API v1, online"`, apenas o host da URL da API via `extrairHost`, medidas da janela e eventos de erro recentes sem dados pessoais com `Atualizar` e `Limpar`) e o botão `Sair`.
+
+---
+
+## 21. Modal Reutilizável de Confirmação, Tratamento de 409 Inline, Filtro de 401 e Tokens de Tema (A1 a A7)
+
+- **A1 — Tokens de Tema e Tabela de Pesos:**
+  - Exportada tabela `pesos` em `src/tema/tema.ts` com suporte às variantes numéricas da fonte Inter (`300`, `400`, `500`, `600`, `700`, `800`, `normal`, `negrito`).
+  - Preenchidas escalas numéricas completas em `src/styles/colors.ts` incluindo `yellow`, prevenindo qualquer `TypeError: Cannot read properties of undefined (reading '400')` ou `(reading '300')`.
+- **A2 — Tratamento de Promessas Assíncronas com `registrarErro`:**
+  - Tratadas promessas nos fluxos de sessão (`SessaoContext.tsx`), restauração de credenciais salvas, ouvintes de ciclo de vida do app (`AppState`), carga unificada em `AcademiaContexto.tsx` e ações de pull-to-refresh das telas com captura e registro seguro via `registrarErro`.
+- **A3 — Erro 401 de Login Fora do Histórico de Eventos:**
+  - Criada função pura `deveRegistrarNoHistorico(origem, erro)` em `src/erros/erros.ts`. Erros HTTP 401 ocorridos durante a autenticação (`TelaLogin.entrar` / `login`) representam falhas de digitação do usuário e são exibidos unicamente no formulário de login (`"Usuário ou senha incorretos."`), sem poluir a lista `"Eventos de erro recentes"` da aba Conta.
+- **A4 & A5 — Acessibilidade, Responsividade e Área Segura:**
+  - Removida qualquer prop obsoleta `pointerEvents` em favor de `style.pointerEvents`.
+  - Ajustada a altura e o padding inferior da barra de navegação em `src/navegacao/index.tsx` usando `useSafeAreaInsets` (`espacoInferior = Math.max(insets.bottom, 8)` e `alturaBarra = 58 + espacoInferior`), evitando corte de rótulos em larguras de 440px e em telas com barra de gestos.
+- **A6 — Tela Início com Marca Única e Sem Lista Fixa:**
+  - Removido o bloco estático `"O que oferecemos"` e a lista fixa de benefícios em `src/conteudo/academia.ts` e `src/telas/TelaInicio.tsx`. O cartão de boas-vindas exibe exclusivamente a frase institucional, mantendo o nome da marca apenas no cabeçalho superior. Contadores de alunos, atalhos rápidos e a faixa de planos da API permanecem preservados.
+- **A7 — Modal de Confirmação e Tratamento 409 Inline em Matrículas:**
+  - Criado o componente `src/components/ConfirmacaoModal.tsx`, com estilização baseada nos tokens do tema (`cores.cartao`, `cores.borda`, `cores.texto`, `cores.primaria`, `cores.erro`), operando com total paridade no navegador Web e em aparelhos móveis.
+  - Na `TelaMatriculas.tsx`, substituídas as chamadas de `Alert.alert` nas ações de inativação, reativação e exclusão pelo `ConfirmacaoModal`.
+  - Conflitos de regra de negócio (HTTP 409 ao tentar reativar matrícula para aluno que já possui matrícula ativa) são exibidos inline no banner de erro do topo da tela, sem interrupção abrupta nem dependência de console.
+  - Implementada função pura `obterAcoesDisponiveisMatricula` para controle estrito dos botões visíveis de acordo com o status da matrícula e permissões do usuário logado.
