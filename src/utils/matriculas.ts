@@ -52,3 +52,29 @@ export function alunosElegiveisParaMatricula(alunos: Aluno[]): Aluno[] {
     );
   });
 }
+
+export interface AcoesDisponiveisMatricula {
+  podeInativar: boolean;
+  podeReativar: boolean;
+  podeExcluir: boolean;
+}
+
+/**
+ * Função pura que determina quais botões e ações estão disponíveis para uma matrícula,
+ * conforme o status atual e as permissões do usuário logado (A7).
+ */
+export function obterAcoesDisponiveisMatricula(
+  status: string,
+  podeAtualizarStatus: boolean,
+  podeExcluir: boolean
+): AcoesDisponiveisMatricula {
+  const isAtiva = status === 'ativa';
+  const isInativa = status === 'inativa';
+
+  return {
+    podeInativar: podeAtualizarStatus && isAtiva,
+    podeReativar: podeAtualizarStatus && !isAtiva,
+    podeExcluir: podeExcluir && isInativa,
+  };
+}
+

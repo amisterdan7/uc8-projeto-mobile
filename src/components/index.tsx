@@ -6,3 +6,4 @@ export { Campo, type CampoProps } from './Campo';
 export { Botao } from '../componentes/Botao';
 export { AlunoCard } from './AlunoCard';
 export { AlunoForm } from './AlunoForm';
+export { ConfirmacaoModal, type ConfirmacaoModalProps } from './ConfirmacaoModal';

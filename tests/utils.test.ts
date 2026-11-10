@@ -17,6 +17,7 @@ import { formatarMoedaBRL } from '../src/utils/moeda';
 import {
   agruparMatriculasPorAluno,
   alunosElegiveisParaMatricula,
+  obterAcoesDisponiveisMatricula,
 } from '../src/utils/matriculas';
 import type { Aluno, Matricula } from '../src/types/entidades';
 
@@ -257,5 +258,39 @@ describe('Agrupamento de Matrículas e Elegibilidade (M4)', () => {
       elegiveis.map((a) => a.id),
       [2, 3, 4]
     );
+  });
+
+  it('função pura obterAcoesDisponiveisMatricula define botões corretos por status e permissão (A7)', () => {
+    // Matrícula ativa com permissão de status e exclusão: pode inativar, não reativar, não excluir
+    const acoesAtiva = obterAcoesDisponiveisMatricula('ativa', true, true);
+    assert.deepEqual(acoesAtiva, {
+      podeInativar: true,
+      podeReativar: false,
+      podeExcluir: false,
+    });
+
+    // Matrícula inativa com permissão de status e exclusão: pode reativar e excluir
+    const acoesInativa = obterAcoesDisponiveisMatricula('inativa', true, true);
+    assert.deepEqual(acoesInativa, {
+      podeInativar: false,
+      podeReativar: true,
+      podeExcluir: true,
+    });
+
+    // Matrícula inativa sem permissão de exclusão (ex.: perfil recepção)
+    const acoesInativaRecepcao = obterAcoesDisponiveisMatricula('inativa', true, false);
+    assert.deepEqual(acoesInativaRecepcao, {
+      podeInativar: false,
+      podeReativar: true,
+      podeExcluir: false,
+    });
+
+    // Sem permissão de alteração de status
+    const semPermissao = obterAcoesDisponiveisMatricula('ativa', false, false);
+    assert.deepEqual(semPermissao, {
+      podeInativar: false,
+      podeReativar: false,
+      podeExcluir: false,
+    });
   });
 });

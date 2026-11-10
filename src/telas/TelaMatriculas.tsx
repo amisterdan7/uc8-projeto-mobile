@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   RefreshControl,
@@ -21,9 +20,16 @@ import { semCaso } from '@/types/estadoTela';
 import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { ErroDaApi } from '@/api';
-import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
+import {
+  Campo,
+  Carregando,
+  ConfirmacaoModal,
+  EstadoErro,
+  EstadoVazio,
+  Selo,
+} from '@/components';
 import { extrairErrosCampos, registrarErro } from '../erros/erros';
-import { cores, larguraLarga } from '../tema/tema';
+import { cores, espacos, larguraLarga, raios } from '../tema/tema';
 import { colunasPara } from '@/utils/responsividade';
 import {
   aplicarMascaraData,
@@ -35,8 +41,8 @@ import { formatarMoedaBRL } from '@/utils/moeda';
 import {
   agruparMatriculasPorAluno,
   alunosElegiveisParaMatricula,
+  obterAcoesDisponiveisMatricula,
 } from '@/utils/matriculas';
-import { colors } from '@/styles/colors';
 import { estilosComuns } from '@/styles/comum';
 
 export function TelaMatriculas() {
@@ -73,6 +79,28 @@ export function TelaMatriculas() {
   const [errosCampos, setErrosCampos] = useState<Record<string, string>>({});
   const [atualizando, setAtualizando] = useState(false);
   const [historicosAbertos, setHistoricosAbertos] = useState<Record<number, boolean>>({});
+
+  // Mensagens inline na tela (evita deixar 409 so no console e utiliza ConfirmacaoModal)
+  const [mensagemSucessoAcao, setMensagemSucessoAcao] = useState('');
+  const [mensagemErroAcao, setMensagemErroAcao] = useState('');
+
+  // Estado do ConfirmacaoModal
+  const [processandoConfirmacao, setProcessandoConfirmacao] = useState(false);
+  const [modalConfirmacao, setModalConfirmacao] = useState<{
+    visivel: boolean;
+    titulo: string;
+    mensagem: string;
+    textoConfirmar: string;
+    variante: 'perigo' | 'primario';
+    onConfirmar: () => Promise<void>;
+  }>({
+    visivel: false,
+    titulo: '',
+    mensagem: '',
+    textoConfirmar: 'Confirmar',
+    variante: 'primario',
+    onConfirmar: async () => {},
+  });
 
   const alunosElegiveis =
     estadoAlunos.tipo === 'pronto'
@@ -124,7 +152,6 @@ export function TelaMatriculas() {
     setErroFormulario('');
     setErrosCampos({});
     setDataInicioBR('');
-
     setAlunoSelecionadoId(
       alunosElegiveis.length > 0 ? alunosElegiveis[0].id : null
     );
@@ -134,28 +161,21 @@ export function TelaMatriculas() {
     setModalCriacaoVisivel(true);
   }
 
-  function handleIrParaCadastroAluno() {
-    setModalCriacaoVisivel(false);
-    navigation.navigate('Abas', {
-      screen: 'Alunos',
-      params: { abrirCadastro: true },
-    });
-  }
-
   async function handleSubmeterCriacao() {
-    if (!alunoSelecionadoId || !planoSelecionadoId) {
-      setErroFormulario('Selecione um aluno elegível e um plano.');
+    if (!alunoSelecionadoId) {
+      setErroFormulario('Selecione um aluno elegível para a matrícula.');
       return;
     }
 
-    let dataISO: string | undefined = undefined;
-    if (dataInicioBR.trim()) {
-      const validacao = validarDataCivilBR(dataInicioBR.trim());
-      if (!validacao.valida) {
-        setErroFormulario(
-          validacao.mensagem ??
-            'Data de início deve estar no formato DD/MM/AAAA ou ficar em branco.'
-        );
+    if (!planoSelecionadoId) {
+      setErroFormulario('Selecione um plano.');
+      return;
+    }
+
+    let dataISO: string | undefined;
+    if (dataInicioBR.trim() !== '') {
+      if (!validarDataCivilBR(dataInicioBR.trim())) {
+        setErrosCampos({ data_inicio: 'Data de início inválida no calendário.' });
         return;
       }
       dataISO = dataBRparaISO(dataInicioBR.trim());
@@ -164,6 +184,8 @@ export function TelaMatriculas() {
     setSalvandoMatricula(true);
     setErroFormulario('');
     setErrosCampos({});
+    setMensagemErroAcao('');
+    setMensagemSucessoAcao('');
 
     try {
       const nova = await criarMatricula(
@@ -174,8 +196,7 @@ export function TelaMatriculas() {
 
       setModalCriacaoVisivel(false);
       const dataFimFormatada = formatarDataBR(nova.dataFimEstimada);
-      Alert.alert(
-        'Sucesso',
+      setMensagemSucessoAcao(
         `Matrícula criada. Vence em ${dataFimFormatada}.`
       );
     } catch (falha: unknown) {
@@ -205,57 +226,73 @@ export function TelaMatriculas() {
   }
 
   function handleAlternarStatus(item: Matricula) {
+    setMensagemErroAcao('');
+    setMensagemSucessoAcao('');
     const novoStatus = item.status === 'ativa' ? 'inativa' : 'ativa';
     const acao = novoStatus === 'ativa' ? 'reativar' : 'inativar';
 
-    Alert.alert(
-      `Confirmar ${acao}`,
-      `Deseja realmente ${acao} a matrícula atual de "${item.alunoNome ?? 'Aluno'}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: novoStatus === 'ativa' ? 'Reativar' : 'Inativar',
-          style: novoStatus === 'ativa' ? 'default' : 'destructive',
-          onPress: async () => {
-            try {
-              await mudarStatusMatricula(item.id, novoStatus);
-            } catch (falha: unknown) {
-              if (falha instanceof ErroDaApi && falha.status === 409) {
-                Alert.alert(
-                  'Não foi possível reativar',
-                  'Já existe uma matrícula ativa para este aluno.'
-                );
-              } else {
-                const msg =
-                  falha instanceof Error ? falha.message : `Falha ao ${acao} matrícula.`;
-                Alert.alert('Erro', msg);
-              }
-            }
-          },
-        },
-      ]
-    );
+    setModalConfirmacao({
+      visivel: true,
+      titulo: `Confirmar ${acao}`,
+      mensagem: `Deseja realmente ${acao} a matrícula atual de "${item.alunoNome ?? 'Aluno'}"?`,
+      textoConfirmar: novoStatus === 'ativa' ? 'Reativar' : 'Inativar',
+      variante: novoStatus === 'ativa' ? 'primario' : 'perigo',
+      onConfirmar: async () => {
+        try {
+          setProcessandoConfirmacao(true);
+          await mudarStatusMatricula(item.id, novoStatus);
+          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
+          setMensagemSucessoAcao(
+            `Matrícula ${novoStatus === 'ativa' ? 'reativada' : 'inativada'} com sucesso.`
+          );
+        } catch (falha: unknown) {
+          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
+          if (falha instanceof ErroDaApi && falha.status === 409) {
+            setMensagemErroAcao(
+              falha.message || 'Este aluno já possui uma matrícula ativa.'
+            );
+          } else {
+            const msg =
+              falha instanceof Error
+                ? falha.message
+                : `Falha ao ${acao} matrícula.`;
+            setMensagemErroAcao(msg);
+          }
+        } finally {
+          setProcessandoConfirmacao(false);
+        }
+      },
+    });
   }
 
   function handleExcluirMatricula(item: Matricula) {
-    Alert.alert(
-      'Excluir Matrícula',
-      `Deseja excluir definitivamente esta matrícula inativa de "${item.alunoNome ?? 'Aluno'}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await excluirMatricula(item.id);
-            } catch {
-              Alert.alert('Erro', 'Falha ao excluir matrícula.');
-            }
-          },
-        },
-      ]
-    );
+    setMensagemErroAcao('');
+    setMensagemSucessoAcao('');
+
+    setModalConfirmacao({
+      visivel: true,
+      titulo: 'Excluir Matrícula',
+      mensagem: `Deseja excluir definitivamente esta matrícula inativa de "${item.alunoNome ?? 'Aluno'}"?`,
+      textoConfirmar: 'Excluir',
+      variante: 'perigo',
+      onConfirmar: async () => {
+        try {
+          setProcessandoConfirmacao(true);
+          await excluirMatricula(item.id);
+          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
+          setMensagemSucessoAcao('Matrícula excluída com sucesso.');
+        } catch (falha: unknown) {
+          setModalConfirmacao((prev) => ({ ...prev, visivel: false }));
+          const msg =
+            falha instanceof Error
+              ? falha.message
+              : 'Falha ao excluir matrícula.';
+          setMensagemErroAcao(msg);
+        } finally {
+          setProcessandoConfirmacao(false);
+        }
+      },
+    });
   }
 
   // Renderização através de união discriminada e switch exaustivo (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
@@ -281,7 +318,7 @@ export function TelaMatriculas() {
                 accessibilityRole="button"
                 accessibilityLabel="Criar nova matrícula"
               >
-                <MaterialIcons name="add-task" size={18} color={colors.white} />
+                <MaterialIcons name="add-task" size={18} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Nova matrícula</Text>
               </TouchableOpacity>
             ) : null}
@@ -315,11 +352,39 @@ export function TelaMatriculas() {
                 accessibilityRole="button"
                 accessibilityLabel="Criar nova matrícula"
               >
-                <MaterialIcons name="add-task" size={18} color={colors.white} />
+                <MaterialIcons name="add-task" size={18} color={cores.texto} />
                 <Text style={styles.textoBotaoAdicionar}>Nova matrícula</Text>
               </TouchableOpacity>
             ) : null}
           </View>
+
+          {mensagemErroAcao ? (
+            <View style={styles.bannerErroAcao}>
+              <MaterialIcons name="error-outline" size={18} color={cores.erro} />
+              <Text style={styles.textoBannerErroAcao}>{mensagemErroAcao}</Text>
+              <TouchableOpacity
+                onPress={() => setMensagemErroAcao('')}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar mensagem de erro"
+              >
+                <MaterialIcons name="close" size={16} color={cores.textoSecundario} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {mensagemSucessoAcao ? (
+            <View style={styles.bannerSucessoAcao}>
+              <MaterialIcons name="check-circle" size={18} color={cores.sucesso} />
+              <Text style={styles.textoBannerSucessoAcao}>{mensagemSucessoAcao}</Text>
+              <TouchableOpacity
+                onPress={() => setMensagemSucessoAcao('')}
+                accessibilityRole="button"
+                accessibilityLabel="Fechar mensagem de confirmação"
+              >
+                <MaterialIcons name="close" size={16} color={cores.textoSecundario} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}
@@ -335,7 +400,7 @@ export function TelaMatriculas() {
               <RefreshControl
                 refreshing={atualizando}
                 onRefresh={handlePullToRefresh}
-                tintColor={colors.blue[400]}
+                tintColor={cores.primaria}
               />
             }
             ListEmptyComponent={
@@ -346,9 +411,14 @@ export function TelaMatriculas() {
             }
             renderItem={({ item: grupo }) => {
               const { atual, historico } = grupo;
-              const isAtiva = atual.status === 'ativa';
-              const isInativa = atual.status === 'inativa';
               const historicoAberto = Boolean(historicosAbertos[grupo.idAluno]);
+              const acoes = obterAcoesDisponiveisMatricula(
+                atual.status,
+                podeAtualizarStatus,
+                podeExcluir
+              );
+              const temAcoes =
+                acoes.podeInativar || acoes.podeReativar || acoes.podeExcluir;
 
               return (
                 <View
@@ -373,7 +443,7 @@ export function TelaMatriculas() {
 
                   <View style={styles.blocoDatas}>
                     <View style={styles.itemData}>
-                      <MaterialIcons name="event" size={15} color={colors.gray[400]} />
+                      <MaterialIcons name="event" size={15} color={cores.textoSecundario} />
                       <Text style={estilosComuns.textoMutavel}>
                         Início: {formatarDataBR(atual.dataInicio)}
                       </Text>
@@ -383,7 +453,7 @@ export function TelaMatriculas() {
                       <MaterialIcons
                         name="event-available"
                         size={15}
-                        color={colors.gray[400]}
+                        color={cores.textoSecundario}
                       />
                       <Text style={estilosComuns.textoMutavel}>
                         {atual.status === 'vencida' ? 'Venceu em: ' : 'Vence em: '}
@@ -392,37 +462,51 @@ export function TelaMatriculas() {
                     </View>
                   </View>
 
-                  {(podeAtualizarStatus || (podeExcluir && isInativa)) ? (
+                  {temAcoes ? (
                     <View style={estilosComuns.linhaAcoes}>
-                      {podeAtualizarStatus ? (
+                      {acoes.podeInativar ? (
                         <TouchableOpacity
                           style={estilosComuns.botaoAcao}
                           onPress={() => handleAlternarStatus(atual)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Inativar matrícula"
                         >
                           <MaterialIcons
-                            name={
-                              isAtiva
-                                ? 'pause-circle-outline'
-                                : 'play-circle-outline'
-                            }
+                            name="pause-circle-outline"
                             size={16}
-                            color={isAtiva ? cores.erro : cores.sucesso}
+                            color={cores.erro}
                           />
-                          <Text style={estilosComuns.textoBotaoAcao}>
-                            {isAtiva ? 'Inativar' : 'Reativar'}
-                          </Text>
+                          <Text style={estilosComuns.textoBotaoAcao}>Inativar</Text>
                         </TouchableOpacity>
                       ) : null}
 
-                      {podeExcluir && isInativa ? (
+                      {acoes.podeReativar ? (
+                        <TouchableOpacity
+                          style={estilosComuns.botaoAcao}
+                          onPress={() => handleAlternarStatus(atual)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Reativar matrícula"
+                        >
+                          <MaterialIcons
+                            name="play-circle-outline"
+                            size={16}
+                            color={cores.sucesso}
+                          />
+                          <Text style={estilosComuns.textoBotaoAcao}>Reativar</Text>
+                        </TouchableOpacity>
+                      ) : null}
+
+                      {acoes.podeExcluir ? (
                         <TouchableOpacity
                           style={[estilosComuns.botaoAcao, styles.botaoExcluir]}
                           onPress={() => handleExcluirMatricula(atual)}
+                          accessibilityRole="button"
+                          accessibilityLabel="Excluir matrícula inativa"
                         >
                           <MaterialIcons
                             name="delete-outline"
                             size={16}
-                            color={colors.red[400]}
+                            color={cores.erro}
                           />
                           <Text
                             style={[
@@ -448,7 +532,7 @@ export function TelaMatriculas() {
                         <MaterialIcons
                           name={historicoAberto ? 'expand-less' : 'expand-more'}
                           size={18}
-                          color={colors.blue[300]}
+                          color={cores.primaria}
                         />
                         <Text style={styles.textoToggleHistorico}>
                           Histórico ({historico.length})
@@ -481,6 +565,21 @@ export function TelaMatriculas() {
             }}
           />
 
+          {/* Modal de confirmação reutilizável (A7) */}
+          <ConfirmacaoModal
+            visivel={modalConfirmacao.visivel}
+            titulo={modalConfirmacao.titulo}
+            mensagem={modalConfirmacao.mensagem}
+            textoConfirmar={modalConfirmacao.textoConfirmar}
+            variante={modalConfirmacao.variante}
+            carregando={processandoConfirmacao}
+            onConfirmar={modalConfirmacao.onConfirmar}
+            onCancelar={() =>
+              setModalConfirmacao((prev) => ({ ...prev, visivel: false }))
+            }
+          />
+
+          {/* Modal de Nova Matrícula */}
           <Modal
             visible={modalCriacaoVisivel}
             animationType="slide"
@@ -501,24 +600,25 @@ export function TelaMatriculas() {
               >
                 <View style={styles.cartaoModal}>
                   <View style={styles.topoModal}>
-                    <Text style={estilosComuns.tituloCabecalho}>
-                      Nova matrícula
-                    </Text>
-
+                    <Text style={estilosComuns.tituloCartao}>Nova Matrícula</Text>
                     {podeCriarAluno ? (
                       <TouchableOpacity
                         style={styles.atalhoAlunoNovo}
-                        onPress={handleIrParaCadastroAluno}
-                        accessibilityRole="button"
-                        accessibilityLabel="Aluno novo? Cadastrar"
+                        onPress={() => {
+                          setModalCriacaoVisivel(false);
+                          navigation.navigate('Abas', {
+                            screen: 'Alunos',
+                            params: { abrirCadastro: true },
+                          });
+                        }}
                       >
                         <MaterialIcons
-                          name="person-add-alt"
-                          size={16}
-                          color={colors.blue[300]}
+                          name="person-add"
+                          size={15}
+                          color={cores.primaria}
                         />
                         <Text style={styles.textoAtalhoAlunoNovo}>
-                          Aluno novo? Cadastrar
+                          Cadastrar aluno novo
                         </Text>
                       </TouchableOpacity>
                     ) : null}
@@ -528,17 +628,15 @@ export function TelaMatriculas() {
                     <MaterialIcons
                       name="history"
                       size={18}
-                      color={colors.blue[300]}
+                      color={cores.primaria}
                     />
                     <Text style={styles.textoAvisoHistorico}>
-                      A matrícula anterior fica no histórico.
+                      A matrícula anterior fica guardada no histórico do aluno.
                     </Text>
                   </View>
 
                   <View style={styles.grupoCampo}>
-                    <Text style={styles.rotulo}>
-                      Aluno elegível (vencida, inativa ou sem matrícula) *
-                    </Text>
+                    <Text style={styles.rotulo}>Aluno elegível *</Text>
                     {alunosElegiveis.length === 0 ? (
                       <Text style={styles.avisoNenhum}>
                         Nenhum aluno precisa de matrícula agora.
@@ -550,7 +648,7 @@ export function TelaMatriculas() {
                         contentContainerStyle={styles.carrosselOpcoes}
                       >
                         {alunosElegiveis.map((a) => {
-                          const selecionado = alunoSelecionadoId === a.id;
+                          const selecionado = a.id === alunoSelecionadoId;
                           return (
                             <TouchableOpacity
                               key={a.id}
@@ -558,7 +656,11 @@ export function TelaMatriculas() {
                                 styles.chipOpcao,
                                 selecionado && styles.chipSelecionado,
                               ]}
-                              onPress={() => setAlunoSelecionadoId(a.id)}
+                              onPress={() => {
+                                setAlunoSelecionadoId(a.id);
+                                if (erroFormulario) setErroFormulario('');
+                              }}
+                              disabled={salvandoMatricula}
                             >
                               <Text
                                 style={[
@@ -577,33 +679,45 @@ export function TelaMatriculas() {
 
                   <View style={styles.grupoCampo}>
                     <Text style={styles.rotulo}>Plano *</Text>
-                    <View style={styles.gradePlanos}>
-                      {planosDisponiveis.map((p) => {
-                        const selecionado = planoSelecionadoId === p.id;
-                        return (
-                          <TouchableOpacity
-                            key={p.id}
-                            style={[
-                              styles.cardOpcaoPlano,
-                              selecionado && styles.cardPlanoSelecionado,
-                            ]}
-                            onPress={() => setPlanoSelecionadoId(p.id)}
-                          >
-                            <View style={styles.colunaNomePlanoModal}>
-                              <Text style={styles.nomePlano}>{p.nome}</Text>
-                              <Text style={styles.duracaoPlano}>
-                                {p.duracaoMeses === 1
-                                  ? '1 mês'
-                                  : `${p.duracaoMeses} meses`}
+                    {planosDisponiveis.length === 0 ? (
+                      <Text style={styles.avisoNenhum}>
+                        Nenhum plano disponível cadastrado.
+                      </Text>
+                    ) : (
+                      <View style={styles.gradePlanos}>
+                        {planosDisponiveis.map((p) => {
+                          const selecionado = p.id === planoSelecionadoId;
+                          const duracaoTexto =
+                            p.duracaoMeses === 1
+                              ? '1 mês'
+                              : `${p.duracaoMeses} meses`;
+                          return (
+                            <TouchableOpacity
+                              key={p.id}
+                              style={[
+                                styles.cardOpcaoPlano,
+                                selecionado && styles.cardPlanoSelecionado,
+                              ]}
+                              onPress={() => {
+                                setPlanoSelecionadoId(p.id);
+                                if (erroFormulario) setErroFormulario('');
+                              }}
+                              disabled={salvandoMatricula}
+                            >
+                              <View style={styles.colunaNomePlanoModal}>
+                                <Text style={styles.nomePlano}>{p.nome}</Text>
+                                <Text style={styles.duracaoPlano}>
+                                  {duracaoTexto}
+                                </Text>
+                              </View>
+                              <Text style={styles.precoPlano}>
+                                {formatarMoedaBRL(p.preco)}
                               </Text>
-                            </View>
-                            <Text style={styles.precoPlano}>
-                              {formatarMoedaBRL(p.preco)}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    )}
                   </View>
 
                   <Campo
@@ -656,7 +770,7 @@ export function TelaMatriculas() {
                       }
                     >
                       {salvandoMatricula ? (
-                        <ActivityIndicator color={colors.white} />
+                        <ActivityIndicator color={cores.texto} />
                       ) : (
                         <Text style={estilosComuns.textoBotaoPrimario}>
                           Confirmar matrícula
@@ -691,7 +805,7 @@ const styles = StyleSheet.create({
     backgroundColor: cores.primaria,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: raios.md,
   },
   textoBotaoAdicionar: {
     color: cores.texto,
@@ -709,9 +823,8 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   rotuloMatriculaAtual: {
-    color: cores.primaria,
+    color: cores.textoSecundario,
     fontSize: 13,
-    fontWeight: '600',
   },
   blocoDatas: {
     gap: 4,
@@ -726,13 +839,49 @@ const styles = StyleSheet.create({
     backgroundColor: cores.erroSuave,
   },
   textoExcluir: {
-    color: colors.red[400],
+    color: cores.erro,
+  },
+  bannerErroAcao: {
+    marginHorizontal: espacos.md,
+    marginTop: espacos.sm,
+    padding: espacos.sm + 4,
+    borderRadius: raios.md,
+    backgroundColor: cores.erroSuave,
+    borderWidth: 1,
+    borderColor: cores.erroBorda,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacos.sm,
+  },
+  textoBannerErroAcao: {
+    flex: 1,
+    color: cores.erro,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bannerSucessoAcao: {
+    marginHorizontal: espacos.md,
+    marginTop: espacos.sm,
+    padding: espacos.sm + 4,
+    borderRadius: raios.md,
+    backgroundColor: cores.sucessoSuave,
+    borderWidth: 1,
+    borderColor: cores.sucessoBorda,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacos.sm,
+  },
+  textoBannerSucessoAcao: {
+    flex: 1,
+    color: cores.sucesso,
+    fontSize: 13,
+    fontWeight: '600',
   },
   secaoHistorico: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: colors.gray[800],
+    borderTopColor: cores.borda,
     gap: 8,
   },
   botaoToggleHistorico: {
@@ -742,7 +891,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   textoToggleHistorico: {
-    color: colors.blue[300],
+    color: cores.primaria,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -750,11 +899,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   itemHistorico: {
-    backgroundColor: colors.gray[900],
-    borderRadius: 8,
+    backgroundColor: cores.cartao,
+    borderRadius: raios.md,
     padding: 10,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     gap: 4,
   },
   linhaTopoHistorico: {
@@ -764,20 +913,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   nomePlanoHistorico: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
     fontWeight: '600',
   },
   datasHistorico: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 12,
   },
   cartaoModal: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
+    backgroundColor: cores.cartao,
+    borderRadius: raios.xl,
     padding: 20,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     gap: 14,
   },
   topoModal: {
@@ -793,7 +942,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: raios.md,
     backgroundColor: cores.primariaSuave,
     borderWidth: 1,
     borderColor: cores.primaria,
@@ -808,7 +957,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: raios.md,
     backgroundColor: cores.primariaSuave,
     borderWidth: 1,
     borderColor: cores.primariaBorda,
@@ -822,12 +971,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   rotulo: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
     fontWeight: '600',
   },
   avisoNenhum: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontStyle: 'italic',
     fontSize: 13,
   },
@@ -836,9 +985,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   chipOpcao: {
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.cartao,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -848,7 +997,7 @@ const styles = StyleSheet.create({
     borderColor: cores.primaria,
   },
   textoChip: {
-    color: colors.gray[300],
+    color: cores.textoSecundario,
     fontSize: 13,
   },
   textoChipSelecionado: {
@@ -859,9 +1008,9 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardOpcaoPlano: {
-    backgroundColor: colors.gray[900],
+    backgroundColor: cores.cartao,
     borderWidth: 1,
-    borderColor: colors.gray[800],
+    borderColor: cores.borda,
     padding: 12,
     borderRadius: 10,
     flexDirection: 'row',
@@ -876,7 +1025,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   nomePlano: {
-    color: colors.white,
+    color: cores.texto,
     fontWeight: 'bold',
     fontSize: 15,
   },
@@ -886,11 +1035,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   duracaoPlano: {
-    color: colors.gray[400],
+    color: cores.textoSecundario,
     fontSize: 12,
   },
   textoErro: {
-    color: colors.red[400],
+    color: cores.erro,
     fontSize: 13,
   },
   linhaBotoesForm: {
@@ -901,15 +1050,15 @@ const styles = StyleSheet.create({
   botaoForm: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: raios.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   botaoCancelar: {
-    backgroundColor: colors.gray[800],
+    backgroundColor: cores.borda,
   },
   textoBotaoCancelar: {
-    color: colors.gray[300],
+    color: cores.texto,
     fontWeight: '600',
   },
   botaoDesabilitado: {
