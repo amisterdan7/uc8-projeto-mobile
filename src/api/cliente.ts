@@ -28,8 +28,14 @@ export function registrarCallbackSemPermissao(callback: () => void): void {
 
 export function obterUrlBase(): string {
   const urlAmbiente = process.env.EXPO_PUBLIC_API_URL;
-  const base = (urlAmbiente && urlAmbiente.trim() !== '' ? urlAmbiente.trim() : '').replace(/\/+$/, '');
-  return base ? `${base}/v1` : '/v1';
+  if (!urlAmbiente || urlAmbiente.trim() === '') {
+    throw new ErroDaApi(
+      'A URL da API não foi configurada.',
+      'CONFIGURACAO_AUSENTE',
+      500
+    );
+  }
+  return `${urlAmbiente.trim().replace(/\/+$/, '')}/v1`;
 }
 
 interface OpcoesRequisicao extends Omit<RequestInit, 'body'> {

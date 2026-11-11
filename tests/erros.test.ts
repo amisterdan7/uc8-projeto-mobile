@@ -186,16 +186,8 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
     });
 
     it('deve abortar requisição e lançar ErroDaApi com código TIMEOUT quando exceder timeoutMs', async () => {
-      const fetchOriginal = globalThis.fetch;
-      globalThis.fetch = ((_url: string | URL | Request, init?: RequestInit) =>
-        new Promise<Response>((_resolve, reject) => {
-          init?.signal?.addEventListener('abort', () => {
-            const abortErr = new Error('The operation was aborted.');
-            abortErr.name = 'AbortError';
-            reject(abortErr);
-          });
-        })) as typeof fetch;
-
+      const urlAnterior = process.env.EXPO_PUBLIC_API_URL;
+      process.env.EXPO_PUBLIC_API_URL = 'http://teste.local:3333';
       try {
         await assert.rejects(
           () => requisitarApi('/alunos', { timeoutMs: 20 }),
@@ -209,7 +201,11 @@ describe('Tratamento Central de Erros (M8-R1, M8-R3)', () => {
           }
         );
       } finally {
-        globalThis.fetch = fetchOriginal;
+        if (urlAnterior === undefined) {
+          delete process.env.EXPO_PUBLIC_API_URL;
+        } else {
+          process.env.EXPO_PUBLIC_API_URL = urlAnterior;
+        }
       }
     });
   });
