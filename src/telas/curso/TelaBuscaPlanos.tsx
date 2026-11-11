@@ -13,12 +13,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { usePlanos } from '../../contexto/PlanosContexto';
-import { CartaoPlanoCurso } from './CartaoPlanoCurso';
-import type { NavegacaoAbasCursoProp } from '../../navegacao/tiposCurso';
+import { CartaoPlano } from './CartaoPlano';
+import type { NavegacaoAbasPlanosProp } from '../../navegacao/tiposPlanos';
 import { cores, espacos, larguraLarga, raio } from '../../tema/tema';
 
 export function TelaBuscaPlanos() {
-  const navigation = useNavigation<NavegacaoAbasCursoProp>();
+  const navigation = useNavigation<NavegacaoAbasPlanosProp>();
   const { estado } = usePlanos();
   const { width } = useWindowDimensions();
   const duasColunas = width >= larguraLarga;
@@ -81,7 +81,7 @@ export function TelaBuscaPlanos() {
               accessibilityRole="button"
               accessibilityLabel={`Plano ${item.nome}, ver detalhes`}
             >
-              <CartaoPlanoCurso plano={item} />
+              <CartaoPlano plano={item} />
             </Pressable>
           )}
           ListEmptyComponent={

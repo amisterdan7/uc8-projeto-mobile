@@ -11,7 +11,7 @@ import { contarLocal } from '../../banco/banco';
 import { registrarErro } from '../../erros/erros';
 import { cores, espacos, raio } from '../../tema/tema';
 
-export function TelaSobreCurso() {
+export function TelaSobrePlanos() {
   const { width, height, fontScale } = useWindowDimensions();
   const [guardados, setGuardados] = useState('...');
 

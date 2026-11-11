@@ -1,11 +1,11 @@
 import { ErroDeValidacao } from '../erros/erros';
-import { ErroDaApi, type DadosNovoPlanoCurso, type PlanoCurso } from './planosSupabase';
+import { ErroDaApi, type DadosNovoPlano, type PlanoAcademia } from './planosSupabase';
 
-export interface PendenteSincronizavel extends DadosNovoPlanoCurso {
+export interface PendenteSincronizavel extends DadosNovoPlano {
   id: number;
 }
 
-export function validarDadosPlano(dados: DadosNovoPlanoCurso): void {
+export function validarDadosPlano(dados: DadosNovoPlano): void {
   if (!dados.nome || dados.nome.trim() === '') {
     throw new ErroDeValidacao('Informe o nome do plano.');
   }
@@ -22,7 +22,7 @@ export function validarDadosPlano(dados: DadosNovoPlanoCurso): void {
  */
 export async function sincronizarFila(
   listar: () => Promise<PendenteSincronizavel[]>,
-  enviar: (dados: DadosNovoPlanoCurso) => Promise<PlanoCurso>,
+  enviar: (dados: DadosNovoPlano) => Promise<PlanoAcademia>,
   remover: (id: number) => Promise<void>,
   registrarFalha: (origem: string, erro: unknown) => void
 ): Promise<void> {

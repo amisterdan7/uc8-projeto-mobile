@@ -6,12 +6,12 @@ import { TelaListaPlanos } from '../telas/curso/TelaListaPlanos';
 import { TelaDetalhePlano } from '../telas/curso/TelaDetalhePlano';
 import { TelaNovoPlano } from '../telas/curso/TelaNovoPlano';
 import { TelaBuscaPlanos } from '../telas/curso/TelaBuscaPlanos';
-import { TelaSobreCurso } from '../telas/curso/TelaSobreCurso';
-import type { AbasCursoParamList, RotasPilhaPlanosCurso } from './tiposCurso';
+import { TelaSobrePlanos } from '../telas/curso/TelaSobrePlanos';
+import type { AbasPlanosParamList, RotasPilhaPlanos } from './tiposPlanos';
 import { cores } from '../tema/tema';
 
-const StackPlanos = createNativeStackNavigator<RotasPilhaPlanosCurso>();
-const Tab = createBottomTabNavigator<AbasCursoParamList>();
+const StackPlanos = createNativeStackNavigator<RotasPilhaPlanos>();
+const Tab = createBottomTabNavigator<AbasPlanosParamList>();
 
 function PilhaPlanosNavegador() {
   return (
@@ -41,7 +41,7 @@ function PilhaPlanosNavegador() {
   );
 }
 
-export function NavegadorCurso() {
+export function NavegadorPlanos() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -88,7 +88,7 @@ export function NavegadorCurso() {
       />
       <Tab.Screen
         name="Sobre"
-        component={TelaSobreCurso}
+        component={TelaSobrePlanos}
         options={{
           headerShown: true,
           headerStyle: { backgroundColor: cores.superficie },

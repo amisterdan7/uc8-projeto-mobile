@@ -19,8 +19,8 @@ import {
   carregarPlanos,
   incluirPlano,
   ErroDaApi,
-  type DadosNovoPlanoCurso,
-  type PlanoCurso,
+  type DadosNovoPlano,
+  type PlanoAcademia,
 } from '../servicos/planosSupabase';
 import {
   sincronizarFila,
@@ -33,10 +33,10 @@ export { sincronizarFila, validarDadosPlano };
 export type EstadoPlanos =
   | { tipo: 'carregando' }
   | { tipo: 'erro'; mensagem: string }
-  | { tipo: 'pronto'; planos: PlanoCurso[]; pendentes: PendentePlano[]; origem: 'nuvem' }
+  | { tipo: 'pronto'; planos: PlanoAcademia[]; pendentes: PendentePlano[]; origem: 'nuvem' }
   | {
       tipo: 'pronto';
-      planos: PlanoCurso[];
+      planos: PlanoAcademia[];
       pendentes: PendentePlano[];
       origem: 'aparelho';
       motivo: string;
@@ -45,8 +45,8 @@ export type EstadoPlanos =
 export interface ValorDosPlanos {
   estado: EstadoPlanos;
   recarregar: () => void;
-  incluir: (dados: DadosNovoPlanoCurso) => Promise<void>;
-  buscar: (id: number) => PlanoCurso | undefined;
+  incluir: (dados: DadosNovoPlano) => Promise<void>;
+  buscar: (id: number) => PlanoAcademia | undefined;
 }
 
 const PlanosContexto = createContext<ValorDosPlanos | undefined>(undefined);
@@ -123,7 +123,7 @@ export function PlanosProvedor({ children }: { children: ReactNode }) {
     );
   }
 
-  async function incluir(dados: DadosNovoPlanoCurso): Promise<void> {
+  async function incluir(dados: DadosNovoPlano): Promise<void> {
     validarDadosPlano(dados);
 
     try {
@@ -144,7 +144,7 @@ export function PlanosProvedor({ children }: { children: ReactNode }) {
     }
   }
 
-  function buscar(id: number): PlanoCurso | undefined {
+  function buscar(id: number): PlanoAcademia | undefined {
     return estado.tipo === 'pronto'
       ? estado.planos.find((p) => p.id === id)
       : undefined;

@@ -12,11 +12,11 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { usePlanos } from '../../contexto/PlanosContexto';
 import { Botao } from '../../componentes/Botao';
-import { CartaoPlanoCurso } from './CartaoPlanoCurso';
-import type { RotasPilhaPlanosCurso } from '../../navegacao/tiposCurso';
+import { CartaoPlano } from './CartaoPlano';
+import type { RotasPilhaPlanos } from '../../navegacao/tiposPlanos';
 import { cores, espacos, larguraLarga } from '../../tema/tema';
 
-type NavegacaoProps = NativeStackNavigationProp<RotasPilhaPlanosCurso, 'ListaPlanos'>;
+type NavegacaoProps = NativeStackNavigationProp<RotasPilhaPlanos, 'ListaPlanos'>;
 
 export function TelaListaPlanos() {
   const navigation = useNavigation<NavegacaoProps>();
@@ -74,7 +74,7 @@ export function TelaListaPlanos() {
                     accessibilityRole="button"
                     accessibilityLabel={`Plano ${item.nome}, ver detalhes`}
                   >
-                    <CartaoPlanoCurso plano={item} />
+                    <CartaoPlano plano={item} />
                   </Pressable>
                 </View>
               )}

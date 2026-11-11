@@ -2,7 +2,7 @@ import { ErroDaApi } from '../erros/ErroDaApi';
 
 export { ErroDaApi };
 
-export interface PlanoCurso {
+export interface PlanoAcademia {
   id: number;
   nome: string;
   preco: number;
@@ -10,7 +10,7 @@ export interface PlanoCurso {
   descricao?: string;
 }
 
-export interface DadosNovoPlanoCurso {
+export interface DadosNovoPlano {
   nome: string;
   preco: number;
   duracao_meses: number;
@@ -76,7 +76,7 @@ export function ehListaDePlanos(valor: unknown): valor is PlanoRemoto[] {
   return Array.isArray(valor) && valor.every(ehPlanoRemoto);
 }
 
-export function paraPlano(remoto: PlanoRemoto): PlanoCurso {
+export function paraPlano(remoto: PlanoRemoto): PlanoAcademia {
   return {
     id: remoto.id,
     nome: remoto.nome,
@@ -89,7 +89,7 @@ export function paraPlano(remoto: PlanoRemoto): PlanoCurso {
 async function requisitar(
   caminho: string,
   metodo: 'GET' | 'POST' = 'GET',
-  corpo?: DadosNovoPlanoCurso
+  corpo?: DadosNovoPlano
 ): Promise<unknown> {
   const { url, chave } = configuracao();
   const resposta = await fetch(`${url}/rest/v1/${caminho}`, {
@@ -113,7 +113,7 @@ async function requisitar(
   return resposta.json();
 }
 
-export async function carregarPlanos(): Promise<PlanoCurso[]> {
+export async function carregarPlanos(): Promise<PlanoAcademia[]> {
   const corpo: unknown = await requisitar('planos?select=*&order=id');
   if (!ehListaDePlanos(corpo)) {
     throw new Error('Resposta inesperada da API');
@@ -121,7 +121,7 @@ export async function carregarPlanos(): Promise<PlanoCurso[]> {
   return corpo.map(paraPlano);
 }
 
-export async function buscarPlano(id: number): Promise<PlanoCurso | undefined> {
+export async function buscarPlano(id: number): Promise<PlanoAcademia | undefined> {
   const corpo: unknown = await requisitar(`planos?select=*&id=eq.${id}`);
   if (!ehListaDePlanos(corpo)) {
     throw new Error('Resposta inesperada da API');
@@ -130,7 +130,7 @@ export async function buscarPlano(id: number): Promise<PlanoCurso | undefined> {
   return primeiro ? paraPlano(primeiro) : undefined;
 }
 
-export async function incluirPlano(dados: DadosNovoPlanoCurso): Promise<PlanoCurso> {
+export async function incluirPlano(dados: DadosNovoPlano): Promise<PlanoAcademia> {
   const corpo: unknown = await requisitar('planos?select=*', 'POST', dados);
   if (!ehListaDePlanos(corpo) || corpo.length !== 1) {
     throw new Error('Resposta inesperada da API');

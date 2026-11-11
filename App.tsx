@@ -9,7 +9,7 @@ import { SessaoProvider } from '@/auth';
 import { AcademiaProvedor } from '@/contexto';
 import { NavegadorPrincipal } from '@/navegacao';
 import { PlanosProvedor } from './src/contexto/PlanosContexto';
-import { NavegadorCurso } from './src/navegacao/NavegadorCurso';
+import { NavegadorPlanos } from './src/navegacao/NavegadorPlanos';
 import { cores, espacos, foco } from '@/tema/tema';
 
 const temaNavegacao: Theme = {
@@ -59,7 +59,7 @@ export default function App() {
         <PlanosProvedor>
           <NavigationContainer theme={temaNavegacao}>
             <StatusBar style="light" />
-            <NavegadorCurso />
+            <NavegadorPlanos />
           </NavigationContainer>
         </PlanosProvedor>
       </SafeAreaProvider>

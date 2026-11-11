@@ -1,8 +1,8 @@
 import * as SQLite from 'expo-sqlite';
 import { ErroDoBanco } from '../erros/erros';
-import type { DadosNovoPlanoCurso, PlanoCurso } from '../servicos/planosSupabase';
+import type { DadosNovoPlano, PlanoAcademia } from '../servicos/planosSupabase';
 
-export interface PendentePlano extends DadosNovoPlanoCurso {
+export interface PendentePlano extends DadosNovoPlano {
   id: number;
 }
 
@@ -43,7 +43,7 @@ function banco(): Promise<SQLite.SQLiteDatabase> {
   return bancoAberto;
 }
 
-function paraPlano(linha: LinhaPlano): PlanoCurso {
+function paraPlano(linha: LinhaPlano): PlanoAcademia {
   return {
     id: linha.id,
     nome: linha.nome,
@@ -62,7 +62,7 @@ async function noBanco<T>(operacao: (db: SQLite.SQLiteDatabase) => Promise<T>): 
   }
 }
 
-export function listarLocal(): Promise<PlanoCurso[]> {
+export function listarLocal(): Promise<PlanoAcademia[]> {
   return noBanco(async (db) => {
     const linhas = await db.getAllAsync<LinhaPlano>(
       'SELECT id, nome, preco, duracao_meses, descricao FROM planos ORDER BY id'
@@ -71,7 +71,7 @@ export function listarLocal(): Promise<PlanoCurso[]> {
   });
 }
 
-export function guardarLocal(planos: PlanoCurso[]): Promise<void> {
+export function guardarLocal(planos: PlanoAcademia[]): Promise<void> {
   return noBanco((db) =>
     db.withTransactionAsync(async () => {
       await db.runAsync('DELETE FROM planos');
@@ -108,7 +108,7 @@ export function listarPendentes(): Promise<PendentePlano[]> {
   );
 }
 
-export function guardarPendente(dados: DadosNovoPlanoCurso): Promise<PendentePlano> {
+export function guardarPendente(dados: DadosNovoPlano): Promise<PendentePlano> {
   return noBanco(async (db) => {
     const resultado = await db.runAsync(
       'INSERT INTO pendentes (nome, preco, duracao_meses, descricao) VALUES (?, ?, ?, ?)',

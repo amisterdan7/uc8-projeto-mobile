@@ -5,8 +5,8 @@ import {
   ehListaDePlanos,
   paraPlano,
   type PlanoRemoto,
-  type DadosNovoPlanoCurso,
-  type PlanoCurso,
+  type DadosNovoPlano,
+  type PlanoAcademia,
 } from '../src/servicos/planosSupabase';
 import {
   validarDadosPlano,
@@ -16,7 +16,7 @@ import {
 import { ErroDeValidacao } from '../src/erros/erros';
 import { ErroDaApi } from '../src/api/cliente';
 
-describe('Modo Curso - Funções Puras e Lógica de Negócio (M6-R4, M7-R5, M8-R4)', () => {
+describe('Modo Planos (Supabase/SQLite) - Funções Puras e Lógica de Negócio (M6-R4, M7-R5, M8-R4)', () => {
   describe('Type Guards (ehPlanoRemoto e ehListaDePlanos)', () => {
     it('deve validar um objeto PlanoRemoto válido', () => {
       const objetoValido = {
@@ -177,13 +177,13 @@ describe('Modo Curso - Funções Puras e Lógica de Negócio (M6-R4, M7-R5, M8-R
         { id: 1, nome: 'P1', preco: 100, duracao_meses: 1 },
         { id: 2, nome: 'P2', preco: 200, duracao_meses: 2 },
       ];
-      const enviados: DadosNovoPlanoCurso[] = [];
+      const enviados: DadosNovoPlano[] = [];
       const removidos: number[] = [];
       const falhas: string[] = [];
 
       await sincronizarFila(
         async () => pendentes,
-        async (dados): Promise<PlanoCurso> => {
+        async (dados): Promise<PlanoAcademia> => {
           enviados.push(dados);
           return {
             id: 99,
@@ -214,7 +214,7 @@ describe('Modo Curso - Funções Puras e Lógica de Negócio (M6-R4, M7-R5, M8-R
 
       await sincronizarFila(
         async () => pendentes,
-        async (dados): Promise<PlanoCurso> => {
+        async (dados): Promise<PlanoAcademia> => {
           if (dados.nome === 'Recusado') {
             throw new ErroDaApi('Dados inválidos', 'HTTP_400', 400);
           }

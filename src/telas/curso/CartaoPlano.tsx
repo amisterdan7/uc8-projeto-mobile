@@ -1,14 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import type { PlanoCurso } from '../../servicos/planosSupabase';
+import type { PlanoAcademia } from '../../servicos/planosSupabase';
 import { cores, espacos, raio } from '../../tema/tema';
 import { formatarMoedaBRL } from '../../utils/moeda';
 
-interface CartaoPlanoCursoProps {
-  plano: PlanoCurso;
+interface CartaoPlanoProps {
+  plano: PlanoAcademia;
 }
 
-export function CartaoPlanoCurso({ plano }: CartaoPlanoCursoProps) {
+export function CartaoPlano({ plano }: CartaoPlanoProps) {
   const duracaoTexto = plano.duracaoMeses === 1 ? '1 mês' : `${plano.duracaoMeses} meses`;
 
   return (

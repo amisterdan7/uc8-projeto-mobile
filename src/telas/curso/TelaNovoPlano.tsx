@@ -6,10 +6,10 @@ import { usePlanos } from '../../contexto/PlanosContexto';
 import { Botao } from '../../componentes/Botao';
 import { Campo } from '../../componentes/Campo';
 import { registrarErro } from '../../erros/erros';
-import type { RotasPilhaPlanosCurso } from '../../navegacao/tiposCurso';
+import type { RotasPilhaPlanos } from '../../navegacao/tiposPlanos';
 import { cores, espacos } from '../../tema/tema';
 
-type NavegacaoProps = NativeStackNavigationProp<RotasPilhaPlanosCurso, 'NovoPlano'>;
+type NavegacaoProps = NativeStackNavigationProp<RotasPilhaPlanos, 'NovoPlano'>;
 
 export function TelaNovoPlano() {
   const navigation = useNavigation<NavegacaoProps>();

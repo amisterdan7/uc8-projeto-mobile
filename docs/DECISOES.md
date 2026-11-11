@@ -244,3 +244,36 @@ Este documento registra as decisões técnicas tomadas durante a integração e 
   - **Função pura `mostraAcoesMatricula(perfil, status)`:** Implementada em `src/utils/matriculas.ts` e testada em `tests/utils.test.ts`, garantindo que administrador vê `"Encerrar"` apenas quando `'ativa'`, administrador vê `"Excluir"` no detalhe, recepção não vê nenhum dos dois, e matrícula `'inativa'` ou `'vencida'` não exibe `"Encerrar"`.
   - **Nova matrícula sem elegíveis simplificada (E1/E2):** Na `TelaMatriculas.tsx`, quando `alunosElegiveis.length === 0`, o modal exibe apenas `"Nenhum aluno precisa de matrícula agora."` e os botões `"Cadastrar aluno novo"` e `"Fechar"`, ocultando a escolha de plano e data de início.
   - **Grade responsiva no Início, Barra Inferior e Foco Laranja (A1, B1, C1):** Na `TelaInicio.tsx`, a faixa `"Nossos planos"` foi substituída por grade responsiva com `colunasPara(width)` (empilhada em 1 coluna abaixo de 600 px). Na barra inferior (`src/navegacao/index.tsx`), `tabBarLabelPosition: 'below-icon'` e altura com `useSafeAreaInsets` preservam os 5 rótulos inteiros em 440 px. O foco de teclado/web e campos utiliza `cores.foco` (`#ff5b24`).
+
+---
+
+## 22. Padronização e Renomeação de Nomenclatura Sem Alteração de Comportamento
+
+Refatoração sistemática aprovada em `docs/INVENTARIO_NOMES.md` para eliminar sufixos redundantes de arquivos, componentes, tipos e testes associados ao modo de planos (Supabase/SQLite), mantendo 100% de paridade funcional, ausência estrita de `any`, 0 erros de compilação em `tsc --noEmit` e aprovação integral da suíte de 90 testes unitários.
+
+### Tabela Antes e Depois
+
+| Item | Categoria | Antes | Depois | Arquivo(s) | Status |
+|:---|:---|:---|:---|:---|:---:|
+| **ARQ-01** | Arquivo | `src/navegacao/NavegadorCurso.tsx` | `src/navegacao/NavegadorPlanos.tsx` | `src/navegacao/NavegadorPlanos.tsx` | **OK** |
+| **ARQ-02** | Arquivo | `src/navegacao/tiposCurso.ts` | `src/navegacao/tiposPlanos.ts` | `src/navegacao/tiposPlanos.ts` | **OK** |
+| **ARQ-03** | Arquivo | `src/telas/curso/CartaoPlanoCurso.tsx` | `src/telas/curso/CartaoPlano.tsx` | `src/telas/curso/CartaoPlano.tsx` | **OK** |
+| **ARQ-04** | Arquivo | `src/telas/curso/TelaSobreCurso.tsx` | `src/telas/curso/TelaSobrePlanos.tsx` | `src/telas/curso/TelaSobrePlanos.tsx` | **OK** |
+| **ARQ-05** | Arquivo | `tests/modoCurso.test.ts` | `tests/modoPlanos.test.ts` | `tests/modoPlanos.test.ts` | **OK** |
+| **TIP-01** | Tipo/Interface | `PlanoCurso` | `PlanoAcademia` | `src/servicos/planosSupabase.ts`, `src/banco/banco.ts`, `src/contexto/PlanosContexto.tsx`, `src/servicos/planosSincronizacao.ts`, `src/telas/curso/CartaoPlano.tsx`, `tests/modoPlanos.test.ts` | **OK** |
+| **TIP-02** | Tipo/Interface | `DadosNovoPlanoCurso` | `DadosNovoPlano` | `src/servicos/planosSupabase.ts`, `src/banco/banco.ts`, `src/contexto/PlanosContexto.tsx`, `src/servicos/planosSincronizacao.ts`, `tests/modoPlanos.test.ts` | **OK** |
+| **TIP-03** | Tipo/Interface | `RotasPilhaPlanosCurso` | `RotasPilhaPlanos` | `src/navegacao/tiposPlanos.ts`, `src/navegacao/NavegadorPlanos.tsx`, `src/telas/curso/*` | **OK** |
+| **TIP-04** | Tipo/Interface | `AbasCursoParamList` | `AbasPlanosParamList` | `src/navegacao/tiposPlanos.ts`, `src/navegacao/NavegadorPlanos.tsx` | **OK** |
+| **TIP-05** | Tipo/Interface | `NavegacaoAbasCursoProp` | `NavegacaoAbasPlanosProp` | `src/navegacao/tiposPlanos.ts`, `src/telas/curso/TelaBuscaPlanos.tsx` | **OK** |
+| **TIP-06** | Tipo/Interface | `CartaoPlanoCursoProps` | `CartaoPlanoProps` | `src/telas/curso/CartaoPlano.tsx` | **OK** |
+| **CMP-01** | Componente | `NavegadorCurso` | `NavegadorPlanos` | `src/navegacao/NavegadorPlanos.tsx`, `App.tsx` | **OK** |
+| **CMP-02** | Componente | `CartaoPlanoCurso` | `CartaoPlano` | `src/telas/curso/CartaoPlano.tsx`, `TelaBuscaPlanos.tsx`, `TelaListaPlanos.tsx` | **OK** |
+| **CMP-03** | Componente | `TelaSobreCurso` | `TelaSobrePlanos` | `src/telas/curso/TelaSobrePlanos.tsx`, `src/navegacao/NavegadorPlanos.tsx` | **OK** |
+| **TST-01** | Teste | `describe('Modo Curso...')` | `describe('Modo Planos (Supabase/SQLite)...')` | `tests/modoPlanos.test.ts` | **OK** |
+
+### Exceções Mantidas e Falsos Positivos Recusados
+- `EXPO_PUBLIC_MODO`: Valores em runtime `'equipe'` e `'curso'` em `src/config/modo.ts` e `App.tsx` preservados para alternância de modos.
+- Textos de UI da Equipe: `"Equipe e Usuários"`, `"Novo Usuário da Equipe"`, `"Gerenciar usuários da equipe"`, `"Acesso da Equipe (Admin e Recepção)"` e estilos correspondentes em `TelaConta.tsx`, `TelaLogin.tsx` e `TelaUsuarios.tsx`.
+- Textos de UI do Modo Planos: `"Academia MisterFit - Modo Curso"` e `"Modo: Curso (Supabase direto + SQLite)"` em `TelaSobrePlanos.tsx`.
+- Diretório `src/telas/curso/`: Mantido para manter o isolamento explícito do acervo do curso.
+- Palavra `recurso`: Ocorrências de `RecursoPlano`, `RecursoPlanoDTO`, `recursos` e `Recurso não encontrado.` preservadas como vocabulário de negócio legítimo de planos da academia.

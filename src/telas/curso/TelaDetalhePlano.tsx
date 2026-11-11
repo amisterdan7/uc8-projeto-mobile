@@ -4,12 +4,12 @@ import { useRoute, useNavigation, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { usePlanos } from '../../contexto/PlanosContexto';
 import { Botao } from '../../componentes/Botao';
-import type { RotasPilhaPlanosCurso } from '../../navegacao/tiposCurso';
+import type { RotasPilhaPlanos } from '../../navegacao/tiposPlanos';
 import { cores, espacos, raio } from '../../tema/tema';
 import { formatarMoedaBRL } from '../../utils/moeda';
 
-type RotaProps = RouteProp<RotasPilhaPlanosCurso, 'DetalhePlano'>;
-type NavegacaoProps = NativeStackNavigationProp<RotasPilhaPlanosCurso, 'DetalhePlano'>;
+type RotaProps = RouteProp<RotasPilhaPlanos, 'DetalhePlano'>;
+type NavegacaoProps = NativeStackNavigationProp<RotasPilhaPlanos, 'DetalhePlano'>;
 
 export function TelaDetalhePlano() {
   const route = useRoute<RotaProps>();
