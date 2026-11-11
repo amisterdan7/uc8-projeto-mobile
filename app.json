@@ -12,7 +12,8 @@
       "expo-sqlite"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.exemplo.uc8projetomobile"
     },
     "android": {
       "package": "com.exemplo.uc8projetomobile",
@@ -24,6 +25,11 @@
     },
     "web": {
       "favicon": "./assets/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "e1d2a77f-ed43-4bfc-a8a2-87024c387380"
+      }
     }
   }
 }
