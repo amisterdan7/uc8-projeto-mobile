@@ -42,6 +42,7 @@ Legenda:
 - [~] **2.15** [AGENTE/DONO] [10/11/2026] Erro 401 de login tratado apenas no formulário (`"Usuário ou senha incorretos."`) e filtrado de `"Eventos de erro recentes"` na aba Conta via `deveRegistrarNoHistorico` (F4). Evidência: `src/erros/erros.ts:190-219` e teste unitário em `tests/erros.test.ts`. Pendente verificação visual no navegador pelo dono (`NÃO VERIFICADO` em tela).
 - [x] **2.16** [AGENTE] [10/11/2026] Eliminação de propriedade obsoleta `pointerEvents` e tratamento de promessas em sessão, carga e refresh com `registrarErro` (F2, F3). Evidência: `git grep -n "pointerEvents" -- src` (vazio) e `src/auth/SessaoContext.tsx`, `src/contexto/AcademiaContexto.tsx`.
 - [~] **2.17** [AGENTE/DONO] [10/11/2026] Foco laranja (`#ff5b24`) do tema aplicado em campos (`Campo`), abas e elementos interativos na Web sem anel amarelo do navegador, e modal `"Nova matrícula"` simplificado quando não há alunos elegíveis (C1, E1, E2). Evidência: `src/tema/tema.ts:29,88`, `App.tsx:46-57`, `src/telas/TelaMatriculas.tsx:249-286` e `git grep -nEi "#[0-9a-f]{6}|rgba?\(" -- src/telas src/components` (vazio). Pendente print de foco e modal no navegador pelo dono (`NÃO VERIFICADO` em tela).
+- [x] **2.18 Limpeza do modelo** (agente): sem acervo.ts nem TelaSobre.tsx; ErroDaApi fora do cliente HTTP; checagem da API só no modo equipe; nenhum fallback para localhost em src. Evidência: `src/erros/ErroDaApi.ts`, `src/utils/host.ts`, `tests/host.test.ts`, remoção de `src/servicos/acervo.ts` e `src/telas/TelaSobre.tsx`, `git grep -n "localhost:3333" -- src App.tsx` sem saída e 90 testes aprovados em `npm run test:unit`.
 
 ---
 
@@ -76,7 +77,7 @@ Legenda:
 ## Bloco 6: Conferência Final e Qualidade do Código
 
 - [x] **6.1** [AGENTE] [10/11/2026] `npm run typecheck` executado com 0 erros.
-- [x] **6.2** [AGENTE] [10/11/2026] `npm run test:unit` executado com 87 testes aprovados em 24 suítes.
+- [x] **6.2** [AGENTE] [10/11/2026] `npm run test:unit` executado com 90 testes aprovados em 25 suítes.
 - [x] **6.3** [AGENTE] [10/11/2026] Auditoria de `any`: `git grep -nw any -- "*.ts" "*.tsx"` com 0 ocorrências.
 - [x] **6.4** [AGENTE] [10/11/2026] Auditoria de literais de estado: uso exclusivo de `carregando`, `erro` e `pronto`.
 - [x] **6.5** [AGENTE] [10/11/2026] Auditoria de segurança: sem segredos nos arquivos (`sb_secret_`, `service_role`).
