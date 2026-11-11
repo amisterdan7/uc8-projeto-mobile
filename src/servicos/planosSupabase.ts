@@ -1,4 +1,4 @@
-import { ErroDaApi } from '../api/cliente';
+import { ErroDaApi } from '../erros/ErroDaApi';
 
 export { ErroDaApi };
 

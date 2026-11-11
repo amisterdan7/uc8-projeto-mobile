@@ -1,26 +1,7 @@
-import type { DetalheErroApi, RespostaErroApi } from './tipos';
+import type { RespostaErroApi } from './tipos';
+import { ErroDaApi } from '../erros/ErroDaApi';
 
-export class ErroDaApi extends Error {
-  readonly codigo: string;
-  readonly status: number;
-  readonly statusHttp: number;
-  readonly detalhes?: DetalheErroApi[];
-
-  constructor(
-    mensagem: string,
-    codigo: string = 'ERRO_DESCONHECIDO',
-    status: number = 500,
-    detalhes?: DetalheErroApi[]
-  ) {
-    super(mensagem);
-    this.name = 'ErroDaApi';
-    this.codigo = codigo;
-    this.status = status;
-    this.statusHttp = status;
-    this.detalhes = detalhes;
-  }
-}
-
+export { ErroDaApi };
 export { ErroDaApi as ErroApi };
 
 export const TIMEOUT_PADRAO_MS = 15000;
@@ -47,8 +28,8 @@ export function registrarCallbackSemPermissao(callback: () => void): void {
 
 export function obterUrlBase(): string {
   const urlAmbiente = process.env.EXPO_PUBLIC_API_URL;
-  const base = (urlAmbiente && urlAmbiente.trim() !== '' ? urlAmbiente.trim() : 'http://localhost:3333').replace(/\/+$/, '');
-  return `${base}/v1`;
+  const base = (urlAmbiente && urlAmbiente.trim() !== '' ? urlAmbiente.trim() : '').replace(/\/+$/, '');
+  return base ? `${base}/v1` : '/v1';
 }
 
 interface OpcoesRequisicao extends Omit<RequestInit, 'body'> {

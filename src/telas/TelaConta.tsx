@@ -26,7 +26,7 @@ import {
   type EventoErro,
 } from '@/erros';
 import { formatarDataBR } from '@/utils/datas';
-import { extrairHost } from './TelaSobre';
+import { extrairHost } from '@/utils/host';
 import { cores } from '@/tema/tema';
 import { estilosComuns } from '@/styles/comum';
 

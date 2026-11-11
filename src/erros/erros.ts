@@ -1,4 +1,4 @@
-import { ErroDaApi } from '../api/cliente';
+import { ErroDaApi } from './ErroDaApi';
 
 export type TipoDeErro = 'rede' | 'api' | 'banco' | 'validacao' | 'desconhecido';
 
