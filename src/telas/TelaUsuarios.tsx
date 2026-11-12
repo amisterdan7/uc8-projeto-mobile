@@ -18,7 +18,7 @@ import { useAcademia } from '@/contexto';
 import { useSessao } from '@/auth';
 import { semCaso } from '@/types/estadoTela';
 import { colunasPara } from '@/utils/responsividade';
-import { Campo, Carregando, EstadoErro, EstadoVazio, Selo } from '@/components';
+import { Campo, Carregando, ConfirmacaoModal, EstadoErro, EstadoVazio, Selo } from '@/components';
 import { ErroDaApi } from '@/api/cliente';
 import { extrairErrosCampos, registrarErro } from '@/erros';
 import type { PerfilUsuario, Usuario } from '@/types/entidades';
@@ -62,6 +62,10 @@ export function TelaUsuarios() {
   const [novaSenha, setNovaSenha] = useState('');
   const [salvandoSenha, setSalvandoSenha] = useState(false);
   const [erroSenha, setErroSenha] = useState('');
+  const [usuarioParaAlternarAtivo, setUsuarioParaAlternarAtivo] = useState<Usuario | null>(null);
+  const [processandoAtivo, setProcessandoAtivo] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState('');
+  const [mensagemSucesso, setMensagemSucesso] = useState('');
 
   async function handlePullToRefresh() {
     setAtualizando(true);
@@ -173,41 +177,38 @@ export function TelaUsuarios() {
 
   function handleAlternarAtivo(alvo: Usuario) {
     if (alvo.id === usuarioLogado?.id) {
-      Alert.alert('Operação não permitida', 'Não é possível desativar o próprio usuário.');
+      setMensagemErro('Não é possível desativar o próprio usuário.');
       return;
     }
 
-    const novoStatus = !(alvo.ativo ?? true);
-    const acao = novoStatus ? 'ativar' : 'desativar';
+    setMensagemErro('');
+    setMensagemSucesso('');
+    setUsuarioParaAlternarAtivo(alvo);
+  }
 
-    Alert.alert(
-      `Confirmar ${acao}`,
-      `Deseja realmente ${acao} o usuário "${alvo.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: novoStatus ? 'Ativar' : 'Desativar',
-          style: novoStatus ? 'default' : 'destructive',
-          onPress: async () => {
-            try {
-              await alterarAtivoUsuario(alvo.id, novoStatus);
-              Alert.alert('Sucesso', `Usuário ${acao}do com sucesso.`);
-            } catch (falha: unknown) {
-              if (falha instanceof ErroDaApi && falha.status === 409) {
-                Alert.alert(
-                  'Não foi possível desativar',
-                  'Não é possível desativar o próprio usuário.'
-                );
-              } else {
-                const msg =
-                  falha instanceof Error ? falha.message : `Falha ao ${acao} usuário.`;
-                Alert.alert('Erro', msg);
-              }
-            }
-          },
-        },
-      ]
-    );
+  async function handleConfirmarAlternarAtivo() {
+    if (!usuarioParaAlternarAtivo) return;
+    const novoStatus = !(usuarioParaAlternarAtivo.ativo ?? true);
+    const acao = novoStatus ? 'ativar' : 'desativar';
+    setProcessandoAtivo(true);
+    setMensagemErro('');
+    setMensagemSucesso('');
+    try {
+      await alterarAtivoUsuario(usuarioParaAlternarAtivo.id, novoStatus);
+      setUsuarioParaAlternarAtivo(null);
+      setMensagemSucesso(`Usuário ${acao}do com sucesso.`);
+    } catch (falha: unknown) {
+      setUsuarioParaAlternarAtivo(null);
+      if (falha instanceof ErroDaApi && falha.status === 409) {
+        setMensagemErro('Não é possível desativar o próprio usuário.');
+      } else {
+        const msg =
+          falha instanceof Error ? falha.message : `Falha ao ${acao} usuário.`;
+        setMensagemErro(msg);
+      }
+    } finally {
+      setProcessandoAtivo(false);
+    }
   }
 
   // Renderização por união discriminada (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
@@ -289,6 +290,26 @@ export function TelaUsuarios() {
               </TouchableOpacity>
             ) : null}
           </View>
+
+          {mensagemErro ? (
+            <View style={styles.bannerErro}>
+              <MaterialIcons name="error-outline" size={18} color={cores.erro} />
+              <Text style={styles.textoBannerErro}>{mensagemErro}</Text>
+              <TouchableOpacity onPress={() => setMensagemErro('')} accessibilityLabel="Fechar aviso de erro">
+                <MaterialIcons name="close" size={18} color={cores.erro} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {mensagemSucesso ? (
+            <View style={styles.bannerSucesso}>
+              <MaterialIcons name="check-circle" size={18} color={cores.sucesso} />
+              <Text style={styles.textoBannerSucesso}>{mensagemSucesso}</Text>
+              <TouchableOpacity onPress={() => setMensagemSucesso('')} accessibilityLabel="Fechar aviso de sucesso">
+                <MaterialIcons name="close" size={18} color={cores.sucesso} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}
@@ -567,6 +588,33 @@ export function TelaUsuarios() {
               </View>
             </View>
           </Modal>
+
+          <ConfirmacaoModal
+            visivel={Boolean(usuarioParaAlternarAtivo)}
+            titulo={
+              usuarioParaAlternarAtivo
+                ? `Confirmar ${(usuarioParaAlternarAtivo.ativo ?? true) ? 'desativar' : 'ativar'}`
+                : 'Confirmar'
+            }
+            mensagem={
+              usuarioParaAlternarAtivo
+                ? `Deseja realmente ${(usuarioParaAlternarAtivo.ativo ?? true) ? 'desativar' : 'ativar'} o usuário "${usuarioParaAlternarAtivo.nome}"?`
+                : ''
+            }
+            textoConfirmar={
+              (usuarioParaAlternarAtivo?.ativo ?? true) ? 'Desativar' : 'Ativar'
+            }
+            variante={
+              (usuarioParaAlternarAtivo?.ativo ?? true) ? 'perigo' : 'primario'
+            }
+            carregando={processandoAtivo}
+            onConfirmar={handleConfirmarAlternarAtivo}
+            onCancelar={() => {
+              if (!processandoAtivo) {
+                setUsuarioParaAlternarAtivo(null);
+              }
+            }}
+          />
         </View>
       );
 
@@ -576,6 +624,42 @@ export function TelaUsuarios() {
 }
 
 const styles = StyleSheet.create({
+  bannerErro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: cores.erroSuave,
+    borderWidth: 1,
+    borderColor: cores.erroBorda,
+  },
+  textoBannerErro: {
+    flex: 1,
+    color: cores.erro,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bannerSucesso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: cores.sucessoSuave,
+    borderWidth: 1,
+    borderColor: cores.sucessoBorda,
+  },
+  textoBannerSucesso: {
+    flex: 1,
+    color: cores.sucesso,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   esquerdaCabecalho: {
     flexDirection: 'row',
     alignItems: 'center',

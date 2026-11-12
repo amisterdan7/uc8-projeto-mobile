@@ -23,7 +23,7 @@ import { extrairErrosCampos, registrarErro } from '../erros/erros';
 import { ErroDaApi } from '@/api';
 import { useSessao } from '@/auth';
 import { colunasPara, filtrarAlunos, formatarDataBR } from '@/utils';
-import { AlunoCard, AlunoForm, Carregando, EstadoVazio } from '@/components';
+import { AlunoCard, AlunoForm, Carregando, ConfirmacaoModal, EstadoVazio } from '@/components';
 import type { DadosSubmissaoAluno } from '@/components/AlunoForm';
 import { cores, espacos, foco, larguraLarga, raios } from '../tema/tema';
 import { estilosComuns } from '@/styles/comum';
@@ -62,6 +62,11 @@ export function TelaAlunos() {
   const [errosFormulario, setErrosFormulario] = useState<Record<string, string>>({});
   const [salvando, setSalvando] = useState(false);
   const [atualizando, setAtualizando] = useState(false);
+  const [alunoParaAlternarAtivo, setAlunoParaAlternarAtivo] = useState<Aluno | null>(null);
+  const [alunoParaExcluir, setAlunoParaExcluir] = useState<Aluno | null>(null);
+  const [processandoConfirmacao, setProcessandoConfirmacao] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState('');
+  const [mensagemSucesso, setMensagemSucesso] = useState('');
 
   const planosDisponiveis =
     estadoPlanos.tipo === 'pronto' ? estadoPlanos.dados : [];
@@ -166,62 +171,64 @@ export function TelaAlunos() {
   }
 
   function handleAlternarAtivo(aluno: Aluno) {
-    const novoStatus = !aluno.ativo;
-    const acaoTexto = novoStatus ? 'restaurar' : 'arquivar';
+    setMensagemErro('');
+    setMensagemSucesso('');
+    setAlunoParaAlternarAtivo(aluno);
+  }
 
-    Alert.alert(
-      `Confirmar ${acaoTexto}`,
-      `Deseja realmente ${acaoTexto} o aluno "${aluno.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: novoStatus ? 'Restaurar' : 'Arquivar',
-          style: novoStatus ? 'default' : 'destructive',
-          onPress: async () => {
-            try {
-              if (novoStatus) {
-                await restaurarAluno(aluno.id);
-              } else {
-                await arquivarAluno(aluno.id);
-              }
-            } catch {
-              Alert.alert('Erro', `Falha ao ${acaoTexto} aluno.`);
-            }
-          },
-        },
-      ]
-    );
+  async function handleConfirmarAlternarAtivo() {
+    if (!alunoParaAlternarAtivo) return;
+    const novoStatus = !alunoParaAlternarAtivo.ativo;
+    const acaoTexto = novoStatus ? 'restaurar' : 'arquivar';
+    setProcessandoConfirmacao(true);
+    setMensagemErro('');
+    setMensagemSucesso('');
+    try {
+      if (novoStatus) {
+        await restaurarAluno(alunoParaAlternarAtivo.id);
+        setMensagemSucesso('Aluno restaurado com sucesso.');
+      } else {
+        await arquivarAluno(alunoParaAlternarAtivo.id);
+        setMensagemSucesso('Aluno arquivado com sucesso.');
+      }
+      setAlunoParaAlternarAtivo(null);
+    } catch {
+      setAlunoParaAlternarAtivo(null);
+      setMensagemErro(`Falha ao ${acaoTexto} aluno.`);
+    } finally {
+      setProcessandoConfirmacao(false);
+    }
   }
 
   function handleExcluir(aluno: Aluno) {
-    Alert.alert(
-      'Excluir Aluno Definitivamente',
-      `A exclusão permanente só é possível para alunos sem histórico de matrículas. Deseja prosseguir com a exclusão de "${aluno.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir definitivamente',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await excluirAluno(aluno.id);
-              Alert.alert('Sucesso', 'Aluno excluído com sucesso.');
-            } catch (erro: unknown) {
-              if (erro instanceof ErroDaApi && erro.status === 409) {
-                Alert.alert(
-                  'Não é possível excluir',
-                  'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
-                );
-              } else {
-                const msg =
-                  erro instanceof Error ? erro.message : 'Falha ao excluir o aluno.';
-                Alert.alert('Erro', msg);
-              }
-            }
-          },
-        },
-      ]
-    );
+    setMensagemErro('');
+    setMensagemSucesso('');
+    setAlunoParaExcluir(aluno);
+  }
+
+  async function handleConfirmarExclusao() {
+    if (!alunoParaExcluir) return;
+    setProcessandoConfirmacao(true);
+    setMensagemErro('');
+    setMensagemSucesso('');
+    try {
+      await excluirAluno(alunoParaExcluir.id);
+      setAlunoParaExcluir(null);
+      setMensagemSucesso('Aluno excluído com sucesso.');
+    } catch (erro: unknown) {
+      setAlunoParaExcluir(null);
+      if (erro instanceof ErroDaApi && erro.status === 409) {
+        setMensagemErro(
+          'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
+        );
+      } else {
+        const msg =
+          erro instanceof Error ? erro.message : 'Falha ao excluir o aluno.';
+        setMensagemErro(msg);
+      }
+    } finally {
+      setProcessandoConfirmacao(false);
+    }
   }
 
   // Renderização por união discriminada (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
@@ -377,6 +384,26 @@ export function TelaAlunos() {
             ) : null}
           </View>
 
+          {mensagemErro ? (
+            <View style={styles.bannerErro}>
+              <MaterialIcons name="error-outline" size={18} color={cores.erro} />
+              <Text style={styles.textoBannerErro}>{mensagemErro}</Text>
+              <TouchableOpacity onPress={() => setMensagemErro('')} accessibilityLabel="Fechar aviso de erro">
+                <MaterialIcons name="close" size={18} color={cores.erro} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {mensagemSucesso ? (
+            <View style={styles.bannerSucesso}>
+              <MaterialIcons name="check-circle" size={18} color={cores.sucesso} />
+              <Text style={styles.textoBannerSucesso}>{mensagemSucesso}</Text>
+              <TouchableOpacity onPress={() => setMensagemSucesso('')} accessibilityLabel="Fechar aviso de sucesso">
+                <MaterialIcons name="close" size={18} color={cores.sucesso} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}
             data={alunosFiltrados}
@@ -466,6 +493,50 @@ export function TelaAlunos() {
               />
             </View>
           </Modal>
+
+          <ConfirmacaoModal
+            visivel={Boolean(alunoParaAlternarAtivo)}
+            titulo={
+              alunoParaAlternarAtivo
+                ? `Confirmar ${alunoParaAlternarAtivo.ativo ? 'arquivar' : 'restaurar'}`
+                : 'Confirmar'
+            }
+            mensagem={
+              alunoParaAlternarAtivo
+                ? `Deseja realmente ${alunoParaAlternarAtivo.ativo ? 'arquivar' : 'restaurar'} o aluno "${alunoParaAlternarAtivo.nome}"?`
+                : ''
+            }
+            textoConfirmar={
+              alunoParaAlternarAtivo?.ativo ? 'Arquivar' : 'Restaurar'
+            }
+            variante={alunoParaAlternarAtivo?.ativo ? 'perigo' : 'primario'}
+            carregando={processandoConfirmacao}
+            onConfirmar={handleConfirmarAlternarAtivo}
+            onCancelar={() => {
+              if (!processandoConfirmacao) {
+                setAlunoParaAlternarAtivo(null);
+              }
+            }}
+          />
+
+          <ConfirmacaoModal
+            visivel={Boolean(alunoParaExcluir)}
+            titulo="Excluir Aluno Definitivamente"
+            mensagem={
+              alunoParaExcluir
+                ? `A exclusão permanente só é possível para alunos sem histórico de matrículas. Deseja prosseguir com a exclusão de "${alunoParaExcluir.nome}"?`
+                : ''
+            }
+            textoConfirmar="Excluir definitivamente"
+            variante="perigo"
+            carregando={processandoConfirmacao}
+            onConfirmar={handleConfirmarExclusao}
+            onCancelar={() => {
+              if (!processandoConfirmacao) {
+                setAlunoParaExcluir(null);
+              }
+            }}
+          />
         </View>
       );
     }
@@ -476,6 +547,42 @@ export function TelaAlunos() {
 }
 
 const styles = StyleSheet.create({
+  bannerErro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: espacos.md,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: cores.erroSuave,
+    borderWidth: 1,
+    borderColor: cores.erroBorda,
+  },
+  textoBannerErro: {
+    flex: 1,
+    color: cores.erro,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bannerSucesso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: espacos.md,
+    marginTop: 8,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: cores.sucessoSuave,
+    borderWidth: 1,
+    borderColor: cores.sucessoBorda,
+  },
+  textoBannerSucesso: {
+    flex: 1,
+    color: cores.sucesso,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   linhaColunas: {
     gap: 12,
   },

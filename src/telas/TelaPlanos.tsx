@@ -20,7 +20,7 @@ import { useSessao } from '@/auth';
 import { semCaso } from '@/types/estadoTela';
 import { colunasPara } from '@/utils/responsividade';
 import { formatarMoedaBRL } from '@/utils/moeda';
-import { Campo, Carregando, EstadoErro, EstadoVazio } from '@/components';
+import { Campo, Carregando, ConfirmacaoModal, EstadoErro, EstadoVazio } from '@/components';
 import { ErroDaApi } from '@/api/cliente';
 import { extrairErrosCampos, registrarErro } from '@/erros';
 import type { Plano, RecursoPlano } from '@/types/entidades';
@@ -53,6 +53,10 @@ export function TelaPlanos() {
   const [novoRecursoTexto, setNovoRecursoTexto] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [errosFormulario, setErrosFormulario] = useState<Record<string, string>>({});
+  const [planoParaExcluir, setPlanoParaExcluir] = useState<Plano | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const [mensagemErro, setMensagemErro] = useState('');
+  const [mensagemSucesso, setMensagemSucesso] = useState('');
 
   async function handlePullToRefresh() {
     setAtualizando(true);
@@ -145,12 +149,14 @@ export function TelaPlanos() {
     };
 
     try {
+      setMensagemErro('');
+      setMensagemSucesso('');
       if (planoEmEdicao) {
         await atualizarPlano(planoEmEdicao.id, payload);
-        Alert.alert('Sucesso', 'Plano atualizado com sucesso.');
+        setMensagemSucesso('Plano atualizado com sucesso.');
       } else {
         await criarPlano(payload);
-        Alert.alert('Sucesso', 'Plano criado com sucesso.');
+        setMensagemSucesso('Plano criado com sucesso.');
       }
       setModalVisivel(false);
       setPlanoEmEdicao(null);
@@ -160,6 +166,7 @@ export function TelaPlanos() {
         Alert.alert('Dados inválidos', 'Verifique os campos destacados.');
       } else {
         const msg = falha instanceof Error ? falha.message : 'Falha ao salvar plano.';
+        setMensagemErro(msg);
         Alert.alert('Erro', msg);
       }
     } finally {
@@ -168,30 +175,31 @@ export function TelaPlanos() {
   }
 
   function handleExcluir(item: Plano) {
-    Alert.alert(
-      'Excluir Plano',
-      `Deseja realmente excluir o plano "${item.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await excluirPlano(item.id);
-              Alert.alert('Sucesso', 'Plano excluído com sucesso.');
-            } catch (falha: unknown) {
-              if (falha instanceof ErroDaApi && falha.status === 409) {
-                Alert.alert('Não foi possível excluir', 'Existem matrículas neste plano.');
-              } else {
-                const msg = falha instanceof Error ? falha.message : 'Falha ao excluir plano.';
-                Alert.alert('Erro', msg);
-              }
-            }
-          },
-        },
-      ]
-    );
+    setMensagemErro('');
+    setMensagemSucesso('');
+    setPlanoParaExcluir(item);
+  }
+
+  async function handleConfirmarExclusao() {
+    if (!planoParaExcluir) return;
+    setExcluindo(true);
+    setMensagemErro('');
+    setMensagemSucesso('');
+    try {
+      await excluirPlano(planoParaExcluir.id);
+      setPlanoParaExcluir(null);
+      setMensagemSucesso('Plano excluído com sucesso.');
+    } catch (falha: unknown) {
+      setPlanoParaExcluir(null);
+      if (falha instanceof ErroDaApi && falha.status === 409) {
+        setMensagemErro('Não é possível excluir: existem matrículas neste plano.');
+      } else {
+        const msg = falha instanceof Error ? falha.message : 'Falha ao excluir plano.';
+        setMensagemErro(msg);
+      }
+    } finally {
+      setExcluindo(false);
+    }
   }
 
   // Renderizacao atraves de uniao discriminada e switch exaustivo (tipo: 'carregando' | tipo: 'erro' | tipo: 'pronto')
@@ -249,6 +257,26 @@ export function TelaPlanos() {
               </TouchableOpacity>
             ) : null}
           </View>
+
+          {mensagemErro ? (
+            <View style={styles.bannerErro}>
+              <MaterialIcons name="error-outline" size={18} color={cores.erro} />
+              <Text style={styles.textoBannerErro}>{mensagemErro}</Text>
+              <TouchableOpacity onPress={() => setMensagemErro('')} accessibilityLabel="Fechar aviso de erro">
+                <MaterialIcons name="close" size={18} color={cores.erro} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {mensagemSucesso ? (
+            <View style={styles.bannerSucesso}>
+              <MaterialIcons name="check-circle" size={18} color={cores.sucesso} />
+              <Text style={styles.textoBannerSucesso}>{mensagemSucesso}</Text>
+              <TouchableOpacity onPress={() => setMensagemSucesso('')} accessibilityLabel="Fechar aviso de sucesso">
+                <MaterialIcons name="close" size={18} color={cores.sucesso} />
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <FlatList
             key={duasColunas ? 'duas' : 'uma'}
@@ -511,6 +539,25 @@ export function TelaPlanos() {
               </ScrollView>
             </View>
           </Modal>
+
+          <ConfirmacaoModal
+            visivel={Boolean(planoParaExcluir)}
+            titulo="Excluir Plano"
+            mensagem={
+              planoParaExcluir
+                ? `Deseja realmente excluir o plano "${planoParaExcluir.nome}"?`
+                : ''
+            }
+            textoConfirmar="Excluir"
+            variante="perigo"
+            carregando={excluindo}
+            onConfirmar={handleConfirmarExclusao}
+            onCancelar={() => {
+              if (!excluindo) {
+                setPlanoParaExcluir(null);
+              }
+            }}
+          />
         </View>
       );
 
@@ -520,6 +567,42 @@ export function TelaPlanos() {
 }
 
 const styles = StyleSheet.create({
+  bannerErro: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: espacos.md,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: cores.erroSuave,
+    borderWidth: 1,
+    borderColor: cores.erroBorda,
+  },
+  textoBannerErro: {
+    flex: 1,
+    color: cores.erro,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bannerSucesso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: espacos.md,
+    marginTop: 12,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: cores.sucessoSuave,
+    borderWidth: 1,
+    borderColor: cores.sucessoBorda,
+  },
+  textoBannerSucesso: {
+    flex: 1,
+    color: cores.sucesso,
+    fontSize: 13,
+    fontWeight: '600',
+  },
   linhaColunas: {
     gap: 12,
   },

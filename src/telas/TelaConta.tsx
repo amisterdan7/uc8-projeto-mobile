@@ -17,7 +17,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useSessao } from '@/auth';
 import { useAcademia } from '@/contexto';
 import type { NavegacaoAppProp } from '@/navegacao/tipos';
-import { Campo, Selo } from '@/components';
+import { Campo, ConfirmacaoModal, Selo } from '@/components';
 import { ErroDaApi } from '@/api/cliente';
 import {
   extrairErrosCampos,
@@ -54,6 +54,7 @@ export function TelaConta() {
   const [eventos, setEventos] = useState<ReadonlyArray<EventoErro>>(() =>
     obterEventosErro()
   );
+  const [modalSaidaVisivel, setModalSaidaVisivel] = useState(false);
 
   const nomeApp = Constants.expoConfig?.name ?? 'Academia MisterFit';
   const versaoApp = Constants.expoConfig?.version ?? '1.0.0';
@@ -75,18 +76,7 @@ export function TelaConta() {
   }
 
   function handleConfirmarSaida() {
-    Alert.alert(
-      'Encerrar Sessão',
-      'Deseja realmente sair da sua conta?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sair',
-          style: 'destructive',
-          onPress: () => sair(),
-        },
-      ]
-    );
+    setModalSaidaVisivel(true);
   }
 
   function limparErros() {
@@ -477,6 +467,19 @@ export function TelaConta() {
           <Text style={styles.textoBotaoSair}>Sair</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <ConfirmacaoModal
+        visivel={modalSaidaVisivel}
+        titulo="Encerrar Sessão"
+        mensagem="Deseja realmente sair da sua conta?"
+        textoConfirmar="Sair"
+        variante="perigo"
+        onConfirmar={() => {
+          setModalSaidaVisivel(false);
+          sair();
+        }}
+        onCancelar={() => setModalSaidaVisivel(false)}
+      />
     </View>
   );
 }

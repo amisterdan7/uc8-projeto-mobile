@@ -249,60 +249,67 @@ export function TelaDetalheAluno() {
     const novoStatus = !aluno.ativo;
     const acaoTexto = novoStatus ? 'restaurar' : 'arquivar';
 
-    Alert.alert(
-      `Confirmar ${acaoTexto}`,
-      `Deseja realmente ${acaoTexto} o aluno "${aluno.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: novoStatus ? 'Restaurar' : 'Arquivar',
-          style: novoStatus ? 'default' : 'destructive',
-          onPress: async () => {
-            try {
-              if (novoStatus) {
-                await restaurarAluno(aluno.id);
-              } else {
-                await arquivarAluno(aluno.id);
-              }
-            } catch {
-              Alert.alert('Erro', `Falha ao ${acaoTexto} aluno.`);
-            }
-          },
-        },
-      ]
-    );
+    setMensagemErroMatricula('');
+    setMensagemSucessoMatricula('');
+    setModalConfirmacaoMatricula({
+      visivel: true,
+      titulo: `Confirmar ${acaoTexto}`,
+      mensagem: `Deseja realmente ${acaoTexto} o aluno "${aluno.nome}"?`,
+      textoConfirmar: novoStatus ? 'Restaurar' : 'Arquivar',
+      variante: novoStatus ? 'primario' : 'perigo',
+      onConfirmar: async () => {
+        setProcessandoMatricula(true);
+        try {
+          if (novoStatus) {
+            await restaurarAluno(aluno.id);
+            setMensagemSucessoMatricula('Aluno restaurado com sucesso.');
+          } else {
+            await arquivarAluno(aluno.id);
+            setMensagemSucessoMatricula('Aluno arquivado com sucesso.');
+          }
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+        } catch {
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          setMensagemErroMatricula(`Falha ao ${acaoTexto} aluno.`);
+        } finally {
+          setProcessandoMatricula(false);
+        }
+      },
+    });
   }
 
   function handleExcluir() {
     if (!aluno) return;
-    Alert.alert(
-      'Excluir Aluno Definitivamente',
-      `A exclusão permanente só é possível para alunos sem histórico de matrículas. Deseja prosseguir com a exclusão de "${aluno.nome}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Excluir definitivamente',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await excluirAluno(aluno.id);
-              navigation.goBack();
-            } catch (erro: unknown) {
-              if (erro instanceof ErroDaApi && erro.status === 409) {
-                Alert.alert(
-                  'Não é possível excluir',
-                  'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
-                );
-              } else {
-                const msg =
-                  erro instanceof Error ? erro.message : 'Falha ao excluir o aluno.';
-                Alert.alert('Erro', msg);
-              }
-            }
-          },
-        },
-      ]
-    );
+    setMensagemErroMatricula('');
+    setMensagemSucessoMatricula('');
+    setModalConfirmacaoMatricula({
+      visivel: true,
+      titulo: 'Excluir Aluno Definitivamente',
+      mensagem: `A exclusão permanente só é possível para alunos sem histórico de matrículas. Deseja prosseguir com a exclusão de "${aluno.nome}"?`,
+      textoConfirmar: 'Excluir definitivamente',
+      variante: 'perigo',
+      onConfirmar: async () => {
+        setProcessandoMatricula(true);
+        try {
+          await excluirAluno(aluno.id);
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          navigation.goBack();
+        } catch (erro: unknown) {
+          setModalConfirmacaoMatricula((prev) => ({ ...prev, visivel: false }));
+          if (erro instanceof ErroDaApi && erro.status === 409) {
+            setMensagemErroMatricula(
+              'Este aluno tem histórico de matrículas. Arquive em vez de excluir.'
+            );
+          } else {
+            const msg =
+              erro instanceof Error ? erro.message : 'Falha ao excluir o aluno.';
+            setMensagemErroMatricula(msg);
+          }
+        } finally {
+          setProcessandoMatricula(false);
+        }
+      },
+    });
   }
 
   const rotuloVencimento =
