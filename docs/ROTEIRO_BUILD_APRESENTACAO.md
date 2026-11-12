@@ -3,7 +3,7 @@
 Este roteiro deve ser executado **pelo dono do projeto** diretamente no terminal local, utilizando a CLI do EAS.
 Nenhuma chave secreta ou publishable key deve ser salva em arquivos, commits ou colada no chat.
 
-**Commit de referência:** `96787c8` (`app.json` versão `1.0.1`)
+**Commit de referência:** `83afbad` (`app.json` versão `1.0.1`)
 
 ---
 
