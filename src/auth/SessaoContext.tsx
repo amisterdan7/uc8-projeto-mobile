@@ -17,6 +17,7 @@ import {
   registrarCallbackSemPermissao,
 } from '@/api';
 import { registrarErro } from '@/erros';
+import { decidirAoFalharSessao } from '@/utils/sessao';
 import {
   obterTokenArmazenado,
   removerTokenArmazenado,
@@ -27,10 +28,12 @@ export interface ContextoSessaoData {
   usuario: Usuario | null;
   permissoes: string[];
   carregando: boolean;
+  erroRestauracao: string | null;
   entrar: (login: string, senha: string) => Promise<void>;
   sair: () => Promise<void>;
   podeFazer: (acao: string) => boolean;
   recarregarPermissoes: () => Promise<void>;
+  restaurarSessao: () => Promise<void>;
 }
 
 const SessaoContext = createContext<ContextoSessaoData>({} as ContextoSessaoData);
@@ -39,6 +42,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [permissoes, setPermissoes] = useState<string[]>([]);
   const [carregando, setCarregando] = useState<boolean>(true);
+  const [erroRestauracao, setErroRestauracao] = useState<string | null>(null);
   const ultimoFocoRef = useRef(Date.now());
 
   const sair = useCallback(async () => {
@@ -50,6 +54,7 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     }
     setUsuario(null);
     setPermissoes([]);
+    setErroRestauracao(null);
   }, []);
 
   const tratarSessaoExpirada = useCallback(async () => {
@@ -71,15 +76,17 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
       setPermissoes(respostaEu.permissoes ?? []);
     } catch (e: unknown) {
       registrarErro('SessaoContext.recarregarPermissoes', e);
-      try {
-        await sair();
-      } catch (errSair: unknown) {
-        registrarErro('SessaoContext.recarregarPermissoes.sair', errSair);
+      if (decidirAoFalharSessao(e) === 'limpar') {
+        try {
+          await sair();
+        } catch (errSair: unknown) {
+          registrarErro('SessaoContext.recarregarPermissoes.sair', errSair);
+        }
+        Alert.alert(
+          'Sessão encerrada',
+          'Sua sessão não pôde ser revalidada no servidor. Faça login novamente.'
+        );
       }
-      Alert.alert(
-        'Sessão encerrada',
-        'Sua sessão não pôde ser revalidada no servidor. Faça login novamente.'
-      );
     }
   }, [sair]);
 
@@ -119,59 +126,54 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
     };
   }, [usuario, recarregarPermissoes]);
 
-  // Carrega sessão ao inicializar o app
-  useEffect(() => {
-    let ativo = true;
+  const restaurarSessao = useCallback(async () => {
+    setCarregando(true);
+    setErroRestauracao(null);
+    try {
+      const tokenSalvo = await obterTokenArmazenado();
+      if (!tokenSalvo) {
+        return;
+      }
 
-    async function restaurarSessao() {
-      try {
-        const tokenSalvo = await obterTokenArmazenado();
-        if (!tokenSalvo) {
-          if (ativo) setCarregando(false);
-          return;
-        }
+      definirTokenApi(tokenSalvo);
+      const respostaEu = await obterDadosUsuarioLogado();
 
-        definirTokenApi(tokenSalvo);
-        const respostaEu = await obterDadosUsuarioLogado();
-
-        if (ativo) {
-          setUsuario(mapearUsuario(respostaEu.usuario));
-          setPermissoes(respostaEu.permissoes ?? []);
-        }
-      } catch (e: unknown) {
-        // Token inválido, expirado ou erro de rede inicial
-        registrarErro('SessaoContext.restaurarSessao', e);
+      setUsuario(mapearUsuario(respostaEu.usuario));
+      setPermissoes(respostaEu.permissoes ?? []);
+    } catch (e: unknown) {
+      registrarErro('SessaoContext.restaurarSessao', e);
+      if (decidirAoFalharSessao(e) === 'limpar') {
         definirTokenApi(null);
         try {
           await removerTokenArmazenado();
         } catch (errRemover: unknown) {
           registrarErro('SessaoContext.removerTokenArmazenado', errRemover);
         }
-        if (ativo) {
-          setUsuario(null);
-          setPermissoes([]);
-        }
-      } finally {
-        if (ativo) {
-          setCarregando(false);
-        }
+        setUsuario(null);
+        setPermissoes([]);
+      } else {
+        setUsuario(null);
+        setPermissoes([]);
+        setErroRestauracao('Sem conexão com o servidor. Tente de novo.');
       }
+    } finally {
+      setCarregando(false);
     }
+  }, []);
 
+  // Carrega sessão ao inicializar o app
+  useEffect(() => {
     restaurarSessao().catch((e: unknown) => {
       registrarErro('SessaoContext.restaurarSessaoInvocacao', e);
     });
-
-    return () => {
-      ativo = false;
-    };
-  }, []);
+  }, [restaurarSessao]);
 
   const entrar = useCallback(async (login: string, senha: string) => {
     const resposta = await autenticarUsuario(login, senha);
     definirTokenApi(resposta.token);
     await salvarTokenArmazenado(resposta.token);
 
+    setErroRestauracao(null);
     setUsuario(mapearUsuario(resposta.usuario));
     setPermissoes(resposta.permissoes ?? []);
   }, []);
@@ -195,10 +197,12 @@ export function SessaoProvider({ children }: { children: React.ReactNode }) {
         usuario,
         permissoes,
         carregando,
+        erroRestauracao,
         entrar,
         sair,
         podeFazer,
         recarregarPermissoes,
+        restaurarSessao,
       }}
     >
       {children}

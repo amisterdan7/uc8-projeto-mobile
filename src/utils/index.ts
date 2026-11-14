@@ -5,3 +5,4 @@ export * from './responsividade';
 export * from './filtroAlunos';
 export * from './matriculas';
 export * from './urlApi';
+export * from './sessao';

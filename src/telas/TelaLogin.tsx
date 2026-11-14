@@ -21,7 +21,7 @@ import { estilosComuns } from '@/styles/comum';
 
 export function TelaLogin() {
   const insets = useSafeAreaInsets();
-  const { entrar } = useSessao();
+  const { entrar, erroRestauracao, restaurarSessao } = useSessao();
 
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
@@ -95,6 +95,35 @@ export function TelaLogin() {
         </View>
 
         <View style={styles.cartaoFormulario}>
+          {erroRestauracao ? (
+            <View style={styles.caixaSemConexao}>
+              <View style={styles.linhaSemConexao}>
+                <MaterialIcons
+                  name="wifi-off"
+                  size={18}
+                  color={cores.erro}
+                />
+                <Text style={styles.textoErro}>{erroRestauracao}</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.botaoTentarNovamente}
+                onPress={() => {
+                  restaurarSessao().catch((e: unknown) => {
+                    registrarErro('TelaLogin.tentarRestaurarSessao', e);
+                  });
+                }}
+                disabled={carregando}
+                accessibilityRole="button"
+                accessibilityLabel="Tentar de novo"
+              >
+                <MaterialIcons name="refresh" size={16} color={cores.texto} />
+                <Text style={styles.textoBotaoTentarNovamente}>
+                  Tentar de novo
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <Campo
             rotulo="Usuário"
             obrigatorio
@@ -199,6 +228,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: cores.borda,
     gap: 12,
+  },
+  caixaSemConexao: {
+    gap: espacos.sm,
+    backgroundColor: cores.erroSuave,
+    borderWidth: 1,
+    borderColor: cores.erroBorda,
+    borderRadius: raios.md,
+    padding: 12,
+    marginBottom: espacos.xs,
+  },
+  linhaSemConexao: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: espacos.sm,
+  },
+  botaoTentarNovamente: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: cores.primaria,
+    borderRadius: raios.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    alignSelf: 'flex-start',
+  },
+  textoBotaoTentarNovamente: {
+    color: cores.texto,
+    fontSize: 13,
+    fontWeight: 'bold',
   },
   caixaErro: {
     flexDirection: 'row',
