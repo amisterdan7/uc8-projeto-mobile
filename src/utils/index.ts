@@ -4,3 +4,4 @@ export * from './moeda';
 export * from './responsividade';
 export * from './filtroAlunos';
 export * from './matriculas';
+export * from './urlApi';

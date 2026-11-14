@@ -10,6 +10,7 @@ import { AcademiaProvedor } from '@/contexto';
 import { NavegadorPrincipal } from '@/navegacao';
 import { PlanosProvedor } from './src/contexto/PlanosContexto';
 import { NavegadorPlanos } from './src/navegacao/NavegadorPlanos';
+import { ehEnderecoLocal, MENSAGEM_ENDERECO_LOCAL } from '@/utils/urlApi';
 import { cores, espacos, foco } from '@/tema/tema';
 
 const temaNavegacao: Theme = {
@@ -76,6 +77,24 @@ export default function App() {
           <Text style={estilosErroConfig.titulo}>Configuração Pendente</Text>
           <Text style={estilosErroConfig.mensagem}>
             A variável de ambiente EXPO_PUBLIC_API_URL não foi configurada.
+          </Text>
+          <Text style={estilosErroConfig.detalhe}>
+            Crie o arquivo .env.local a partir de .env.example e defina o endereço da API v1 para executar o aplicativo no Modo Equipe.
+          </Text>
+        </View>
+      </SafeAreaProvider>
+    );
+  }
+
+  if (Platform.OS !== 'web' && ehEnderecoLocal(urlApi)) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <View style={estilosErroConfig.container}>
+          <MaterialIcons name="settings" size={56} color={cores.primaria} />
+          <Text style={estilosErroConfig.titulo}>Configuração Pendente</Text>
+          <Text style={estilosErroConfig.mensagem}>
+            {MENSAGEM_ENDERECO_LOCAL}
           </Text>
           <Text style={estilosErroConfig.detalhe}>
             Crie o arquivo .env.local a partir de .env.example e defina o endereço da API v1 para executar o aplicativo no Modo Equipe.
