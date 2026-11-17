@@ -27,6 +27,8 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "api": "https://github.com/amisterdan7/academia-fit-api.git",
+    
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",

@@ -4,7 +4,11 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "env": {
+    "EXPO_PUBLIC_API_URL": "https://academia-fit-api-hw5e.onrender.com",
+    "EXPO_PUBLIC_MODO": "api"
+  }
     },
     "production": {
       "android": {
